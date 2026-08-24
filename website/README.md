@@ -14,7 +14,7 @@ GoHighLevel and Resend.
 
 - **React 18 + Vite + Tailwind CSS** (compiled at build time — no CDN scripts)
 - **Cloudflare Worker** ([`worker/index.ts`](./worker/index.ts)) serving:
-  - `POST /api/contact` — franchise & careers forms → Resend email + HR GHL sub-account sync
+  - `POST /api/contact` — careers forms → HR & Recruitment GHL sub-account; franchise enquiries → main GHL account (tag: "Franchise Enquiry"); optional Resend email on top
   - `POST /api/waitlist` — taster/waitlist leads → GHL CRM (Oxford uses its dedicated inbound webhook)
   - `GET /go/:slug` — QR-code short links for printed banners/flyers (adds UTM tags)
   - `GET /api/health` — config check
@@ -37,10 +37,14 @@ One-time setup:
 
 ```bash
 npx wrangler login                          # sign in to Cloudflare
-npx wrangler secret put RESEND_API_KEY      # email notifications
-npx wrangler secret put GHL_API_KEY         # main GHL account (waitlist leads)
-npx wrangler secret put GHL_HR_WEBHOOK_URL  # HR & Recruitment sub-account
+npx wrangler secret put GHL_API_KEY         # main GHL account (waitlist + franchise leads)
+npx wrangler secret put GHL_HR_WEBHOOK_URL  # HR & Recruitment sub-account (careers)
+npx wrangler secret put RESEND_API_KEY      # OPTIONAL: email notifications
 ```
+
+(Or set the same values in the dashboard: **Worker → Settings → Variables and
+Secrets**. When the Worker is deployed via Workers Builds / Git integration,
+the dashboard is the natural place.)
 
 Then every deploy is:
 
@@ -59,13 +63,14 @@ This builds the site and publishes it to
    add custom domains `www.hoopheroes.co.uk` and `hoopheroes.co.uk`.
 3. Done — SSL certificates are issued automatically.
 
-### Resend domain
+### Email notifications (optional)
 
-Emails send from `no-reply@notifications.hoopheroes.co.uk`. The
-`notifications.hoopheroes.co.uk` domain must be verified in the
-[Resend dashboard](https://resend.com/domains) (it was already verified for the
-old site; if you created a fresh Resend account, re-add the DNS records it
-gives you).
+All form submissions land in GHL, so email pings are best configured as GHL
+workflows (e.g. "tag `Franchise Enquiry` added → notify Jamie"). If Resend
+email is wanted as well, set `RESEND_API_KEY` and verify
+`notifications.hoopheroes.co.uk` in the [Resend dashboard](https://resend.com/domains);
+emails send from `no-reply@notifications.hoopheroes.co.uk`. Without the key,
+the Worker simply skips the email step.
 
 ## Updating content
 

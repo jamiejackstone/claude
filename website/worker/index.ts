@@ -66,22 +66,52 @@ async function sendResendEmail(env: Env, payload: {
   return { ok: true };
 }
 
-// POST /api/contact — Franchise enquiries & coaching applications
+// Create a contact via the GHL v1 REST API. Returns true on success.
+async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
+  const response = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    console.error(`[${label}] GHL API Error:`, response.status, await response.text());
+    return false;
+  }
+  return true;
+}
+
+// POST /api/contact — Franchise enquiries & coaching applications.
+// Leads land in GHL (the system of record); Resend email is an optional extra
+// that only runs when RESEND_API_KEY is configured.
 async function handleContact(request: Request, env: Env): Promise<Response> {
   const { type, name, email, phone, location, about, role } = await request.json() as Record<string, string>;
 
-  if (!env.RESEND_API_KEY) {
-    console.error('RESEND_API_KEY is not configured');
-    return json({
-      error: 'Email Service Configuration Error',
-      details: 'RESEND_API_KEY is missing. Set it with: wrangler secret put RESEND_API_KEY',
-    }, 500);
-  }
-
   let subject = '';
   let html = '';
+  let delivered = false;
 
   if (type === 'franchise') {
+    if (!env.GHL_API_KEY) {
+      return json({
+        error: 'CRM Configuration Error',
+        details: 'GHL_API_KEY is missing. Set it in the Worker settings.',
+      }, 500);
+    }
+
+    const { firstName, lastName } = splitName(name);
+    delivered = await createGhlContact(env.GHL_API_KEY, {
+      firstName,
+      lastName,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: normalizePhone(phone),
+      tags: ['Franchise Enquiry', 'Source: Website Franchise Form'],
+      source: location || 'Website Franchise Page',
+    }, 'Franchise');
+
     subject = `New Franchise Enquiry: ${name}`;
     html = `
       <h1>New Franchise Enquiry</h1>
@@ -91,6 +121,43 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       <p><strong>Source:</strong> ${escapeHtml(location || 'Franchise Page')}</p>
     `;
   } else if (type === 'careers') {
+    // Coaching applications go to the HR & Recruitment GHL sub-account
+    const { firstName, lastName } = splitName(name);
+    const careerPayload = {
+      firstName,
+      lastName,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: normalizePhone(phone),
+      tags: ['coach', 'recruitment', role.toLowerCase().replace(/\s+/g, '_'), role],
+      source: 'Website HR & Recruitment Form',
+      notes: about,
+      nearest_hh_location: location,
+      role_applied: role,
+      sub_account: 'HR & Recruitment',
+    };
+
+    const HR_WEBHOOK_URL = env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL;
+
+    if (HR_WEBHOOK_URL) {
+      const webhookResponse = await fetch(HR_WEBHOOK_URL, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify(careerPayload),
+      });
+      delivered = webhookResponse.ok;
+      if (!webhookResponse.ok) {
+        console.error('[HR Sub-Account Webhook] Error:', webhookResponse.status, await webhookResponse.text());
+      }
+    } else if (env.GHL_HR_API_KEY) {
+      delivered = await createGhlContact(env.GHL_HR_API_KEY, careerPayload, 'HR Sub-Account');
+    } else {
+      return json({
+        error: 'CRM Configuration Error',
+        details: 'GHL_HR_WEBHOOK_URL or GHL_HR_API_KEY is missing. Set one in the Worker settings.',
+      }, 500);
+    }
+
     subject = `New Careers Application: ${role} - ${name}`;
     html = `
       <h1>New Careers Application</h1>
@@ -102,62 +169,22 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       <p><strong>About:</strong></p>
       <p>${escapeHtml(about)}</p>
     `;
-
-    // Sync coaching applications to the HR & Recruitment GHL sub-account
-    try {
-      const { firstName, lastName } = splitName(name);
-      const careerPayload = {
-        firstName,
-        lastName,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: normalizePhone(phone),
-        tags: ['coach', 'recruitment', role.toLowerCase().replace(/\s+/g, '_'), role],
-        source: 'Website HR & Recruitment Form',
-        notes: about,
-        nearest_hh_location: location,
-        role_applied: role,
-        sub_account: 'HR & Recruitment',
-      };
-
-      const HR_WEBHOOK_URL = env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL;
-
-      if (HR_WEBHOOK_URL) {
-        const webhookResponse = await fetch(HR_WEBHOOK_URL, {
-          method: 'POST',
-          headers: JSON_HEADERS,
-          body: JSON.stringify(careerPayload),
-        });
-        if (!webhookResponse.ok) {
-          console.error('[HR Sub-Account Webhook] Error:', webhookResponse.status, await webhookResponse.text());
-        }
-      } else if (env.GHL_HR_API_KEY) {
-        const ghlResponse = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${env.GHL_HR_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(careerPayload),
-        });
-        if (!ghlResponse.ok) {
-          console.error('[HR Sub-Account API] Error:', ghlResponse.status, await ghlResponse.text());
-        }
-      } else {
-        console.log('[HR Sub-Account] No GHL_HR_WEBHOOK_URL or GHL_HR_API_KEY set. Application delivered via email only.');
-      }
-    } catch (ghlErr) {
-      console.error('[HR Sub-Account] Sync error:', ghlErr);
-    }
   } else {
     return json({ error: 'Invalid enquiry type' }, 400);
   }
 
-  const toEmail = type === 'franchise' ? 'franchise@hoopheroes.co.uk' : 'careers@hoopheroes.co.uk';
-  const result = await sendResendEmail(env, { to: toEmail, subject, html, replyTo: email });
+  // Optional email notification — never fails the submission if it errors
+  if (env.RESEND_API_KEY) {
+    const toEmail = type === 'franchise' ? 'franchise@hoopheroes.co.uk' : 'careers@hoopheroes.co.uk';
+    try {
+      await sendResendEmail(env, { to: toEmail, subject, html, replyTo: email });
+    } catch (emailErr) {
+      console.error('Resend email error:', emailErr);
+    }
+  }
 
-  if (!result.ok) {
-    return json({ error: 'Email delivery failed', details: result.error }, 400);
+  if (!delivered) {
+    return json({ error: 'Failed to submit to CRM' }, 502);
   }
   return json({ success: true });
 }
@@ -267,8 +294,9 @@ export default {
       if (url.pathname === '/api/health') {
         return json({
           status: 'ok',
-          resendConfigured: !!env.RESEND_API_KEY,
           ghlConfigured: !!env.GHL_API_KEY,
+          ghlHrConfigured: !!(env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL || env.GHL_HR_API_KEY),
+          resendConfigured: !!env.RESEND_API_KEY,
         });
       }
 
