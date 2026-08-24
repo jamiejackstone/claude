@@ -5,7 +5,6 @@ import { Footer } from './components/Footer';
 import { CookieConsent } from './components/CookieConsent';
 import { Home } from './pages/Home';
 import { LocationMicrosite } from './pages/LocationMicrosite';
-import { Franchise } from './pages/Franchise';
 import { Careers } from './pages/Careers';
 import { Policies } from './pages/Policies';
 import { Mission } from './pages/Mission';
@@ -88,7 +87,7 @@ const HashToPathRedirect: React.FC = () => {
           '/sandhurst': '/location/sandhurst',
 
           '/mission': '/mission',
-          '/franchise': '/franchise',
+          '/franchise': '/',
           '/careers': '/careers',
           '/3x3-gameday': '/3x3-gameday',
           '/policies': '/policies',
@@ -167,7 +166,7 @@ const App: React.FC = () => {
                 <Route path="/crowthorne" element={<Navigate to="/" replace />} />
 
                 <Route path="/mission" element={<Mission />} />
-                <Route path="/franchise" element={<Franchise />} />
+                <Route path="/franchise" element={<Navigate to="/" replace />} />
                 <Route path="/careers" element={<Careers />} />
                 <Route path="/policies" element={<Policies />} />
                 <Route path="/accident" element={<AccidentReport />} />

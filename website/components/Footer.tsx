@@ -52,7 +52,6 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3 text-slate-300 text-sm">
               <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
               <li><Link to="/mission" className="hover:text-white transition-colors">Our Mission</Link></li>
-              <li><Link to="/franchise" className="hover:text-white transition-colors">Franchise With Us</Link></li>
               <li><Link to="/careers" className="hover:text-white transition-colors">Careers & Coaching</Link></li>
               <li><Link to="/3x3-gameday" className="hover:text-white transition-colors">3x3 Gameday</Link></li>
               <li><a href="https://clubs.coreteamwear.co.uk/hoop-heroes" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Online Store</a></li>

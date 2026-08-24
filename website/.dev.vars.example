@@ -2,13 +2,15 @@
 # In production these are set as Worker secrets (dashboard: Worker → Settings →
 # Variables and Secrets, or `npx wrangler secret put <NAME>`).
 
-# Main GHL account — waitlist/taster leads AND franchise enquiries
+# Hoop Heroes HR GHL sub-account — careers/coaching applications (set ONE of these)
+GHL_HR_API_KEY=
+GHL_HR_WEBHOOK_URL=
+
+# Main Hoop Heroes GHL sub-account — only used by the waitlist form on
+# "opening soon" location pages. No location is currently flagged opening
+# soon, so this can wait until the next new-location launch.
 GHL_API_KEY=
 
-# HR & Recruitment GHL sub-account — coaching applications (set ONE of these)
-GHL_HR_WEBHOOK_URL=
-GHL_HR_API_KEY=
-
 # OPTIONAL: email notifications via Resend. Leave empty to skip emails —
-# everything still lands in GHL, which can send its own notifications.
+# everything lands in GHL, which can send its own notifications.
 RESEND_API_KEY=

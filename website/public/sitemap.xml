@@ -18,11 +18,6 @@
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://www.hoopheroes.co.uk/franchise</loc>
-    <priority>0.7</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
     <loc>https://www.hoopheroes.co.uk/careers</loc>
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>

@@ -83,45 +83,15 @@ async function createGhlContact(apiKey: string, payload: Record<string, unknown>
   return true;
 }
 
-// POST /api/contact — Franchise enquiries & coaching applications.
-// Leads land in GHL (the system of record); Resend email is an optional extra
-// that only runs when RESEND_API_KEY is configured.
+// POST /api/contact — coaching applications into the Hoop Heroes HR GHL
+// sub-account. Resend email is an optional extra that only runs when
+// RESEND_API_KEY is configured.
 async function handleContact(request: Request, env: Env): Promise<Response> {
   const { type, name, email, phone, location, about, role } = await request.json() as Record<string, string>;
 
-  let subject = '';
-  let html = '';
   let delivered = false;
 
-  if (type === 'franchise') {
-    if (!env.GHL_API_KEY) {
-      return json({
-        error: 'CRM Configuration Error',
-        details: 'GHL_API_KEY is missing. Set it in the Worker settings.',
-      }, 500);
-    }
-
-    const { firstName, lastName } = splitName(name);
-    delivered = await createGhlContact(env.GHL_API_KEY, {
-      firstName,
-      lastName,
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: normalizePhone(phone),
-      tags: ['Franchise Enquiry', 'Source: Website Franchise Form'],
-      source: location || 'Website Franchise Page',
-    }, 'Franchise');
-
-    subject = `New Franchise Enquiry: ${name}`;
-    html = `
-      <h1>New Franchise Enquiry</h1>
-      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-      <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
-      <p><strong>Source:</strong> ${escapeHtml(location || 'Franchise Page')}</p>
-    `;
-  } else if (type === 'careers') {
-    // Coaching applications go to the HR & Recruitment GHL sub-account
+  if (type === 'careers') {
     const { firstName, lastName } = splitName(name);
     const careerPayload = {
       firstName,
@@ -158,8 +128,14 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       }, 500);
     }
 
-    subject = `New Careers Application: ${role} - ${name}`;
-    html = `
+  } else {
+    return json({ error: 'Invalid enquiry type' }, 400);
+  }
+
+  // Optional email notification — never fails the submission if it errors
+  if (env.RESEND_API_KEY) {
+    const subject = `New Careers Application: ${role} - ${name}`;
+    const html = `
       <h1>New Careers Application</h1>
       <p><strong>Role:</strong> ${escapeHtml(role)}</p>
       <p><strong>Name:</strong> ${escapeHtml(name)}</p>
@@ -169,15 +145,8 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       <p><strong>About:</strong></p>
       <p>${escapeHtml(about)}</p>
     `;
-  } else {
-    return json({ error: 'Invalid enquiry type' }, 400);
-  }
-
-  // Optional email notification — never fails the submission if it errors
-  if (env.RESEND_API_KEY) {
-    const toEmail = type === 'franchise' ? 'franchise@hoopheroes.co.uk' : 'careers@hoopheroes.co.uk';
     try {
-      await sendResendEmail(env, { to: toEmail, subject, html, replyTo: email });
+      await sendResendEmail(env, { to: 'careers@hoopheroes.co.uk', subject, html, replyTo: email });
     } catch (emailErr) {
       console.error('Resend email error:', emailErr);
     }

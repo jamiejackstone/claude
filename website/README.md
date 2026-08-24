@@ -14,8 +14,8 @@ GoHighLevel and Resend.
 
 - **React 18 + Vite + Tailwind CSS** (compiled at build time — no CDN scripts)
 - **Cloudflare Worker** ([`worker/index.ts`](./worker/index.ts)) serving:
-  - `POST /api/contact` — careers forms → HR & Recruitment GHL sub-account; franchise enquiries → main GHL account (tag: "Franchise Enquiry"); optional Resend email on top
-  - `POST /api/waitlist` — taster/waitlist leads → GHL CRM (Oxford uses its dedicated inbound webhook)
+  - `POST /api/contact` — careers forms → Hoop Heroes HR GHL sub-account; optional Resend email on top
+  - `POST /api/waitlist` — "opening soon" waitlist leads → main GHL CRM (Oxford uses its dedicated inbound webhook)
   - `GET /go/:slug` — QR-code short links for printed banners/flyers (adds UTM tags)
   - `GET /api/health` — config check
   - Everything else → static SPA assets
@@ -37,8 +37,8 @@ One-time setup:
 
 ```bash
 npx wrangler login                          # sign in to Cloudflare
-npx wrangler secret put GHL_API_KEY         # main GHL account (waitlist + franchise leads)
-npx wrangler secret put GHL_HR_WEBHOOK_URL  # HR & Recruitment sub-account (careers)
+npx wrangler secret put GHL_HR_API_KEY      # Hoop Heroes HR sub-account (careers form)
+npx wrangler secret put GHL_API_KEY         # main GHL CRM (only for "opening soon" waitlists)
 npx wrangler secret put RESEND_API_KEY      # OPTIONAL: email notifications
 ```
 
