@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+# Hide internal coach tools from search engines
+Disallow: /#/accident
+Disallow: /accident
+
+Sitemap: https://www.hoopheroes.co.uk/sitemap.xml

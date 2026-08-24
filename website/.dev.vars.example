@@ -1,0 +1,15 @@
+# Copy to .dev.vars for local `wrangler dev` testing.
+# In production these are set as Worker secrets:
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put GHL_API_KEY
+#   npx wrangler secret put GHL_HR_WEBHOOK_URL
+
+# Email notifications (franchise & careers forms)
+RESEND_API_KEY=
+
+# Main GHL account (location waitlist/taster leads)
+GHL_API_KEY=
+
+# HR & Recruitment GHL sub-account (coaching applications)
+GHL_HR_WEBHOOK_URL=
+GHL_HR_API_KEY=
