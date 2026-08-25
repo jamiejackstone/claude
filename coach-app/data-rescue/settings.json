@@ -1,0 +1,25 @@
+{
+ "schedule": {
+  "terms": [
+   {
+    "endDate": "2026-03-29",
+    "name": "Spring",
+    "id": "1",
+    "startDate": "2026-01-05"
+   },
+   {
+    "id": "2",
+    "startDate": "2026-04-13",
+    "endDate": "2026-07-20",
+    "name": "Summer"
+   },
+   {
+    "endDate": "2026-12-07",
+    "name": "Autumn",
+    "id": "3",
+    "startDate": "2026-09-07"
+   }
+  ],
+  "holidays": []
+ }
+}

@@ -1,0 +1,90 @@
+{
+ "freebootcamptrial@gmail.com": {
+  "name": "Jamie Stone",
+  "email": "freebootcamptrial@gmail.com",
+  "phone": "+447720684069",
+  "role": "OWNER",
+  "locations": [
+   "AYL-MON",
+   "GM-MON",
+   "HG-TUE",
+   "PR-TUE",
+   "BIC-SAT",
+   "MAR-SUN",
+   "AYL-SUN",
+   "PR-SUN",
+   "TRI-SUN",
+   "OXF-SUN"
+  ],
+  "id": "freebootcamptrial@gmail.com"
+ },
+ "ben.t.a.cousin@gmail.com": {
+  "name": "Ben Cousin",
+  "email": "ben.t.a.cousin@gmail.com",
+  "role": "HEAD_COACH",
+  "locations": [
+   "GM-MON",
+   "HG-TUE"
+  ],
+  "id": "ben.t.a.cousin@gmail.com"
+ },
+ "jay@jeremyjacob.co.uk": {
+  "name": "Jay White",
+  "email": "jay@jeremyjacob.co.uk",
+  "role": "HEAD_COACH",
+  "locations": [
+   "MAR-SUN"
+  ],
+  "id": "jay@jeremyjacob.co.uk"
+ },
+ "vernonambris@aol.com": {
+  "name": "Vernon Ambris",
+  "email": "vernonambris@aol.com",
+  "role": "HEAD_COACH",
+  "locations": [
+   "MAR-SUN"
+  ],
+  "id": "vernonambris@aol.com"
+ },
+ "christielothamer@gmail.com": {
+  "name": "Christie Lothamer",
+  "email": "christielothamer@gmail.com",
+  "role": "HEAD_COACH",
+  "locations": [
+   "BIC-SAT"
+  ],
+  "id": "christielothamer@gmail.com"
+ },
+ "paulnswanton@gmail.com": {
+  "name": "Pol Swanton",
+  "email": "paulnswanton@gmail.com",
+  "role": "HEAD_COACH",
+  "locations": [
+   "OXF-SUN",
+   "BIC-SAT"
+  ],
+  "id": "paulnswanton@gmail.com"
+ },
+ "jamie@hoopheroes.co.uk": {
+  "name": "Jamie Stone",
+  "email": "jamie@hoopheroes.co.uk",
+  "role": "HEAD_COACH",
+  "id": "jamie@hoopheroes.co.uk",
+  "locations": [
+   "PR-SUN",
+   "PR-TUE",
+   "BIC-SAT"
+  ]
+ },
+ "johnny@hoopheroes.co.uk": {
+  "name": "Johnny Hayward",
+  "email": "johnny@hoopheroes.co.uk",
+  "role": "ADMINISTRATOR",
+  "id": "johnny@hoopheroes.co.uk",
+  "locations": [
+   "AYL-MON",
+   "TRI-SUN",
+   "AYL-SUN"
+  ]
+ }
+}

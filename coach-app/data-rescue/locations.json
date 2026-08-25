@@ -1,0 +1,211 @@
+{
+ "2": {
+  "id": "2",
+  "name": "GM-MON",
+  "headCoachId": "ben.t.a.cousin@gmail.com",
+  "headCoachName": "Ben Cousin",
+  "ageGroups": [
+   "Rookies",
+   "Rising Stars",
+   "Ballers"
+  ],
+  "venue": "The Misbourne School, HP16 0BN",
+  "address": "The Misbourne School, HP16 0BN",
+  "code": "GM-MON",
+  "sessionTimes": {
+   "Rookies": "17:30–18:00",
+   "Rising Stars": "18:00–18:45"
+  },
+  "dayFullName": "Monday",
+  "location": "Great Missenden",
+  "time": "17:30–18:45",
+  "hasBallers": false,
+  "day": "Mon"
+ },
+ "6": {
+  "id": "6",
+  "name": "MAR-SUN",
+  "ageGroups": [
+   "Rookies",
+   "Rising Stars",
+   "Ballers"
+  ],
+  "headCoachId": "jay@jeremyjacob.co.uk",
+  "headCoachName": "Jay White",
+  "venue": "Redgrave Sports Centre, SL7 1JE",
+  "address": "Redgrave Sports Centre, SL7 1JE",
+  "code": "MAR-SUN",
+  "sessionTimes": {
+   "Rookies": "10:00–10:30",
+   "Rising Stars": "10:30–11:15",
+   "Ballers": "11:15–12:00"
+  },
+  "dayFullName": "Sunday",
+  "location": "Marlow",
+  "time": "10:00–12:00",
+  "hasBallers": true,
+  "day": "Sun"
+ },
+ "3": {
+  "id": "3",
+  "name": "HG-TUE",
+  "headCoachId": "ben.t.a.cousin@gmail.com",
+  "headCoachName": "Ben Cousin",
+  "ageGroups": [
+   "Ballers",
+   "Rising Stars",
+   "Rookies"
+  ],
+  "venue": "Holmer Green Senior School, HP15 6SP",
+  "address": "Holmer Green Senior School, HP15 6SP",
+  "code": "HG-TUE",
+  "sessionTimes": {
+   "Rookies": "17:00–17:30",
+   "Rising Stars": "17:30–18:15",
+   "Ballers": "18:15–19:00"
+  },
+  "dayFullName": "Tuesday",
+  "location": "Holmer Green",
+  "time": "17:00–19:00",
+  "hasBallers": true,
+  "day": "Tue"
+ },
+ "1": {
+  "id": "1",
+  "name": "AYL-MON",
+  "headCoachId": "johnny@hoopheroes.co.uk",
+  "headCoachName": "Johnny Hayward",
+  "ageGroups": [
+   "Rookies & Rising Stars (Combined)",
+   "Pros & All Stars (Combined)"
+  ],
+  "venue": "The Mandeville School, HP21 8ES",
+  "address": "The Mandeville School, HP21 8ES",
+  "code": "AYL-MON",
+  "sessionTimes": {
+   "Rookies": "17:30–18:00",
+   "Rising Stars": "18:00–18:45"
+  },
+  "dayFullName": "Monday",
+  "location": "Aylesbury",
+  "time": "17:30–18:45",
+  "hasBallers": false,
+  "day": "Mon"
+ },
+ "5": {
+  "id": "5",
+  "name": "BIC-SAT",
+  "ageGroups": [
+   "Rookies",
+   "Rising Stars",
+   "Ballers"
+  ],
+  "headCoachId": "christielothamer@gmail.com",
+  "headCoachName": "Christie Lothamer",
+  "venue": "Whitelands Academy, OX26 1AY",
+  "address": "Whitelands Academy, OX26 1AY",
+  "code": "BIC-SAT",
+  "sessionTimes": {
+   "Rookies": "11:30–12:00",
+   "Rising Stars": "12:00–12:45",
+   "Ballers": "12:45–13:30"
+  },
+  "dayFullName": "Saturday",
+  "location": "Bicester",
+  "time": "11:30–13:30",
+  "hasBallers": true,
+  "day": "Sat"
+ },
+ "9": {
+  "id": "9",
+  "name": "TRI-SUN",
+  "ageGroups": [
+   "Rookies",
+   "Rising Stars",
+   "Ballers"
+  ],
+  "headCoachId": "johnny@hoopheroes.co.uk",
+  "headCoachName": "Johnny Hayward",
+  "venue": "Tring Sports Centre, HP23 5JU",
+  "address": "Tring Sports Centre, HP23 5JU",
+  "code": "TRI-SUN",
+  "sessionTimes": {
+   "Rookies": "16:00–16:30",
+   "Rising Stars": "16:30–17:15",
+   "Ballers": "17:15–18:00"
+  },
+  "dayFullName": "Sunday",
+  "location": "Tring",
+  "time": "16:00–18:00",
+  "hasBallers": true,
+  "day": "Sun"
+ },
+ "10": {
+  "id": "10",
+  "name": "OXF-SUN",
+  "ageGroups": [
+   "Rookies",
+   "Rising Stars",
+   "Ballers"
+  ],
+  "headCoachId": "paulnswanton@gmail.com",
+  "headCoachName": "Pol Swanton",
+  "venue": "The Oxford Academy, OX4 6JZ",
+  "address": "The Oxford Academy, OX4 6JZ",
+  "code": "OXF-SUN",
+  "sessionTimes": {
+   "Rookies": "09:30–10:00",
+   "Rising Stars": "10:00–10:45",
+   "Ballers": "10:45–11:30"
+  },
+  "dayFullName": "Sunday",
+  "location": "Oxford",
+  "time": "09:30–11:30",
+  "hasBallers": true,
+  "day": "Sun"
+ },
+ "WEN-SUN": {
+  "id": "WEN-SUN",
+  "code": "WEN-SUN",
+  "name": "WEN-SUN",
+  "location": "Wendover",
+  "venue": "John Colet School, HP22 6HF",
+  "address": "John Colet School, HP22 6HF",
+  "day": "Sun",
+  "dayFullName": "Sunday",
+  "time": "09:00–11:00",
+  "hasBallers": true,
+  "ageGroups": [
+   "Rookies",
+   "Rising Stars",
+   "Ballers"
+  ],
+  "sessionTimes": {
+   "Rookies": "09:00–09:30",
+   "Rising Stars": "09:30–10:15",
+   "Ballers": "10:15–11:00"
+  }
+ },
+ "SAN-SUN": {
+  "id": "SAN-SUN",
+  "code": "SAN-SUN",
+  "name": "SAN-SUN",
+  "location": "Sandhurst",
+  "venue": "Sandhurst School, GU47 0SD",
+  "address": "Sandhurst School, GU47 0SD",
+  "day": "Sun",
+  "dayFullName": "Sunday",
+  "time": "15:00–17:00",
+  "hasBallers": true,
+  "ageGroups": [
+   "Rookies",
+   "Rising Stars",
+   "Ballers"
+  ],
+  "sessionTimes": {
+   "Rookies": "15:00–15:30",
+   "Rising Stars": "15:30–16:15",
+   "Ballers": "16:15–17:00"
+  }
+ }
+}

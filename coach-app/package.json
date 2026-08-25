@@ -1,0 +1,41 @@
+{
+  "name": "hoop-heroes-coach",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "vite build",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "cf-typegen": "wrangler types",
+    "db:schema:local": "wrangler d1 execute hoop-heroes-coach --local --file=./schema.sql",
+    "db:seed:local": "wrangler d1 execute hoop-heroes-coach --local --file=./seed/seed.sql",
+    "db:schema:remote": "wrangler d1 execute hoop-heroes-coach --remote --file=./schema.sql",
+    "db:seed:remote": "wrangler d1 execute hoop-heroes-coach --remote --file=./seed/seed.sql"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "papaparse": "^5.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.13.1",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "wrangler": "^4.105.0"
+  }
+}

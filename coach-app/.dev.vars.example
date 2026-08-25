@@ -1,0 +1,17 @@
+# Local development secrets for `wrangler dev`. Copy to `.dev.vars` (gitignored).
+# In production these are set as Worker Secrets (see README), NOT here.
+
+# Impersonate a coach locally (Access is not in front of `wrangler dev`).
+# Use a real email from the users table, e.g. the owner:
+DEV_USER_EMAIL="freebootcamptrial@gmail.com"
+
+# Server-side API keys (leave blank locally to disable that feature):
+GEMINI_API_KEY=""
+RESEND_API_KEY=""
+GHL_WELFARE_WEBHOOK_URL=""
+TEAMUP_API_TOKEN=""
+TEAMUP_BUSINESS_ID=""
+
+# Optional overrides
+REPORT_TO_EMAILS="lara@hoopheroes.co.uk,jamie@hoopheroes.co.uk"
+FROM_EMAIL="Hoop Heroes Portal <portal@notifications.hoopheroes.co.uk>"

@@ -1,0 +1,35 @@
+/**
+ * Hoop Heroes Coach Portal — Cloudflare Worker config.
+ * Same deploy pattern as hoop-heroes-website: Workers Builds imports this repo,
+ * builds the SPA with Vite, and deploys the Worker which serves the assets and
+ * the API. Set the Workers Builds "root directory" to `coach-app`.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hoop-heroes-coach",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-03-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hoop-heroes-coach",
+      // Replace after `wrangler d1 create hoop-heroes-coach`:
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    // Public, non-secret config. Access + all API keys are set as SECRETS
+    // (see README) — never put keys here.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  }
+}
