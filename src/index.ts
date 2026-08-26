@@ -471,7 +471,8 @@ async function revenueReport(
 				creditNoteCount += 1;
 				continue;
 			}
-			refunds += moneyNumber(rowValue(r, h, "refund_amount"));
+			// refund_amount comes back already-negative from the API -- normalise
+			refunds += Math.abs(moneyNumber(rowValue(r, h, "refund_amount")));
 			gross += amount;
 			grossCount += 1;
 			const proc = labelFor(rowValue(r, h, "payment_processor"));
@@ -738,7 +739,7 @@ async function membersByVenue(token: string): Promise<string> {
 export class HoopHeroesTeamUpMCP extends McpAgent<Env> {
 	server = new McpServer({
 		name: "Hoop Heroes TeamUp",
-		version: "0.4.2",
+		version: "0.4.3",
 	});
 
 	async init() {
