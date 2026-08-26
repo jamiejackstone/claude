@@ -405,7 +405,7 @@ async function revenueReport(
 	token: string,
 	args: { paid_from: string; paid_to: string; status?: string },
 ): Promise<string> {
-	const pageSize = 500;
+	const pageSize = 100; // TeamUp caps report page_size at 100
 	let page = 1;
 	let total = Infinity;
 	let sum = 0;
@@ -554,6 +554,7 @@ async function listFailedInvoices(
 	const pageSize = 100;
 	let page = 1;
 	let total = Infinity;
+	let lookups = 0;
 	const lines: string[] = [];
 
 	while ((page - 1) * pageSize < total && page <= 20) {
@@ -568,12 +569,28 @@ async function listFailedInvoices(
 		total = data.count;
 		for (const inv of data.results ?? []) {
 			const payer = inv.payer;
-			const payerBit =
-				payer && typeof payer === "object"
-					? `${payer.first_name ?? ""} ${payer.last_name ?? ""}`.trim() +
-						(payer.email ? `  <${payer.email}>` : "") +
-						(payer.id ? `  (customer #${payer.id})` : "")
-					: `payer #${payer}`;
+			let payerBit: string;
+			const payerId = payer && typeof payer === "object" ? payer.id : payer;
+			const hasIdentity =
+				payer && typeof payer === "object" && (payer.email || payer.first_name);
+			if (hasIdentity) {
+				payerBit =
+					`${payer.first_name ?? ""} ${payer.last_name ?? ""}`.trim() +
+					(payer.email ? `  <${payer.email}>` : "") +
+					(payer.id ? `  (customer #${payer.id})` : "");
+			} else if (payerId !== undefined && payerId !== null && lookups < 25) {
+				// expand=payer doesn't return name/email -- look the customer up directly
+				lookups += 1;
+				const cust = await teamupRequest(token, "GET", `/customers/${payerId}`);
+				payerBit =
+					cust.ok && cust.data
+						? `${cust.data.first_name ?? ""} ${cust.data.last_name ?? ""}`.trim() +
+							(cust.data.email ? `  <${cust.data.email}>` : "") +
+							`  (customer #${payerId})`
+						: `customer #${payerId}`;
+			} else {
+				payerBit = `customer #${payerId}`;
+			}
 			const amount = inv.total_amount_due;
 			const amountBit =
 				amount && typeof amount === "object"
@@ -600,7 +617,7 @@ async function listFailedInvoices(
 // ---------------------------------------------------------------------------
 
 async function membersByVenue(token: string): Promise<string> {
-	const pageSize = 500;
+	const pageSize = 100; // TeamUp caps report page_size at 100
 	let page = 1;
 	let total = Infinity;
 	const counts: Record<string, number> = {};
@@ -652,7 +669,7 @@ async function membersByVenue(token: string): Promise<string> {
 export class HoopHeroesTeamUpMCP extends McpAgent<Env> {
 	server = new McpServer({
 		name: "Hoop Heroes TeamUp",
-		version: "0.4.0",
+		version: "0.4.1",
 	});
 
 	async init() {
