@@ -60,13 +60,44 @@ async function reportRequest(
 	return teamupRequest(token, "GET", `/reports/${report}/data?${params}`);
 }
 
-// Rows may come back as arrays (aligned to column_headers) or objects.
+// Rows may come back as arrays (aligned to column_headers) or objects, and
+// object rows use NESTED objects rather than the flat request aliases:
+// requesting column "customer_name" yields row.customer.name (confirmed live
+// 26/08). resolvePath tries every split of the underscore-alias against the
+// nested shape: customer_venue_name -> customer.venue.name etc.
+function resolvePath(obj: any, parts: string[]): any {
+	if (parts.length === 0) return obj;
+	if (obj === null || obj === undefined || typeof obj !== "object") return undefined;
+	for (let i = parts.length; i >= 1; i--) {
+		const key = parts.slice(0, i).join("_");
+		if (key in obj) {
+			const v = resolvePath(obj[key], parts.slice(i));
+			if (v !== undefined) return v;
+		}
+	}
+	return undefined;
+}
+
 function rowValue(row: any, headers: string[], column: string): any {
 	if (Array.isArray(row)) {
-		const idx = headers.indexOf(column);
+		let idx = headers.indexOf(column);
+		if (idx === -1) idx = headers.indexOf(column.replace(/_/g, "."));
 		return idx === -1 ? undefined : row[idx];
 	}
-	return row?.[column];
+	if (row === null || row === undefined) return undefined;
+	if (column in row) return row[column];
+	const dotted = column.replace(/_/g, ".");
+	if (dotted in row) return row[dotted];
+	return resolvePath(row, column.split("_"));
+}
+
+// Human label for a value that may be a nested object ({name}/{slug}/...).
+function labelFor(v: any): string {
+	if (v === null || v === undefined) return "?";
+	if (typeof v === "object") {
+		return String(v.name ?? v.slug ?? v.string ?? v.display_name ?? v.id ?? "?");
+	}
+	return String(v);
 }
 
 // Parse a money-ish value defensively: number, numeric string, "£1,234.56",
@@ -335,7 +366,6 @@ const MEMBERSHIP_REPORT_COLUMNS = [
 	"customer_id",
 	"customer_name",
 	"customer_email",
-	"customer_venue_name",
 	"membership_name",
 	"type",
 	"status",
@@ -387,9 +417,9 @@ async function membershipChangesReport(
 		const cancelled = rowValue(r, h, "cancelled_date");
 		const reason = rowValue(r, h, "cancellation_reason");
 		const cancelledBit = cancelled
-			? `  cancelled ${cancelled}${reason ? ` ("${reason}")` : ""}`
+			? `  cancelled ${labelFor(cancelled)}${reason ? ` ("${labelFor(reason)}")` : ""}`
 			: "";
-		return `#${rowValue(r, h, "id")}  ${rowValue(r, h, "customer_name")} <${rowValue(r, h, "customer_email")}>  "${rowValue(r, h, "membership_name")}"  (${rowValue(r, h, "status")})  venue: ${rowValue(r, h, "customer_venue_name") ?? "?"}  started ${rowValue(r, h, "start_date")}${cancelledBit}${first}`;
+		return `#${labelFor(rowValue(r, h, "id"))}  ${labelFor(rowValue(r, h, "customer_name"))} <${labelFor(rowValue(r, h, "customer_email"))}>  "${labelFor(rowValue(r, h, "membership_name"))}"  (${labelFor(rowValue(r, h, "status"))})  started ${labelFor(rowValue(r, h, "start_date"))}${cancelledBit}${first}`;
 	});
 	const totalPages = Math.max(1, Math.ceil(report.total / pageSize));
 	const paging =
@@ -408,14 +438,18 @@ async function revenueReport(
 	const pageSize = 100; // TeamUp caps report page_size at 100
 	let page = 1;
 	let total = Infinity;
-	let sum = 0;
-	let count = 0;
+	let gross = 0;
+	let grossCount = 0;
+	let creditNotes = 0;
+	let creditNoteCount = 0;
+	let refunds = 0;
 	const byProcessor: Record<string, number> = {};
 	const byPurchaseType: Record<string, number> = {};
 
-	while ((page - 1) * pageSize < total && page <= 40) {
+	while ((page - 1) * pageSize < total && page <= 60) {
 		const params = new URLSearchParams({
-			columns: "id,paid_at,status,total_amount,payment_processor,purchase_type",
+			columns:
+				"id,paid_at,status,total_amount,is_credit_note,refund_amount,payment_processor,purchase_type",
 			paid_at_gte: args.paid_from,
 			paid_at_lte: args.paid_to,
 			status: args.status ?? "paid",
@@ -429,10 +463,19 @@ async function revenueReport(
 		const h = report.column_headers;
 		for (const r of report.rows ?? []) {
 			const amount = moneyNumber(rowValue(r, h, "total_amount"));
-			sum += amount;
-			count += 1;
-			const proc = String(rowValue(r, h, "payment_processor") ?? "unknown");
-			const ptype = String(rowValue(r, h, "purchase_type") ?? "unknown");
+			const isCreditNote = rowValue(r, h, "is_credit_note") === true;
+			if (isCreditNote) {
+				// Credit notes are refunds/reversals -- counting them as positive
+				// revenue was inflating the total (found live 26/08).
+				creditNotes += Math.abs(amount);
+				creditNoteCount += 1;
+				continue;
+			}
+			refunds += moneyNumber(rowValue(r, h, "refund_amount"));
+			gross += amount;
+			grossCount += 1;
+			const proc = labelFor(rowValue(r, h, "payment_processor"));
+			const ptype = labelFor(rowValue(r, h, "purchase_type"));
 			byProcessor[proc] = (byProcessor[proc] ?? 0) + amount;
 			byPurchaseType[ptype] = (byPurchaseType[ptype] ?? 0) + amount;
 		}
@@ -440,6 +483,7 @@ async function revenueReport(
 		page += 1;
 	}
 
+	const net = gross - creditNotes - refunds;
 	const breakdown = (obj: Record<string, number>) =>
 		Object.entries(obj)
 			.sort((a, b) => b[1] - a[1])
@@ -449,15 +493,18 @@ async function revenueReport(
 	return [
 		`Revenue ${args.paid_from} to ${args.paid_to} (invoices with status=${args.status ?? "paid"}):`,
 		``,
-		`TOTAL: ${gbp(sum)}  (${count} invoice(s))`,
+		`GROSS (paid invoices, excl. credit notes): ${gbp(gross)}  (${grossCount} invoice(s))`,
+		`Credit notes in window: -${gbp(creditNotes)}  (${creditNoteCount})`,
+		`Refunds recorded on paid invoices: -${gbp(refunds)}`,
+		`NET: ${gbp(net)}`,
 		``,
-		`By payment processor:`,
+		`By payment processor (gross):`,
 		breakdown(byProcessor) || "  (none)",
 		``,
-		`By purchase type:`,
+		`By purchase type (gross):`,
 		breakdown(byPurchaseType) || "  (none)",
 		``,
-		`Source: TeamUp invoices report (source of truth for Revenue MTD -- includes non-Stripe payment methods).`,
+		`Source: TeamUp invoices report (source of truth for Revenue MTD -- includes non-Stripe payment methods). Compare NET against the TeamUp dashboard figure; if they diverge, check which basis the dashboard uses before trusting either.`,
 	].join("\n");
 }
 
@@ -616,49 +663,71 @@ async function listFailedInvoices(
 // NEW (A2b / Scoreboard locations): active members by venue
 // ---------------------------------------------------------------------------
 
+// Location = membership plan name ("HH Oxford", "HH Aylesbury", ...). The
+// customer-level venue field is unpopulated in HH's TeamUp setup (confirmed
+// live 26/08 -- all 313 actives had no venue), so plan names are the working
+// source of truth for members-per-location. Non-location plans (complimentary
+// coach memberships, tasters) are listed but excluded from the 50+/<30 counts.
+const NON_LOCATION_PLAN = /complimentary|taster|free|trial|staff|coach/i;
+
 async function membersByVenue(token: string): Promise<string> {
 	const pageSize = 100; // TeamUp caps report page_size at 100
 	let page = 1;
 	let total = Infinity;
-	const counts: Record<string, number> = {};
-	let activeTotal = 0;
+	const byPlan: Record<string, Set<number>> = {};
 
-	while ((page - 1) * pageSize < total && page <= 40) {
+	while ((page - 1) * pageSize < total && page <= 60) {
 		const params = new URLSearchParams({
-			columns: "id,venue_name,is_active",
+			columns: "id,customer_id,membership_name",
+			status: "active",
 			page_size: String(pageSize),
 			page: String(page),
 		});
-		const { ok, status, data } = await reportRequest(token, "customers", params);
+		const { ok, status, data } = await reportRequest(token, "customer_memberships", params);
 		if (!ok) return errorText(status, data);
 		const report = data as ReportData;
 		total = report.total;
 		const h = report.column_headers;
 		for (const r of report.rows ?? []) {
-			const active = rowValue(r, h, "is_active");
-			if (active === true || active === "true" || active === 1) {
-				const venue = String(rowValue(r, h, "venue_name") ?? "No venue set");
-				counts[venue] = (counts[venue] ?? 0) + 1;
-				activeTotal += 1;
-			}
+			const plan = labelFor(rowValue(r, h, "membership_name"));
+			const customerId = Number(labelFor(rowValue(r, h, "customer_id")));
+			byPlan[plan] = byPlan[plan] ?? new Set<number>();
+			byPlan[plan].add(Number.isFinite(customerId) ? customerId : Math.random());
 		}
 		if (!report.rows || report.rows.length === 0) break;
 		page += 1;
 	}
 
-	if (activeTotal === 0) return "No active members found.";
-	const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-	const fiftyPlus = entries.filter(([, n]) => n >= 50).length;
-	const underThirty = entries.filter(([v, n]) => n < 30 && v !== "No venue set").length;
-	const lines = entries
-		.map(([v, n]) => `  ${v}: ${n}${n >= 50 ? "  [50+]" : n < 30 ? "  [<30]" : ""}`)
-		.join("\n");
+	const entries = Object.entries(byPlan)
+		.map(([plan, customers]) => [plan, customers.size] as [string, number])
+		.sort((a, b) => b[1] - a[1]);
+	if (entries.length === 0) return "No active memberships found.";
+
+	const locations = entries.filter(([plan]) => !NON_LOCATION_PLAN.test(plan));
+	const nonLocations = entries.filter(([plan]) => NON_LOCATION_PLAN.test(plan));
+	const fiftyPlus = locations.filter(([, n]) => n >= 50).length;
+	const underThirty = locations.filter(([, n]) => n < 30).length;
+	const memberTotal = entries.reduce((a, [, n]) => a + n, 0);
+	const locationTotal = locations.reduce((a, [, n]) => a + n, 0);
+
+	const fmt = (rows: [string, number][], flag: boolean) =>
+		rows
+			.map(
+				([v, n]) =>
+					`  ${v}: ${n}${flag ? (n >= 50 ? "  [50+]" : n < 30 ? "  [<30]" : "") : ""}`,
+			)
+			.join("\n");
+
 	return [
-		`${activeTotal} active member(s) across ${entries.length} venue group(s):`,
+		`${memberTotal} active membership holder(s); ${locationTotal} across ${locations.length} location plan(s):`,
 		``,
-		lines,
+		fmt(locations, true) || "  (none)",
 		``,
-		`Scoreboard: Locations 50+ Members = ${fiftyPlus}  |  Locations <30 Members = ${underThirty} (excluding 'No venue set').`,
+		`Non-location plans (excluded from location counts -- matched: complimentary/taster/free/trial/staff/coach):`,
+		fmt(nonLocations, false) || "  (none)",
+		``,
+		`Scoreboard: Locations 50+ Members = ${fiftyPlus}  |  Locations <30 Members = ${underThirty}.`,
+		`Method: active customer memberships grouped by plan name (distinct customers); the customer-level venue field is unpopulated in HH's TeamUp.`,
 	].join("\n");
 }
 
@@ -669,7 +738,7 @@ async function membersByVenue(token: string): Promise<string> {
 export class HoopHeroesTeamUpMCP extends McpAgent<Env> {
 	server = new McpServer({
 		name: "Hoop Heroes TeamUp",
-		version: "0.4.1",
+		version: "0.4.2",
 	});
 
 	async init() {
