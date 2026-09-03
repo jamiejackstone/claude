@@ -265,7 +265,7 @@ export const Policies: React.FC = () => {
                                  </ul>
 
                                  <h3>4. Continuous Payment & Holidays</h3>
-                                 <p>It is crucial not to cancel your recurring payment during the Summer, Christmas, or Easter holidays. Your membership fee covers year-round program expenses and secures your child's place.</p>
+                                 <p>Your monthly fee stays the same during the Summer, Christmas, and Easter holidays and secures your child's place for the year ahead. You are free to cancel at any time (see section 5), but please be aware that cancelling releases your child's place, and rejoining later means paying the joining fee again — so cancelling over a holiday to save a payment or two usually works out more expensive than keeping your membership running.</p>
 
                                  <h3>5. Cancelling Your Membership</h3>
                                  <p>Membership is monthly rolling. There is no minimum term and no notice period.</p>
