@@ -247,7 +247,7 @@ export const Policies: React.FC = () => {
                                 <h2 className="font-display text-4xl md:text-5xl uppercase leading-none">Membership T&Cs</h2>
                             </div>
                             <div className="prose prose-slate max-w-none prose-headings:font-display prose-headings:uppercase prose-headings:text-brand-dark prose-p:text-slate-600 prose-p:font-medium prose-li:text-slate-600 prose-li:font-medium">
-                                 <p className="text-sm font-black text-brand-orange uppercase tracking-widest mb-8">Last Updated: 26/08/2026</p>
+                                 <p className="text-sm font-black text-brand-orange uppercase tracking-widest mb-8">Last Updated: 03/09/2026</p>
                                  
                                  <p>Welcome to Hoop Heroes Ltd. (HH). By enrolling your child in our program, you agree to the following terms and conditions of membership:</p>
 
@@ -268,11 +268,10 @@ export const Policies: React.FC = () => {
                                  <p>It is crucial not to cancel your recurring payment during the Summer, Christmas, or Easter holidays. Your membership fee covers year-round program expenses and secures your child's place.</p>
 
                                  <h3>5. Cancelling Your Membership</h3>
-                                 <p>Membership is monthly rolling. There is no minimum term.</p>
-                                 <p>You can cancel your membership yourself at any time from your TeamUp account: log in at <a href="https://goteamup.com/p/6822945-hoop-heroes/" target="_blank" rel="noopener noreferrer" className="text-brand-orange font-bold">goteamup.com/p/6822945-hoop-heroes/</a>, or use the TeamUp Members App, go to <strong>My Memberships</strong>, and cancel from there. You do not need to email or telephone us to cancel.</p>
-                                 <p>We ask for <strong>30 days' notice</strong>. The notice period runs from the day you submit the cancellation in TeamUp and is applied automatically by TeamUp. Your final payment is taken as normal during that period, and your child is welcome at sessions until the notice period ends.</p>
-                                 <p>Sessions run during school term time only, and membership payments are spread evenly across the year. Payments therefore continue during school holidays, and cancelling during a holiday does not shorten the notice period.</p>
-                                 <p>If you need something the self-serve route cannot do — to finish sooner than 30 days, or if you have a question about the amount of your final payment — please email <a href="mailto:basketball@hoopheroes.co.uk" className="text-brand-orange font-bold">basketball@hoopheroes.co.uk</a> with your child's name and the details. These requests are considered individually at our discretion and cannot be guaranteed.</p>
+                                 <p>Membership is monthly rolling. There is no minimum term and no notice period.</p>
+                                 <p>You can cancel your membership yourself at any time from your TeamUp account: log in at <a href="https://goteamup.com/p/6822945-hoop-heroes/" target="_blank" rel="noopener noreferrer" className="text-brand-orange font-bold">goteamup.com/p/6822945-hoop-heroes/</a>, or use the TeamUp Members App, go to <strong>My Memberships</strong>, and cancel from there. You do not need to email or telephone us to cancel — the cancellation is applied automatically by TeamUp.</p>
+                                 <p>Sessions run during school term time only, and membership payments are spread evenly across the year. Monthly payments therefore include school holiday periods while your membership is active.</p>
+                                 <p>If you have a question about your payments, or need help with anything the self-serve route cannot do, please email <a href="mailto:basketball@hoopheroes.co.uk" className="text-brand-orange font-bold">basketball@hoopheroes.co.uk</a> with your child's name and the details.</p>
 
                                  <h3>6. Liability & Waiver</h3>
                                  <p>By participating in HH activities, parents/guardians acknowledge the physical risks associated with sports. HH cannot be held responsible for injuries or losses.</p>
