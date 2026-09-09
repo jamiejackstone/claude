@@ -482,7 +482,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                   <Info size={22} className="text-brand-dark shrink-0" />
                   <div>
                     <span className="block text-[10px] font-black text-brand-dark/60 uppercase mb-1 tracking-widest">Arrival Instructions</span>
-                    <p className="text-sm font-bold text-brand-dark leading-snug">{location.locationNotes}</p>
+                    <p className="text-sm font-bold text-brand-dark leading-snug whitespace-pre-line">{location.locationNotes}</p>
                   </div>
                 </div>
               )}
