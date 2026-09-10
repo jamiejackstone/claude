@@ -226,18 +226,20 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
   return json({ success: true, data });
 }
 
+const LOCATION_NAMES: Record<string, string> = {
+  aylesbury: 'Aylesbury',
+  'great-missenden': 'Great Missenden',
+  'holmer-green': 'Holmer Green',
+  bicester: 'Bicester',
+  wendover: 'Wendover',
+  oxford: 'Oxford',
+  marlow: 'Marlow',
+  tring: 'Tring',
+  sandhurst: 'Sandhurst',
+};
+
 // GET /go/:slug — QR code short redirects for printed banners & flyers
-const VALID_GO_SLUGS = [
-  'aylesbury',
-  'great-missenden',
-  'holmer-green',
-  'bicester',
-  'wendover',
-  'oxford',
-  'marlow',
-  'tring',
-  'sandhurst',
-];
+const VALID_GO_SLUGS = Object.keys(LOCATION_NAMES);
 
 function handleGoRedirect(url: URL): Response {
   const rawSlug = (url.pathname.split('/')[2] || '').toLowerCase().trim();
@@ -260,6 +262,7 @@ function handleGoRedirect(url: URL): Response {
 // 404 below so search engines drop them from the index.
 const LEGACY_REDIRECTS: Record<string, string> = {
   '/terms': '/policies?section=terms',
+  '/3x3-leagues': '/3x3-gameday',
   '/privacy': '/policies?section=privacy',
   '/safeguarding': '/policies?section=safeguarding',
   '/code-of-conduct': '/policies?section=conduct',
@@ -280,9 +283,89 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/sandhurst': '/location/sandhurst',
 };
 
-// Every page the SPA actually serves. Anything else (without a file
-// extension) gets index.html with a 404 status so it never stays indexed.
-const VALID_PAGES = new Set(['/', '/mission', '/careers', '/policies', '/accident', '/3x3-gameday']);
+// ---------------------------------------------------------------------------
+// Per-page <title>, meta description and canonical, injected into the served
+// HTML at the edge so search engines see unique metadata without SSR.
+// PAGE_META also doubles as the list of valid pages: any path without an
+// entry (and no file extension) is served with a 404 status.
+// HTMLRewriter is a Workers runtime built-in; minimal typings for tsc:
+declare class HTMLRewriter {
+  on(
+    selector: string,
+    handlers: {
+      element?(el: {
+        setInnerContent(text: string): void;
+        setAttribute(name: string, value: string): void;
+        append(content: string, opts?: { html?: boolean }): void;
+      }): void;
+    },
+  ): HTMLRewriter;
+  transform(response: Response): Response;
+}
+
+const SITE_ORIGIN = 'https://www.hoopheroes.co.uk';
+
+const PAGE_META: Record<string, { title: string; description: string }> = {
+  '/': {
+    title: 'Hoop Heroes Basketball | Youth Basketball Classes UK',
+    description:
+      'Fun, high-energy youth basketball classes for ages 5-15 across Buckinghamshire, Oxfordshire, Hertfordshire and Berkshire. Book a free taster session today.',
+  },
+  '/mission': {
+    title: 'Our Mission | Hoop Heroes Basketball',
+    description:
+      "Game time over screen time. Discover Hoop Heroes' mission to develop respect, confidence and teamwork in young people through basketball.",
+  },
+  '/careers': {
+    title: 'Basketball Coaching Jobs | Hoop Heroes Careers',
+    description:
+      'Join the Hoop Heroes team. Head coach, assistant coach and volunteer coaching opportunities at youth basketball clubs across the UK.',
+  },
+  '/policies': {
+    title: 'Policies & Membership Terms | Hoop Heroes Basketball',
+    description:
+      'Hoop Heroes policies: membership terms and conditions, privacy policy, safeguarding policy and code of conduct.',
+  },
+  '/3x3-gameday': {
+    title: '3x3 Gameday | Hoop Heroes Basketball',
+    description:
+      'The Hoop Heroes 3x3 Gameday — a fast-paced 3-on-3 basketball tournament for Hoop Heroes members aged 8-15.',
+  },
+  '/accident': {
+    title: 'Accident Report | Hoop Heroes',
+    description: 'Accident and incident reporting form for Hoop Heroes coaching staff.',
+  },
+};
+
+function pageMetaFor(path: string): { title: string; description: string } | null {
+  if (PAGE_META[path]) return PAGE_META[path];
+  if (path.startsWith('/location/')) {
+    const name = LOCATION_NAMES[path.split('/')[2] || ''];
+    if (name) {
+      return {
+        title: `Kids Basketball Classes in ${name} | Hoop Heroes`,
+        description: `Youth basketball classes for ages 5-15 in ${name}. Weekly sessions with qualified coaches — book your free taster session at Hoop Heroes ${name} today.`,
+      };
+    }
+  }
+  return null;
+}
+
+function injectMeta(
+  response: Response,
+  meta: { title: string; description: string },
+  canonicalPath: string | null,
+): Response {
+  let rewriter = new HTMLRewriter()
+    .on('title', { element: (el) => el.setInnerContent(meta.title) })
+    .on('meta[name="description"]', { element: (el) => el.setAttribute('content', meta.description) });
+  if (canonicalPath !== null) {
+    rewriter = rewriter.on('head', {
+      element: (el) => el.append(`<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">`, { html: true }),
+    });
+  }
+  return rewriter.transform(response);
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -327,20 +410,23 @@ export default {
         return env.ASSETS.fetch(request);
       }
 
-      const isValidPage =
-        VALID_PAGES.has(path) ||
-        (path.startsWith('/location/') && VALID_GO_SLUGS.includes(path.split('/')[2] || ''));
-
+      const meta = pageMetaFor(path);
       const assetResponse = await env.ASSETS.fetch(request);
-      if (isValidPage) {
-        return assetResponse;
+
+      if (meta) {
+        // Known page: inject its unique title, description and canonical URL
+        return injectMeta(assetResponse, meta, path === '/' ? '/' : path);
       }
 
       // Unknown page: serve the SPA shell (which renders the 404 page) with a
       // real 404 status so search engines drop the URL
       const headers = new Headers(assetResponse.headers);
       headers.set('X-Robots-Tag', 'noindex');
-      return new Response(assetResponse.body, { status: 404, headers });
+      const notFound = new Response(assetResponse.body, { status: 404, headers });
+      return injectMeta(notFound, {
+        title: 'Page Not Found | Hoop Heroes',
+        description: 'This page does not exist. Find your nearest Hoop Heroes youth basketball class on our homepage.',
+      }, null);
     } catch (err) {
       console.error('Worker error:', err);
       return json({ error: 'Internal server error' }, 500);
