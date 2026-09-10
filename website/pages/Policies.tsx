@@ -111,7 +111,7 @@ export const Policies: React.FC = () => {
                             
                             <div className="prose prose-slate max-w-none prose-headings:font-display prose-headings:uppercase prose-headings:text-brand-dark prose-p:text-slate-600 prose-p:font-medium prose-li:text-slate-600 prose-li:font-medium">
                                 <p className="text-sm font-black text-brand-orange uppercase tracking-widest mb-8">Last Updated: March 2026</p>
-                                <p>Hoop Heroes Ltd and Hoop Heroes Region 1 Ltd ("we", "our", or "us") are committed to protecting your personal data. This policy details how we collect, use, and store your information in accordance with the UK General Data Protection Regulation (UK GDPR).</p>
+                                <p>Hoop Heroes, the trading name of Hoop Heroes Region 1 Ltd ("we", "our", or "us"), is committed to protecting your personal data. This policy details how we collect, use, and store your information in accordance with the UK General Data Protection Regulation (UK GDPR).</p>
                                 
                                 <h3>1. Information We Collect</h3>
                                 <p>We collect information to provide safe and effective coaching services. This includes:</p>
@@ -184,10 +184,10 @@ export const Policies: React.FC = () => {
                                 <p className="text-sm font-black text-brand-orange uppercase tracking-widest mb-8">Version: 1.0 (01/08/2025)</p>
                                 
                                 <h3>1. Introduction</h3>
-                                <p>At HoopHeroes, the safety and well-being of all children and young people (defined as anyone under 18 years of age) involved in our basketball activities is our absolute priority. We are committed to providing a safe, fun, and positive environment where every participant feels respected, valued, and protected from all forms of harm. We maintain a zero-tolerance approach to child abuse or maltreatment in any form.</p>
+                                <p>At Hoop Heroes, the safety and well-being of all children and young people (defined as anyone under 18 years of age) involved in our basketball activities is our absolute priority. We are committed to providing a safe, fun, and positive environment where every participant feels respected, valued, and protected from all forms of harm. We maintain a zero-tolerance approach to child abuse or maltreatment in any form.</p>
 
                                 <h3>2. Policy Scope</h3>
-                                <p>This policy is mandatory for all individuals involved in HoopHeroes's activities, including paid staff, volunteers, parents/guardians, participants, and spectators.</p>
+                                <p>This policy is mandatory for all individuals involved in Hoop Heroes' activities, including paid staff, volunteers, parents/guardians, participants, and spectators.</p>
 
                                 <h3>3. Key Principles</h3>
                                 <ul>
@@ -221,7 +221,7 @@ export const Policies: React.FC = () => {
                                 <p>Clear procedures are in place for late collection and missing participants, including immediate notification of the head coach and welfare officer.</p>
 
                                 <h3>11. Photography, Video, and Live Streaming</h3>
-                                <p>HoopHeroes is committed to protecting young people from the inappropriate use of their images. Written consent is required for images taken at junior games or training.</p>
+                                <p>Hoop Heroes is committed to protecting young people from the inappropriate use of their images. Written consent is required for images taken at junior games or training.</p>
 
                                 <h3>12. Positions of Trust</h3>
                                 <p>It is against the law for someone in a position of trust to engage in sexual activity with a child in their care.</p>
@@ -249,7 +249,7 @@ export const Policies: React.FC = () => {
                             <div className="prose prose-slate max-w-none prose-headings:font-display prose-headings:uppercase prose-headings:text-brand-dark prose-p:text-slate-600 prose-p:font-medium prose-li:text-slate-600 prose-li:font-medium">
                                  <p className="text-sm font-black text-brand-orange uppercase tracking-widest mb-8">Last Updated: 03/09/2026</p>
                                  
-                                 <p>Welcome to Hoop Heroes Ltd. (HH). By enrolling your child in our program, you agree to the following terms and conditions of membership:</p>
+                                 <p>Welcome to Hoop Heroes (HH). By enrolling your child in our program, you agree to the following terms and conditions of membership:</p>
 
                                  <h3>1. Monthly Membership Payments</h3>
                                  <p>Membership fees are payable via automatic recurring card payment. All fees are paid in advance on the 1st of each month. Please note that we do not accept payment by direct debit, bank transfer, or cash.</p>
