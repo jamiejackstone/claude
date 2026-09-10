@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, Link as RouterLink } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { CookieConsent } from './components/CookieConsent';
@@ -137,6 +137,35 @@ const ScrollToTop = () => {
   return null;
 }
 
+// 404 page — served with a real 404 status by the Worker for unknown URLs
+const NotFound: React.FC = () => {
+  useEffect(() => {
+    document.title = 'Page Not Found | Hoop Heroes';
+  }, []);
+
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center bg-brand-light px-4 py-24">
+      <div className="text-center max-w-xl">
+        <div className="inline-block transform -rotate-2 mb-6">
+          <div className="bg-brand-orange text-brand-dark px-6 py-2 font-display text-xl uppercase tracking-wide shadow-sticker border-2 border-brand-dark rounded-lg">
+            Air Ball!
+          </div>
+        </div>
+        <h1 className="font-display text-6xl md:text-7xl uppercase text-brand-dark mb-4">Page Not Found</h1>
+        <p className="text-slate-600 font-medium mb-8">
+          This page doesn't exist any more — but the game is still on. Head back to the homepage to find your nearest class.
+        </p>
+        <RouterLink
+          to="/"
+          className="inline-block bg-brand-dark text-white font-display uppercase tracking-wide px-8 py-4 rounded-xl border-2 border-brand-dark shadow-sticker hover:shadow-sticker-hover transition-all"
+        >
+          Back to the Homepage
+        </RouterLink>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <Router>
@@ -176,6 +205,9 @@ const App: React.FC = () => {
                 {/* QR Code Short Redirects */}
                 <Route path="/go" element={<GoRedirect />} />
                 <Route path="/go/:slug" element={<GoRedirect />} />
+
+                {/* 404 — the Worker serves unknown paths with a 404 status; this renders the page */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </main>
         <Footer />

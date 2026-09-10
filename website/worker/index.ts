@@ -255,6 +255,35 @@ function handleGoRedirect(url: URL): Response {
   return Response.redirect(destination.toString(), 302);
 }
 
+// Permanent redirects for legacy URLs that have a current equivalent.
+// Old URLs with NO equivalent are deliberately absent — they return a real
+// 404 below so search engines drop them from the index.
+const LEGACY_REDIRECTS: Record<string, string> = {
+  '/terms': '/policies?section=terms',
+  '/privacy': '/policies?section=privacy',
+  '/safeguarding': '/policies?section=safeguarding',
+  '/code-of-conduct': '/policies?section=conduct',
+  '/find-us': '/',
+  '/franchise': '/',
+  '/admin': '/',
+  '/bracknell': '/',
+  '/crowthorne': '/',
+  '/aylesbury': '/location/aylesbury',
+  '/bicester': '/location/bicester',
+  '/marlow': '/location/marlow',
+  '/holmer-green': '/location/holmer-green',
+  '/princes-risborough': '/location/wendover',
+  '/wendover': '/location/wendover',
+  '/tring': '/location/tring',
+  '/great-missenden': '/location/great-missenden',
+  '/oxford': '/location/oxford',
+  '/sandhurst': '/location/sandhurst',
+};
+
+// Every page the SPA actually serves. Anything else (without a file
+// extension) gets index.html with a 404 status so it never stays indexed.
+const VALID_PAGES = new Set(['/', '/mission', '/careers', '/policies', '/accident', '/3x3-gameday']);
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -281,8 +310,37 @@ export default {
         return handleGoRedirect(url);
       }
 
-      // Everything else: static assets with SPA fallback (configured in wrangler.jsonc)
-      return env.ASSETS.fetch(request);
+      // Normalise trailing slashes for page-URL matching (/terms/ === /terms)
+      const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
+
+      if (LEGACY_REDIRECTS[path]) {
+        const target = LEGACY_REDIRECTS[path];
+        const dest = new URL(target, url);
+        if (!target.includes('?') && url.search) {
+          dest.search = url.search; // keep UTM params etc. when the target has no query of its own
+        }
+        return Response.redirect(dest.toString(), 301);
+      }
+
+      // Real files (JS/CSS/images, robots.txt, sitemap.xml) go straight to assets
+      if (path.includes('.') || path.startsWith('/assets/')) {
+        return env.ASSETS.fetch(request);
+      }
+
+      const isValidPage =
+        VALID_PAGES.has(path) ||
+        (path.startsWith('/location/') && VALID_GO_SLUGS.includes(path.split('/')[2] || ''));
+
+      const assetResponse = await env.ASSETS.fetch(request);
+      if (isValidPage) {
+        return assetResponse;
+      }
+
+      // Unknown page: serve the SPA shell (which renders the 404 page) with a
+      // real 404 status so search engines drop the URL
+      const headers = new Headers(assetResponse.headers);
+      headers.set('X-Robots-Tag', 'noindex');
+      return new Response(assetResponse.body, { status: 404, headers });
     } catch (err) {
       console.error('Worker error:', err);
       return json({ error: 'Internal server error' }, 500);

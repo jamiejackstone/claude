@@ -12,7 +12,8 @@
 		"directory": "./dist",
 		"binding": "ASSETS",
 		"not_found_handling": "single-page-application",
-		"run_worker_first": ["/api/*", "/go", "/go/*"],
+		// Worker sees every request so it can 301 legacy URLs and 404 unknown pages
+		"run_worker_first": true,
 	},
 	"observability": {
 		"enabled": true,
