@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, Link as RouterLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useParams, Navigate, Link as RouterLink } from 'react-router-dom';
+import { LOCATIONS } from './constants';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { CookieConsent } from './components/CookieConsent';
@@ -166,6 +167,16 @@ const NotFound: React.FC = () => {
   );
 };
 
+// /locations/:slug → /location/:slug for known venues (mirrors the Worker helper)
+const LocationsPluralRedirect: React.FC = () => {
+  const { slug } = useParams();
+  const match = LOCATIONS.find((location) => location.slug === slug);
+  if (match) {
+    return <Navigate to={`/location/${match.slug}`} replace />;
+  }
+  return <NotFound />;
+};
+
 const App: React.FC = () => {
   return (
     <Router>
@@ -193,6 +204,18 @@ const App: React.FC = () => {
                 <Route path="/sandhurst" element={<Navigate to="/location/sandhurst" replace />} />
                 <Route path="/bracknell" element={<Navigate to="/" replace />} />
                 <Route path="/crowthorne" element={<Navigate to="/" replace />} />
+
+                <Route path="/locations" element={<Navigate to="/" replace />} />
+                <Route path="/locations/:slug" element={<LocationsPluralRedirect />} />
+                <Route path="/free-trial" element={<Navigate to="/" replace />} />
+                <Route path="/book-a-free-trial" element={<Navigate to="/" replace />} />
+                <Route path="/about" element={<Navigate to="/mission" replace />} />
+                <Route path="/contact" element={<Navigate to="/" replace />} />
+                <Route path="/blog" element={<Navigate to="/" replace />} />
+                <Route path="/pricing" element={<Navigate to="/" replace />} />
+                <Route path="/basketball-camps" element={<Navigate to="/" replace />} />
+                <Route path="/holmergreen" element={<Navigate to="/location/holmer-green" replace />} />
+                <Route path="/windsor" element={<Navigate to="/" replace />} />
 
                 <Route path="/mission" element={<Mission />} />
                 <Route path="/franchise" element={<Navigate to="/" replace />} />
