@@ -213,6 +213,9 @@ const App: React.FC = () => {
                 <Route path="/contact" element={<Navigate to="/" replace />} />
                 <Route path="/blog" element={<Navigate to="/" replace />} />
                 <Route path="/pricing" element={<Navigate to="/" replace />} />
+                <Route path="/basketball-camps" element={<Navigate to="/" replace />} />
+                <Route path="/holmergreen" element={<Navigate to="/location/holmer-green" replace />} />
+                <Route path="/windsor" element={<Navigate to="/" replace />} />
 
                 <Route path="/mission" element={<Mission />} />
                 <Route path="/franchise" element={<Navigate to="/" replace />} />
