@@ -271,6 +271,13 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/admin': '/',
   '/bracknell': '/',
   '/crowthorne': '/',
+  '/locations': '/',
+  '/free-trial': '/',
+  '/book-a-free-trial': '/',
+  '/about': '/mission',
+  '/contact': '/',
+  '/blog': '/',
+  '/pricing': '/',
   '/aylesbury': '/location/aylesbury',
   '/bicester': '/location/bicester',
   '/marlow': '/location/marlow',
@@ -282,6 +289,19 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/oxford': '/location/oxford',
   '/sandhurst': '/location/sandhurst',
 };
+
+// Plural /locations/:slug → singular /location/:slug for known venues only
+// (covers /locations/sandhurst and the same typo for every current location).
+function locationsPluralTarget(path: string): string | null {
+  if (!path.startsWith('/locations/')) return null;
+  const slug = path.slice('/locations/'.length);
+  if (!slug || slug.includes('/') || !LOCATION_NAMES[slug]) return null;
+  return `/location/${slug}`;
+}
+
+function legacyRedirectTarget(path: string): string | null {
+  return LEGACY_REDIRECTS[path] || locationsPluralTarget(path);
+}
 
 // ---------------------------------------------------------------------------
 // Per-page <title>, meta description and canonical, injected into the served
@@ -396,10 +416,10 @@ export default {
       // Normalise trailing slashes for page-URL matching (/terms/ === /terms)
       const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
 
-      if (LEGACY_REDIRECTS[path]) {
-        const target = LEGACY_REDIRECTS[path];
-        const dest = new URL(target, url);
-        if (!target.includes('?') && url.search) {
+      const redirectTarget = legacyRedirectTarget(path);
+      if (redirectTarget) {
+        const dest = new URL(redirectTarget, url);
+        if (!redirectTarget.includes('?') && url.search) {
           dest.search = url.search; // keep UTM params etc. when the target has no query of its own
         }
         return Response.redirect(dest.toString(), 301);
