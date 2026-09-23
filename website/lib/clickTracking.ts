@@ -67,7 +67,10 @@ export function clickIdsFromRecord(record: Record<string, unknown>): TrackedPara
   return pickTrackedParams(search.toString());
 }
 
-/** Top-level gclid / gbraid / wbraid keys for webhook bodies. Omits empty values. */
+/**
+ * Landing-param names only (`gclid`, `gbraid`, `wbraid`).
+ * CRM custom-field ids are not known yet — do not map these onto GHL fields.
+ */
 export function clickIdFields(params: TrackedParams): Partial<Record<ClickIdParam, string>> {
   const out: Partial<Record<ClickIdParam, string>> = {};
   for (const key of CLICK_ID_PARAMS) {
@@ -75,51 +78,6 @@ export function clickIdFields(params: TrackedParams): Partial<Record<ClickIdPara
     if (value) out[key] = value;
   }
   return out;
-}
-
-/**
- * Hoop Heroes location 9p0wEiLpTaIe1FDTFFQI (Systems, 23 Sep 2026).
- * Landing query param stays `gclid`. CRM field is `hh_gclid` — native contact.gclid is not writable.
- */
-export const HOOP_HEROES_LOCATION_ID = '9p0wEiLpTaIe1FDTFFQI';
-
-export const CLICK_CUSTOM_FIELDS = {
-  gclid: { id: '9frYn0xCQ45lkz4R6q0e', key: 'hh_gclid', fieldKey: 'contact.hh_gclid' },
-  gbraid: { id: 'Vco6cxY4VKBWQ9FPB6rQ', key: 'gbraid', fieldKey: 'contact.gbraid' },
-  wbraid: { id: 'fMkXv33gXAGUuHBDcber', key: 'wbraid', fieldKey: 'contact.wbraid' },
-} as const;
-
-export interface GhlCustomFieldEntry {
-  id: string;
-  key: string;
-  fieldValue: string;
-}
-
-/**
- * LeadConnector customFields entries.
- * Landing `gclid` is written to key `hh_gclid`. gbraid/wbraid keys match the query params.
- */
-export function ghlCustomFieldEntries(values: TrackedParams): GhlCustomFieldEntry[] {
-  const entries: GhlCustomFieldEntry[] = [];
-  for (const landingParam of CLICK_ID_PARAMS) {
-    const value = values[landingParam];
-    if (!value) continue;
-    const field = CLICK_CUSTOM_FIELDS[landingParam];
-    entries.push({ id: field.id, key: field.key, fieldValue: value });
-  }
-  return entries;
-}
-
-/**
- * GHL v1 `POST /v1/contacts/` shape used by the Worker API key.
- * Same field ids as `ghlCustomFieldEntries`, keyed on `customField`.
- */
-export function ghlV1CustomField(values: TrackedParams): Record<string, string> | undefined {
-  const customField: Record<string, string> = {};
-  for (const entry of ghlCustomFieldEntries(values)) {
-    customField[entry.id] = entry.fieldValue;
-  }
-  return Object.keys(customField).length ? customField : undefined;
 }
 
 /**

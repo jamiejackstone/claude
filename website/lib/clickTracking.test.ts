@@ -2,8 +2,6 @@ import {
   buildGoDestination,
   clickIdFields,
   clickIdsFromRecord,
-  ghlCustomFieldEntries,
-  ghlV1CustomField,
   mergeIncomingSearch,
   pickTrackedParams,
   withTrackedParams,
@@ -94,21 +92,6 @@ assertEqual(searchRecord(go).gbraid, 'GB', '/go merges gbraid');
 assertEqual(searchRecord(go).wbraid, 'WB', '/go merges wbraid');
 assert(!('src' in searchRecord(go)), '/go does not forward src');
 assert(go.includes('/location/tring'), '/go destination path');
-
-const entries = ghlCustomFieldEntries({ gclid: 'TEST_HH_20260923', gbraid: 'GB', wbraid: 'WB' });
-assertEqual(entries, [
-  { id: '9frYn0xCQ45lkz4R6q0e', key: 'hh_gclid', fieldValue: 'TEST_HH_20260923' },
-  { id: 'Vco6cxY4VKBWQ9FPB6rQ', key: 'gbraid', fieldValue: 'GB' },
-  { id: 'fMkXv33gXAGUuHBDcber', key: 'wbraid', fieldValue: 'WB' },
-], 'customFields use hh_gclid for the landing gclid');
-
-const v1 = ghlV1CustomField({ gclid: 'TEST_HH_20260923', wbraid: 'WB' });
-assertEqual(v1, {
-  '9frYn0xCQ45lkz4R6q0e': 'TEST_HH_20260923',
-  'fMkXv33gXAGUuHBDcber': 'WB',
-}, 'v1 customField is keyed by field id');
-assertEqual(ghlV1CustomField({}), undefined, 'no click ids means no customField');
-assert(!JSON.stringify(entries).includes('contact.gclid'), 'native contact.gclid is not sent');
 
 assertEqual(clickIdFields({ gclid: 'TEST', utm_source: 'google' }), { gclid: 'TEST' }, 'lead payload is click ids only');
 assertEqual(clickIdsFromRecord({ gclid: ' TEST ', gbraid: 1, wbraid: '' }), { gclid: 'TEST' }, 'non-strings and blanks are dropped');
