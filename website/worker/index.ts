@@ -5,7 +5,10 @@ import {
   type TrackedParams,
   buildGoDestination,
   clickIdsFromRecord,
+  ghlBraidCustomFields,
+  ghlV1BraidCustomField,
   mergeIncomingSearch,
+  pendingHhGclidField,
 } from '../lib/clickTracking';
 
 interface Env {
@@ -73,26 +76,81 @@ async function sendResendEmail(env: Env, payload: {
   return { ok: true };
 }
 
-// TODO(ghl-click-ids): Systems is creating the GHL custom fields. When they send
-// real field ids and fieldKeys, map `clickIds` onto the contact here.
-// Do not send contact.gclid and do not hardcode guessed field UUIDs.
-function noteClickIdsPendingCrm(clickIds: TrackedParams): void {
-  const present = (['gclid', 'gbraid', 'wbraid'] as const).filter((key) => clickIds[key]);
-  if (present.length) {
-    console.log(`[GHL] click ids on this lead (${present.join(', ')}) are stored in the browser only; CRM write is waiting on field ids`);
+// gbraid / wbraid use the verified field ids. gclid waits on the hh_gclid id.
+function attachBraidCustomFields(payload: Record<string, unknown>, clickIds: TrackedParams): void {
+  pendingHhGclidField(clickIds);
+  if (clickIds.gclid) {
+    console.log('[GHL] gclid is stored for this lead; hh_gclid field id is not set yet, so it is not written');
   }
+  const customFields = ghlBraidCustomFields(clickIds);
+  const customField = ghlV1BraidCustomField(clickIds);
+  if (customFields.length) payload.customFields = customFields;
+  if (customField) payload.customField = customField;
 }
 
-// Create a contact via the GHL v1 REST API. Returns true on success.
-async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
-  const response = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
-    method: 'POST',
+async function ghlRequest(apiKey: string, path: string, method: string, body: Record<string, unknown>): Promise<Response> {
+  return fetch(`https://rest.gohighlevel.com/v1${path}`, {
+    method,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
+}
+
+async function lookupContactId(apiKey: string, email: string): Promise<string | null> {
+  const url = `https://rest.gohighlevel.com/v1/contacts/lookup?email=${encodeURIComponent(email)}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } });
+    if (!response.ok) {
+      console.error('[GHL] contact lookup failed:', response.status, await response.text());
+      return null;
+    }
+    const data = await response.json() as { contacts?: { id?: string }[]; contact?: { id?: string } };
+    const id = data.contacts?.[0]?.id || data.contact?.id || null;
+    if (id) return id;
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  return null;
+}
+
+async function stampBraidFields(apiKey: string, email: string, clickIds: TrackedParams): Promise<void> {
+  const customField = ghlV1BraidCustomField(clickIds);
+  const customFields = ghlBraidCustomFields(clickIds);
+  if (!customField) return;
+  const contactId = await lookupContactId(apiKey, email);
+  if (!contactId) {
+    console.warn('[GHL] gbraid/wbraid not stamped; contact not found yet');
+    return;
+  }
+  const attempts: Record<string, unknown>[] = [{ customFields, customField }, { customField }];
+  for (const body of attempts) {
+    const response = await ghlRequest(apiKey, `/contacts/${contactId}`, 'PUT', body);
+    if (response.ok) {
+      console.log(`[GHL] stamped ${customFields.map((entry) => entry.key).join(', ')}`);
+      return;
+    }
+    console.warn('[GHL] braid update failed:', response.status, (await response.text()).slice(0, 400));
+  }
+}
+
+// Create a contact via the GHL v1 REST API. Returns true on success.
+// If v1 rejects the customFields array, retry with the id map, then without braid fields.
+async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
+  let response = await ghlRequest(apiKey, '/contacts/', 'POST', payload);
+  if (!response.ok && (payload.customFields || payload.customField) && (response.status === 400 || response.status === 422)) {
+    console.error(`[${label}] GHL API Error:`, response.status, await response.text());
+    const withoutArray = { ...payload };
+    delete withoutArray.customFields;
+    response = await ghlRequest(apiKey, '/contacts/', 'POST', withoutArray);
+    if (!response.ok) {
+      console.error(`[${label}] GHL API Error after dropping customFields:`, response.status, await response.text());
+      delete withoutArray.customField;
+      console.warn(`[${label}] retrying contact create without braid fields`);
+      response = await ghlRequest(apiKey, '/contacts/', 'POST', withoutArray);
+    }
+  }
   if (!response.ok) {
     console.error(`[${label}] GHL API Error:`, response.status, await response.text());
     return false;
@@ -125,7 +183,8 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       role_applied: role,
       sub_account: 'HR & Recruitment',
     };
-    noteClickIdsPendingCrm(clickIds);
+    attachBraidCustomFields(careerPayload, clickIds);
+    const careerEmail = String(careerPayload.email);
 
     const HR_WEBHOOK_URL = env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL;
 
@@ -138,6 +197,12 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       delivered = webhookResponse.ok;
       if (!webhookResponse.ok) {
         console.error('[HR Sub-Account Webhook] Error:', webhookResponse.status, await webhookResponse.text());
+      } else if (env.GHL_HR_API_KEY) {
+        try {
+          await stampBraidFields(env.GHL_HR_API_KEY, careerEmail, clickIds);
+        } catch (stampErr) {
+          console.error('[HR] braid stamp error:', stampErr);
+        }
       }
     } else if (env.GHL_HR_API_KEY) {
       delivered = await createGhlContact(env.GHL_HR_API_KEY, careerPayload, 'HR Sub-Account');
@@ -195,7 +260,8 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     source,
     locationName,
   };
-  noteClickIdsPendingCrm(clickIds);
+  attachBraidCustomFields(leadPayload, clickIds);
+  const leadEmail = String(leadPayload.email);
 
   // Location-specific GHL inbound webhooks take priority over the API
   const WEBHOOK_MAP: Record<string, string> = {
@@ -214,6 +280,13 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
       console.error('[Webhook] Error:', webhookResponse.status, errorText);
       return json({ error: 'Webhook submission failed', details: errorText }, webhookResponse.status);
     }
+    if (env.GHL_API_KEY) {
+      try {
+        await stampBraidFields(env.GHL_API_KEY, leadEmail, clickIds);
+      } catch (stampErr) {
+        console.error('[Waitlist] braid stamp error:', stampErr);
+      }
+    }
     return json({ success: true, message: `Lead sent to ${locationName} webhook` });
   }
 
@@ -225,14 +298,18 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     }, 500);
   }
 
-  const ghlResponse = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.GHL_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(leadPayload),
-  });
+  let ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', leadPayload);
+  if (!ghlResponse.ok && (leadPayload.customFields || leadPayload.customField) && (ghlResponse.status === 400 || ghlResponse.status === 422)) {
+    console.error('[GHL] API Error:', ghlResponse.status, await ghlResponse.text());
+    const withoutArray = { ...leadPayload };
+    delete withoutArray.customFields;
+    ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', withoutArray);
+    if (!ghlResponse.ok) {
+      delete withoutArray.customField;
+      console.warn('[GHL] retrying waitlist create without braid fields');
+      ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', withoutArray);
+    }
+  }
 
   const responseText = await ghlResponse.text();
   let data: unknown;

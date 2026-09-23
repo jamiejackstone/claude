@@ -68,9 +68,53 @@ export function clickIdsFromRecord(record: Record<string, unknown>): TrackedPara
 }
 
 /**
- * Landing-param names only (`gclid`, `gbraid`, `wbraid`).
- * CRM custom-field ids are not known yet — do not map these onto GHL fields.
+ * Verified writable TEXT fields on Hoop Heroes location 9p0wEiLpTaIe1FDTFFQI.
+ * gclid is not here: a fake custom-field id is silently dropped, and the
+ * `hh_gclid` alias id has not been issued yet.
  */
+export const BRAID_CUSTOM_FIELDS = {
+  gbraid: { id: 'Vco6cxY4VKBWQ9FPB6rQ', key: 'gbraid' },
+  wbraid: { id: 'fMkXv33gXAGUuHBDcber', key: 'wbraid' },
+} as const;
+
+export interface GhlCustomFieldEntry {
+  id: string;
+  key: string;
+  fieldValue: string;
+}
+
+/** LeadConnector customFields entries for gbraid and wbraid only. */
+export function ghlBraidCustomFields(values: TrackedParams): GhlCustomFieldEntry[] {
+  const entries: GhlCustomFieldEntry[] = [];
+  for (const key of ['gbraid', 'wbraid'] as const) {
+    const value = values[key];
+    if (!value) continue;
+    const field = BRAID_CUSTOM_FIELDS[key];
+    entries.push({ id: field.id, key: field.key, fieldValue: value });
+  }
+  return entries;
+}
+
+/** GHL v1 `customField` id map for the same gbraid / wbraid fields. */
+export function ghlV1BraidCustomField(values: TrackedParams): Record<string, string> | undefined {
+  const customField: Record<string, string> = {};
+  for (const entry of ghlBraidCustomFields(values)) {
+    customField[entry.id] = entry.fieldValue;
+  }
+  return Object.keys(customField).length ? customField : undefined;
+}
+
+/**
+ * TODO(hh_gclid): Systems is creating alias custom field `hh_gclid`.
+ * When the real id and key arrive, return
+ * `{ id, key: 'hh_gclid', fieldValue: values.gclid }` and include it beside the braid entries.
+ * Do not invent an id. A customFields id of "gclid" and native contact.gclid are silently dropped.
+ */
+export function pendingHhGclidField(_values: TrackedParams): null {
+  return null;
+}
+
+/** Landing-param names (`gclid`, `gbraid`, `wbraid`). gclid is not a CRM field id. */
 export function clickIdFields(params: TrackedParams): Partial<Record<ClickIdParam, string>> {
   const out: Partial<Record<ClickIdParam, string>> = {};
   for (const key of CLICK_ID_PARAMS) {
