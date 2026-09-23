@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, CheckCircle, ArrowRight, Smartphone, Mail, User, MapPin, AlignLeft, FileText, Info, Award, Clock, PoundSterling } from 'lucide-react';
+import { getClickIdsForLead } from '../lib/clickTracking';
 
 interface JobDescription {
   title: string;
@@ -168,7 +169,8 @@ export const Careers: React.FC = () => {
           phone: formData.phone,
           location: formData.location,
           about: formData.about,
-          role: selectedRole
+          role: selectedRole,
+          ...getClickIdsForLead(),
         })
       });
 

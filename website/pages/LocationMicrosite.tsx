@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
+import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
 import { LocationData } from '../types';
 import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, AlertTriangle, ShoppingCart } from 'lucide-react';
 
@@ -70,7 +71,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    window.open(FREE_TRIAL_URL, '_blank');
+    window.open(withTrackedParams(FREE_TRIAL_URL), '_blank');
   };
 
   const toggleMute = () => {
@@ -97,7 +98,8 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                 location.ghlTag || `${location.name} Waitlist`,
                 `Source: Website Waitlist`
             ],
-            source: `Website Waitlist - ${location.name}`
+            source: `Website Waitlist - ${location.name}`,
+            ...getClickIdsForLead(),
         };
 
         const response = await fetch('/api/waitlist', {
@@ -178,7 +180,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       finalUrl += `&start_date=${autoDate}`;
     }
     
-    return finalUrl;
+    return withTrackedParams(finalUrl);
   };
 
   return (
@@ -492,7 +494,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
             {!location.comingSoon && (
               <div className="bg-brand-dark rounded-[2.5rem] p-8 md:p-10 border-4 border-brand-dark shadow-sticker text-white text-center">
                 <h3 className="font-display text-2xl uppercase mb-5">Existing Member?</h3>
-                <a href={MEMBER_PORTAL_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white text-brand-dark px-8 py-3 rounded-full font-display uppercase hover:bg-brand-orange transition-colors w-full justify-center mb-8 shadow-md">
+                <a href={withTrackedParams(MEMBER_PORTAL_URL)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white text-brand-dark px-8 py-3 rounded-full font-display uppercase hover:bg-brand-orange transition-colors w-full justify-center mb-8 shadow-md">
                     Member Login <ExternalLink size={16} />
                 </a>
 

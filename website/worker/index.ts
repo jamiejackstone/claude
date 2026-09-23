@@ -1,6 +1,16 @@
 // Cloudflare Worker serving the Hoop Heroes API alongside the static SPA assets.
 // Replaces the previous Express server (server.ts) from the AI Studio export.
 
+import {
+  type TrackedParams,
+  buildGoDestination,
+  clickIdFields,
+  clickIdsFromRecord,
+  ghlCustomFieldEntries,
+  ghlV1CustomField,
+  mergeIncomingSearch,
+} from '../lib/clickTracking';
+
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   RESEND_API_KEY?: string;
@@ -66,16 +76,105 @@ async function sendResendEmail(env: Env, payload: {
   return { ok: true };
 }
 
-// Create a contact via the GHL v1 REST API. Returns true on success.
-async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
-  const response = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
-    method: 'POST',
+// Landing `gclid` is stored under CRM key `hh_gclid` (id 9frYn0xCQ45lkz4R6q0e).
+// The Worker talks to GHL v1, which writes custom fields as `customField: { [id]: value }`.
+// `customFields` is the v2 array Systems specified (id + key + fieldValue). Both are sent;
+// if v1 rejects the array, the request is retried with the id map only.
+function attachClickCustomFields(payload: Record<string, unknown>, clickIds: TrackedParams): void {
+  const customFields = ghlCustomFieldEntries(clickIds);
+  const customField = ghlV1CustomField(clickIds);
+  if (customFields.length) payload.customFields = customFields;
+  if (customField) payload.customField = customField;
+}
+
+function webhookClickExtras(clickIds: TrackedParams): Record<string, unknown> {
+  const extras: Record<string, unknown> = {
+    ...clickIdFields(clickIds),
+  };
+  if (clickIds.gclid) extras.hh_gclid = clickIds.gclid;
+  const customFields = ghlCustomFieldEntries(clickIds);
+  if (customFields.length) extras.customFields = customFields;
+  return extras;
+}
+
+async function ghlRequest(apiKey: string, path: string, method: string, body: Record<string, unknown>): Promise<Response> {
+  return fetch(`https://rest.gohighlevel.com/v1${path}`, {
+    method,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
+}
+
+async function lookupContactId(apiKey: string, email: string): Promise<string | null> {
+  const url = `https://rest.gohighlevel.com/v1/contacts/lookup?email=${encodeURIComponent(email)}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } });
+    if (!response.ok) {
+      console.error('[GHL] contact lookup failed:', response.status, await response.text());
+      if (response.status >= 500 && attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        continue;
+      }
+      return null;
+    }
+    const data = await response.json() as { contacts?: { id?: string }[]; contact?: { id?: string } };
+    const id = data.contacts?.[0]?.id || data.contact?.id || null;
+    if (id) return id;
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  return null;
+}
+
+// After a webhook creates the contact, write click ids onto hh_gclid / gbraid / wbraid.
+async function stampClickIds(apiKey: string, email: string, clickIds: TrackedParams): Promise<void> {
+  const customField = ghlV1CustomField(clickIds);
+  const customFields = ghlCustomFieldEntries(clickIds);
+  if (!customField) return;
+  const contactId = await lookupContactId(apiKey, email);
+  if (!contactId) {
+    console.warn('[GHL] click ids not stamped; contact not found for lookup');
+    return;
+  }
+  const attempts: Record<string, unknown>[] = [
+    { customFields, customField },
+    { customField },
+  ];
+  for (const body of attempts) {
+    const response = await ghlRequest(apiKey, `/contacts/${contactId}`, 'PUT', body);
+    if (response.ok) {
+      console.log(`[GHL] stamped click ids: ${customFields.map((entry) => entry.key).join(', ')}`);
+      return;
+    }
+    console.warn('[GHL] click-id update failed:', response.status, (await response.text()).slice(0, 500));
+  }
+}
+
+// Create a contact via the GHL v1 REST API. Returns true on success.
+// Retries without click-id fields if v1 rejects the customFields array, so the lead is not dropped.
+async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
+  let response = await ghlRequest(apiKey, '/contacts/', 'POST', payload);
+  if (!response.ok && (payload.customFields || payload.customField)) {
+    const errText = await response.text();
+    console.error(`[${label}] GHL API Error:`, response.status, errText);
+    if (response.status === 400 || response.status === 422) {
+      const fallback = { ...payload };
+      delete fallback.customFields;
+      if (payload.customField) {
+        // Keep the v1 id map; drop only the v2 array that v1 may not accept.
+        response = await ghlRequest(apiKey, '/contacts/', 'POST', fallback);
+        if (response.ok) return true;
+        console.error(`[${label}] GHL API Error after dropping customFields:`, response.status, await response.text());
+      }
+      delete fallback.customField;
+      console.warn(`[${label}] retrying contact create without click-id fields`);
+      response = await ghlRequest(apiKey, '/contacts/', 'POST', fallback);
+    } else {
+      return false;
+    }
+  }
   if (!response.ok) {
     console.error(`[${label}] GHL API Error:`, response.status, await response.text());
     return false;
@@ -87,13 +186,15 @@ async function createGhlContact(apiKey: string, payload: Record<string, unknown>
 // sub-account. Resend email is an optional extra that only runs when
 // RESEND_API_KEY is configured.
 async function handleContact(request: Request, env: Env): Promise<Response> {
-  const { type, name, email, phone, location, about, role } = await request.json() as Record<string, string>;
+  const body = await request.json() as Record<string, string>;
+  const { type, name, email, phone, location, about, role } = body;
+  const clickIds = clickIdsFromRecord(body);
 
   let delivered = false;
 
   if (type === 'careers') {
     const { firstName, lastName } = splitName(name);
-    const careerPayload = {
+    const careerPayload: Record<string, unknown> = {
       firstName,
       lastName,
       name: name.trim(),
@@ -106,6 +207,7 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       role_applied: role,
       sub_account: 'HR & Recruitment',
     };
+    const careerEmail = String(careerPayload.email);
 
     const HR_WEBHOOK_URL = env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL;
 
@@ -113,13 +215,20 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       const webhookResponse = await fetch(HR_WEBHOOK_URL, {
         method: 'POST',
         headers: JSON_HEADERS,
-        body: JSON.stringify(careerPayload),
+        body: JSON.stringify({ ...careerPayload, ...webhookClickExtras(clickIds) }),
       });
       delivered = webhookResponse.ok;
       if (!webhookResponse.ok) {
         console.error('[HR Sub-Account Webhook] Error:', webhookResponse.status, await webhookResponse.text());
+      } else if (env.GHL_HR_API_KEY) {
+        try {
+          await stampClickIds(env.GHL_HR_API_KEY, careerEmail, clickIds);
+        } catch (stampErr) {
+          console.error('[HR] click-id stamp error:', stampErr);
+        }
       }
     } else if (env.GHL_HR_API_KEY) {
+      attachClickCustomFields(careerPayload, clickIds);
       delivered = await createGhlContact(env.GHL_HR_API_KEY, careerPayload, 'HR Sub-Account');
     } else {
       return json({
@@ -160,10 +269,12 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
 
 // POST /api/waitlist — Taster/waitlist leads into the main GHL account
 async function handleWaitlist(request: Request, env: Env): Promise<Response> {
-  const { name, email, phone, tags, source, locationName } = await request.json() as Record<string, any>;
+  const body = await request.json() as Record<string, any>;
+  const { name, email, phone, tags, source, locationName } = body;
+  const clickIds = clickIdsFromRecord(body);
 
   const { firstName, lastName } = splitName(name);
-  const leadPayload = {
+  const leadPayload: Record<string, unknown> = {
     firstName,
     lastName,
     name: name.trim(),
@@ -173,6 +284,7 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     source,
     locationName,
   };
+  const leadEmail = String(leadPayload.email);
 
   // Location-specific GHL inbound webhooks take priority over the API
   const WEBHOOK_MAP: Record<string, string> = {
@@ -183,13 +295,20 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     const webhookResponse = await fetch(WEBHOOK_MAP[locationName], {
       method: 'POST',
       headers: JSON_HEADERS,
-      body: JSON.stringify(leadPayload),
+      body: JSON.stringify({ ...leadPayload, ...webhookClickExtras(clickIds) }),
     });
 
     if (!webhookResponse.ok) {
       const errorText = await webhookResponse.text();
       console.error('[Webhook] Error:', webhookResponse.status, errorText);
       return json({ error: 'Webhook submission failed', details: errorText }, webhookResponse.status);
+    }
+    if (env.GHL_API_KEY) {
+      try {
+        await stampClickIds(env.GHL_API_KEY, leadEmail, clickIds);
+      } catch (stampErr) {
+        console.error('[Waitlist] click-id stamp error:', stampErr);
+      }
     }
     return json({ success: true, message: `Lead sent to ${locationName} webhook` });
   }
@@ -202,14 +321,20 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     }, 500);
   }
 
-  const ghlResponse = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.GHL_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(leadPayload),
-  });
+  attachClickCustomFields(leadPayload, clickIds);
+
+  let ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', leadPayload);
+  if (!ghlResponse.ok && (leadPayload.customFields || leadPayload.customField) && (ghlResponse.status === 400 || ghlResponse.status === 422)) {
+    console.error('[GHL] API Error:', ghlResponse.status, await ghlResponse.clone().text());
+    const fallback = { ...leadPayload };
+    delete fallback.customFields;
+    ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', fallback);
+    if (!ghlResponse.ok) {
+      delete fallback.customField;
+      console.warn('[GHL] retrying waitlist create without click-id fields');
+      ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', fallback);
+    }
+  }
 
   const responseText = await ghlResponse.text();
   let data: unknown;
@@ -244,17 +369,13 @@ const VALID_GO_SLUGS = Object.keys(LOCATION_NAMES);
 function handleGoRedirect(url: URL): Response {
   const rawSlug = (url.pathname.split('/')[2] || '').toLowerCase().trim();
   if (!rawSlug || !VALID_GO_SLUGS.includes(rawSlug)) {
-    return Response.redirect(new URL('/', url).toString(), 302);
+    return Response.redirect(mergeIncomingSearch('/', url.origin, url.searchParams), 302);
   }
 
   const src = url.searchParams.get('src');
   const utmSource = src === 'banner' ? 'banner' : src === 'flyer' ? 'flyer' : 'print';
 
-  const destination = new URL(
-    `/location/${rawSlug}?utm_source=${utmSource}&utm_medium=print&utm_campaign=sep26&utm_content=${rawSlug}`,
-    url,
-  );
-  return Response.redirect(destination.toString(), 302);
+  return Response.redirect(buildGoDestination(url.origin, rawSlug, utmSource, url.search), 302);
 }
 
 // Permanent redirects for legacy URLs that have a current equivalent.
@@ -421,11 +542,9 @@ export default {
 
       const redirectTarget = legacyRedirectTarget(path);
       if (redirectTarget) {
-        const dest = new URL(redirectTarget, url);
-        if (!redirectTarget.includes('?') && url.search) {
-          dest.search = url.search; // keep UTM params etc. when the target has no query of its own
-        }
-        return Response.redirect(dest.toString(), 301);
+        // Merge incoming search into the target. Targets that already have a query
+        // (e.g. /policies?section=terms) keep their own keys and gain gclid/UTMs.
+        return Response.redirect(mergeIncomingSearch(redirectTarget, url.origin, url.searchParams), 301);
       }
 
       // Real files (JS/CSS/images, robots.txt, sitemap.xml) go straight to assets
