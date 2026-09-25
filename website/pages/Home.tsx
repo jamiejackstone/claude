@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, MapPin, Trophy, Users, ArrowRight, Star, ShieldCheck, Heart, Clock, Award, Calendar, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { LOCATIONS } from '../constants';
+import { ClassSessionList } from '../components/ClassSessionList';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -169,6 +170,9 @@ export const Home: React.FC = () => {
                                     </div>
                                     
                                     <div className="flex-grow">
+                                        {!loc.comingSoon && loc.classes.some((session) => session.comingSoon) && (
+                                          <ClassSessionList sessions={loc.classes} compact />
+                                        )}
                                         {loc.tempVenueNotice && (
                                             <div className="mb-3 p-3 bg-brand-orange/10 border-2 border-brand-orange/30 rounded-xl flex items-start gap-3 animate-pulse">
                                                 <AlertTriangle size={18} className="text-brand-orange shrink-0 mt-0.5" />
