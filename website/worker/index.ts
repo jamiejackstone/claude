@@ -5,10 +5,9 @@ import {
   type TrackedParams,
   buildGoDestination,
   clickIdsFromRecord,
-  ghlBraidCustomFields,
-  ghlV1BraidCustomField,
+  ghlClickIdCustomFields,
+  ghlV1ClickIdCustomField,
   mergeIncomingSearch,
-  pendingHhGclidField,
 } from '../lib/clickTracking';
 
 interface Env {
@@ -76,14 +75,10 @@ async function sendResendEmail(env: Env, payload: {
   return { ok: true };
 }
 
-// gbraid / wbraid use the verified field ids. gclid waits on the hh_gclid id.
-function attachBraidCustomFields(payload: Record<string, unknown>, clickIds: TrackedParams): void {
-  pendingHhGclidField(clickIds);
-  if (clickIds.gclid) {
-    console.log('[GHL] gclid is stored for this lead; hh_gclid field id is not set yet, so it is not written');
-  }
-  const customFields = ghlBraidCustomFields(clickIds);
-  const customField = ghlV1BraidCustomField(clickIds);
+// hh_gclid, gbraid, and wbraid use the verified field ids. Native contact.gclid is not sent.
+function attachClickIdCustomFields(payload: Record<string, unknown>, clickIds: TrackedParams): void {
+  const customFields = ghlClickIdCustomFields(clickIds);
+  const customField = ghlV1ClickIdCustomField(clickIds);
   if (customFields.length) payload.customFields = customFields;
   if (customField) payload.customField = customField;
 }
@@ -115,13 +110,13 @@ async function lookupContactId(apiKey: string, email: string): Promise<string | 
   return null;
 }
 
-async function stampBraidFields(apiKey: string, email: string, clickIds: TrackedParams): Promise<void> {
-  const customField = ghlV1BraidCustomField(clickIds);
-  const customFields = ghlBraidCustomFields(clickIds);
+async function stampClickIdFields(apiKey: string, email: string, clickIds: TrackedParams): Promise<void> {
+  const customField = ghlV1ClickIdCustomField(clickIds);
+  const customFields = ghlClickIdCustomFields(clickIds);
   if (!customField) return;
   const contactId = await lookupContactId(apiKey, email);
   if (!contactId) {
-    console.warn('[GHL] gbraid/wbraid not stamped; contact not found yet');
+    console.warn('[GHL] click ids not stamped; contact not found yet');
     return;
   }
   const attempts: Record<string, unknown>[] = [{ customFields, customField }, { customField }];
@@ -131,12 +126,12 @@ async function stampBraidFields(apiKey: string, email: string, clickIds: Tracked
       console.log(`[GHL] stamped ${customFields.map((entry) => entry.key).join(', ')}`);
       return;
     }
-    console.warn('[GHL] braid update failed:', response.status, (await response.text()).slice(0, 400));
+    console.warn('[GHL] click-id update failed:', response.status, (await response.text()).slice(0, 400));
   }
 }
 
 // Create a contact via the GHL v1 REST API. Returns true on success.
-// If v1 rejects the customFields array, retry with the id map, then without braid fields.
+// If v1 rejects the customFields array, retry with the id map, then without click-id fields.
 async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
   let response = await ghlRequest(apiKey, '/contacts/', 'POST', payload);
   if (!response.ok && (payload.customFields || payload.customField) && (response.status === 400 || response.status === 422)) {
@@ -147,7 +142,7 @@ async function createGhlContact(apiKey: string, payload: Record<string, unknown>
     if (!response.ok) {
       console.error(`[${label}] GHL API Error after dropping customFields:`, response.status, await response.text());
       delete withoutArray.customField;
-      console.warn(`[${label}] retrying contact create without braid fields`);
+      console.warn(`[${label}] retrying contact create without click-id fields`);
       response = await ghlRequest(apiKey, '/contacts/', 'POST', withoutArray);
     }
   }
@@ -183,7 +178,7 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
       role_applied: role,
       sub_account: 'HR & Recruitment',
     };
-    attachBraidCustomFields(careerPayload, clickIds);
+    attachClickIdCustomFields(careerPayload, clickIds);
     const careerEmail = String(careerPayload.email);
 
     const HR_WEBHOOK_URL = env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL;
@@ -199,9 +194,9 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
         console.error('[HR Sub-Account Webhook] Error:', webhookResponse.status, await webhookResponse.text());
       } else if (env.GHL_HR_API_KEY) {
         try {
-          await stampBraidFields(env.GHL_HR_API_KEY, careerEmail, clickIds);
+          await stampClickIdFields(env.GHL_HR_API_KEY, careerEmail, clickIds);
         } catch (stampErr) {
-          console.error('[HR] braid stamp error:', stampErr);
+          console.error('[HR] click-id stamp error:', stampErr);
         }
       }
     } else if (env.GHL_HR_API_KEY) {
@@ -260,7 +255,7 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     source,
     locationName,
   };
-  attachBraidCustomFields(leadPayload, clickIds);
+  attachClickIdCustomFields(leadPayload, clickIds);
   const leadEmail = String(leadPayload.email);
 
   // Location-specific GHL inbound webhooks take priority over the API
@@ -282,9 +277,9 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     }
     if (env.GHL_API_KEY) {
       try {
-        await stampBraidFields(env.GHL_API_KEY, leadEmail, clickIds);
+        await stampClickIdFields(env.GHL_API_KEY, leadEmail, clickIds);
       } catch (stampErr) {
-        console.error('[Waitlist] braid stamp error:', stampErr);
+        console.error('[Waitlist] click-id stamp error:', stampErr);
       }
     }
     return json({ success: true, message: `Lead sent to ${locationName} webhook` });
@@ -306,7 +301,7 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', withoutArray);
     if (!ghlResponse.ok) {
       delete withoutArray.customField;
-      console.warn('[GHL] retrying waitlist create without braid fields');
+      console.warn('[GHL] retrying waitlist create without click-id fields');
       ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', withoutArray);
     }
   }

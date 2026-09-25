@@ -2,10 +2,9 @@ import {
   buildGoDestination,
   clickIdFields,
   clickIdsFromRecord,
-  ghlBraidCustomFields,
-  ghlV1BraidCustomField,
+  ghlClickIdCustomFields,
+  ghlV1ClickIdCustomField,
   mergeIncomingSearch,
-  pendingHhGclidField,
   pickTrackedParams,
   withTrackedParams,
 } from './clickTracking.ts';
@@ -96,14 +95,20 @@ assertEqual(searchRecord(go).wbraid, 'WB', '/go merges wbraid');
 assert(!('src' in searchRecord(go)), '/go does not forward src');
 assert(go.includes('/location/tring'), '/go destination path');
 
-const braids = ghlBraidCustomFields({ gclid: 'TEST_HH_20260923', gbraid: 'GB', wbraid: 'WB' });
-assertEqual(braids, [
+const clickFields = ghlClickIdCustomFields({ gclid: 'TEST_HH_20260923', gbraid: 'GB', wbraid: 'WB' });
+assertEqual(clickFields, [
+  { id: '9frYn0xCQ45lkz4R6q0e', key: 'hh_gclid', fieldValue: 'TEST_HH_20260923' },
   { id: 'Vco6cxY4VKBWQ9FPB6rQ', key: 'gbraid', fieldValue: 'GB' },
   { id: 'fMkXv33gXAGUuHBDcber', key: 'wbraid', fieldValue: 'WB' },
-], 'gbraid and wbraid use the verified field ids');
-assert(!JSON.stringify(braids).includes('gclid'), 'gclid is not sent as a custom field');
-assertEqual(pendingHhGclidField({ gclid: 'TEST_HH_20260923' }), null, 'hh_gclid stays unmapped until its id arrives');
-assertEqual(ghlV1BraidCustomField({ gbraid: 'GB' }), { Vco6cxY4VKBWQ9FPB6rQ: 'GB' }, 'v1 customField is the braid id map');
+], 'gclid, gbraid, and wbraid use the verified field ids');
+assert(!JSON.stringify(clickFields).includes('"key":"gclid"'), 'native contact.gclid key is not sent');
+assertEqual(ghlClickIdCustomFields({ gbraid: 'GB' }), [
+  { id: 'Vco6cxY4VKBWQ9FPB6rQ', key: 'gbraid', fieldValue: 'GB' },
+], 'a missing gclid is omitted');
+assertEqual(ghlV1ClickIdCustomField({ gclid: 'TEST', gbraid: 'GB' }), {
+  '9frYn0xCQ45lkz4R6q0e': 'TEST',
+  Vco6cxY4VKBWQ9FPB6rQ: 'GB',
+}, 'v1 customField is the click-id id map');
 
 assertEqual(clickIdFields({ gclid: 'TEST', utm_source: 'google' }), { gclid: 'TEST' }, 'lead payload is click ids only');
 assertEqual(clickIdsFromRecord({ gclid: ' TEST ', gbraid: 1, wbraid: '' }), { gclid: 'TEST' }, 'non-strings and blanks are dropped');
