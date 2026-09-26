@@ -1,6 +1,7 @@
 // Cloudflare Worker serving the Hoop Heroes API alongside the static SPA assets.
 // Replaces the previous Express server (server.ts) from the AI Studio export.
 
+import { LOCATIONS } from '../constants';
 import {
   type TrackedParams,
   buildGoDestination,
@@ -9,6 +10,11 @@ import {
   ghlV1ClickIdCustomField,
   mergeIncomingSearch,
 } from '../lib/clickTracking';
+import {
+  SANDHURST_META_DESCRIPTION,
+  SANDHURST_PAGE_TITLE,
+  buildLocationJsonLd,
+} from '../lib/locationSchema';
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
@@ -454,15 +460,34 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
 function pageMetaFor(path: string): { title: string; description: string } | null {
   if (PAGE_META[path]) return PAGE_META[path];
   if (path.startsWith('/location/')) {
-    const name = LOCATION_NAMES[path.split('/')[2] || ''];
-    if (name) {
+    const slug = path.split('/')[2] || '';
+    const name = LOCATION_NAMES[slug];
+    if (!name) return null;
+    if (slug === 'sandhurst') {
       return {
-        title: `Kids Basketball Classes in ${name} | Hoop Heroes`,
-        description: `Youth basketball classes for ages 5-15 in ${name}. Weekly sessions with qualified coaches — book your free taster session at Hoop Heroes ${name} today.`,
+        title: SANDHURST_PAGE_TITLE,
+        description: SANDHURST_META_DESCRIPTION,
       };
     }
+    return {
+      title: `Kids Basketball Classes in ${name} | Hoop Heroes`,
+      description: `Youth basketball classes for ages 5-15 in ${name}. Weekly sessions with qualified coaches — book your free taster session at Hoop Heroes ${name} today.`,
+    };
   }
   return null;
+}
+
+function sandhurstHeadExtras(meta: { title: string; description: string }): string {
+  const location = LOCATIONS.find((item) => item.slug === 'sandhurst');
+  const jsonLd = location ? buildLocationJsonLd(location) : null;
+  const script = jsonLd
+    ? `<script type="application/ld+json" id="hh-location-schema">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`
+    : '';
+  return [
+    `<meta property="og:title" content="${escapeHtml(meta.title)}">`,
+    `<meta property="og:description" content="${escapeHtml(meta.description)}">`,
+    script,
+  ].join('');
 }
 
 function injectMeta(
@@ -474,8 +499,13 @@ function injectMeta(
     .on('title', { element: (el) => el.setInnerContent(meta.title) })
     .on('meta[name="description"]', { element: (el) => el.setAttribute('content', meta.description) });
   if (canonicalPath !== null) {
+    const sandhurstExtras = canonicalPath === '/location/sandhurst' ? sandhurstHeadExtras(meta) : '';
     rewriter = rewriter.on('head', {
-      element: (el) => el.append(`<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">`, { html: true }),
+      element: (el) =>
+        el.append(
+          `<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">${sandhurstExtras}`,
+          { html: true },
+        ),
     });
   }
   return rewriter.transform(response);

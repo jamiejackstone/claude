@@ -2,11 +2,39 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
+import { ClassSessionList } from '../components/ClassSessionList';
+import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData } from '../types';
 import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, AlertTriangle, ShoppingCart } from 'lucide-react';
 
 interface LocationMicrositeProps {
   forcedId?: string;
+}
+
+function upsertMeta(property: string, content: string | null) {
+  const selector = `meta[property="${property}"]`;
+  const existing = document.querySelector(selector);
+  if (!content) {
+    existing?.remove();
+    return;
+  }
+  const el = existing ?? document.createElement('meta');
+  el.setAttribute('property', property);
+  el.setAttribute('content', content);
+  if (!existing) document.head.appendChild(el);
+}
+
+function upsertLocationSchema(data: Record<string, unknown> | null) {
+  const existing = document.getElementById('hh-location-schema');
+  if (!data) {
+    existing?.remove();
+    return;
+  }
+  const script = existing ?? document.createElement('script');
+  script.id = 'hh-location-schema';
+  script.setAttribute('type', 'application/ld+json');
+  script.textContent = JSON.stringify(data);
+  if (!existing) document.head.appendChild(script);
 }
 
 export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }) => {
@@ -38,12 +66,23 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       setLocation(localFound);
       setWaitlistData(prev => ({ ...prev, source_location: localFound.name }));
 
-      // SEO: Unique metadata per location
-      document.title = `${localFound.name} Basketball Classes | Hoop Heroes`;
+      // SEO: Unique metadata per location. Sandhurst is ages 5-11 while Ballers is paused.
+      const isSandhurst = localFound.slug === 'sandhurst';
+      document.title = isSandhurst
+        ? SANDHURST_PAGE_TITLE
+        : `${localFound.name} Basketball Classes | Hoop Heroes`;
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
-        metaDescription.setAttribute('content', `Join the best youth basketball classes in ${localFound.name}. Book your free taster session today at Hoop Heroes ${localFound.name}.`);
+        metaDescription.setAttribute(
+          'content',
+          isSandhurst
+            ? SANDHURST_META_DESCRIPTION
+            : `Join the best youth basketball classes in ${localFound.name}. Book your free taster session today at Hoop Heroes ${localFound.name}.`,
+        );
       }
+      upsertMeta('og:title', isSandhurst ? SANDHURST_PAGE_TITLE : null);
+      upsertMeta('og:description', isSandhurst ? SANDHURST_META_DESCRIPTION : null);
+      upsertLocationSchema(isSandhurst ? buildLocationJsonLd(localFound) : null);
     }
 
     window.scrollTo(0, 0);
@@ -374,6 +413,9 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                     </p>
                   )}
                 </div>
+                {location.classes.some((session) => session.comingSoon) && (
+                  <ClassSessionList sessions={location.classes} />
+                )}
               </div>
               {location.bookingWidgetUrl && (
                 <div className="w-full bg-white flex-grow">

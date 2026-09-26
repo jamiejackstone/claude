@@ -1,5 +1,5 @@
 
-import React from 'react';
+import type { FC } from 'react';
 
 export enum DayOfWeek {
   MONDAY = 'Monday',
@@ -26,6 +26,10 @@ export interface ClassSession {
   ageGroup: string;
   venue: string;
   spotsAvailable: number;
+  /** Paused at this location only. Hide the time and any booking or trial link. */
+  comingSoon?: boolean;
+  /** Shown in place of the time when comingSoon is set. */
+  comingSoonLabel?: string;
 }
 
 export interface Review {
@@ -66,5 +70,5 @@ export interface LocationData {
 export interface Feature {
   title: string;
   description: string;
-  icon: React.FC<any>;
+  icon: FC<any>;
 }

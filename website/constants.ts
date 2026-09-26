@@ -272,9 +272,9 @@ export const LOCATIONS: LocationData[] = [
       quote: "Passionate about teaching the fundamentals of basketball, encompassing Hoop heroes core values and developing life skills including teamwork, communication and confidence."
     },
     classes: [
-      { id: 'c1_sh', day: DayOfWeek.SUNDAY, time: '09:00 - 09:30', ageGroup: 'Rookies (Age 5-7)', venue: 'Sports Hall', spotsAvailable: 10 },
-      { id: 'c2_sh', day: DayOfWeek.SUNDAY, time: '09:30 - 10:15', ageGroup: 'Rising Stars (Age 8-11)', venue: 'Sports Hall', spotsAvailable: 10 },
-      { id: 'c3_sh', day: DayOfWeek.SUNDAY, time: '10:15 - 11:00', ageGroup: 'Ballers (Age 12-15)', venue: 'Sports Hall', spotsAvailable: 8 },
+      { id: 'c1_sh', day: DayOfWeek.SUNDAY, time: '15:00 - 15:30', ageGroup: 'Rookies (Age 5-7)', venue: 'Sports Hall', spotsAvailable: 10 },
+      { id: 'c2_sh', day: DayOfWeek.SUNDAY, time: '15:30 - 16:15', ageGroup: 'Rising Stars (Age 8-11)', venue: 'Sports Hall', spotsAvailable: 10 },
+      { id: 'c3_sh', day: DayOfWeek.SUNDAY, time: '', ageGroup: 'Ballers (Age 12-15)', venue: 'Sports Hall', spotsAvailable: 8, comingSoon: true, comingSoonLabel: 'Coming soon - January 2027' },
     ],
     comingSoon: false,
     displayDays: 'Sundays',
