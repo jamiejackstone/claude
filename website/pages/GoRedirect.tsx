@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { buildGoDestination, CLICK_ID_PARAMS, pathWithTrackedParams, readTrackedParams } from '../lib/clickTracking';
 
 export const VALID_GO_SLUGS = [
   'aylesbury',
@@ -25,7 +26,7 @@ export const GoRedirect: React.FC = () => {
     const isValid = (VALID_GO_SLUGS as readonly string[]).includes(normalizedSlug);
 
     if (!isValid) {
-      navigate('/', { replace: true });
+      navigate(pathWithTrackedParams('/'), { replace: true });
       return;
     }
 
@@ -37,8 +38,16 @@ export const GoRedirect: React.FC = () => {
       utmSource = 'flyer';
     }
 
-    const destination = `/location/${normalizedSlug}?utm_source=${utmSource}&utm_medium=print&utm_campaign=sep26&utm_content=${normalizedSlug}`;
-    navigate(destination, { replace: true });
+    const params = new URLSearchParams(searchParams);
+    const stored = readTrackedParams();
+    for (const key of CLICK_ID_PARAMS) {
+      const value = stored[key];
+      if (value && !params.get(key)) params.set(key, value);
+    }
+
+    const absolute = buildGoDestination(window.location.origin, normalizedSlug, utmSource, params.toString());
+    const dest = new URL(absolute);
+    navigate(`${dest.pathname}${dest.search}`, { replace: true });
   }, [slug, searchParams, navigate]);
 
   return null;

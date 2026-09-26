@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, MapPin, Clock, Users, ArrowRight, Trophy, Activity, Heart, ShieldCheck } from 'lucide-react';
+import { withTrackedParams } from '../lib/clickTracking';
 
 export const Gameday: React.FC = () => {
   const settings = ({
@@ -15,7 +16,7 @@ export const Gameday: React.FC = () => {
     isLive: true
   });
 
-  const REGISTRATION_URL = settings.registrationUrl;
+  const REGISTRATION_URL = withTrackedParams(settings.registrationUrl);
 
   const faqs = [
     {

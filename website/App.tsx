@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useParams, Navigate, Link as RouterLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, useParams, Navigate, Link as RouterLink } from 'react-router-dom';
+import { captureLandingClickIds, pathWithTrackedParams, TRACKED_PARAMS } from './lib/clickTracking';
 import { LOCATIONS } from './constants';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -100,7 +101,7 @@ const HashToPathRedirect: React.FC = () => {
 
         if (targetPath) {
           console.log(`[SEO Redirect] Programmatically redirecting from old hash URL: ${hash} to new clean path: ${targetPath}`);
-          window.location.replace(targetPath);
+          window.location.replace(pathWithTrackedParams(targetPath));
         } else if (hashPath.startsWith('/location/')) {
           const possibleId = hashPath.split('/location/')[1]?.replace(/\/$/, '');
           const locations = [
@@ -117,12 +118,38 @@ const HashToPathRedirect: React.FC = () => {
           ];
           const matchedLoc = locations.find(l => l.id === possibleId || l.slug === possibleId);
           if (matchedLoc) {
-            window.location.replace(`/location/${matchedLoc.slug}`);
+            window.location.replace(pathWithTrackedParams(`/location/${matchedLoc.slug}`));
           }
         }
       }
     }
   }, [location]);
+
+  return null;
+};
+
+// Re-apply stored gclid / gbraid / wbraid / utm_* after client navigations that drop the query string.
+const ClickIdPreserver: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const stored = captureLandingClickIds(location.search);
+    const current = new URLSearchParams(location.search);
+    let changed = false;
+    for (const key of TRACKED_PARAMS) {
+      const value = stored[key];
+      if (value && !current.has(key)) {
+        current.set(key, value);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    navigate(
+      { pathname: location.pathname, search: `?${current.toString()}`, hash: location.hash },
+      { replace: true },
+    );
+  }, [location.pathname, location.search, location.hash, navigate]);
 
   return null;
 };
@@ -183,6 +210,7 @@ const App: React.FC = () => {
       <div className="flex flex-col min-h-screen">
         <ScrollToTop />
         <HashToPathRedirect />
+        <ClickIdPreserver />
         <MetaPixelTracker />
         <CanonicalLinkTracker />
         <Navbar />
