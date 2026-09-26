@@ -41,9 +41,11 @@ hand the task to such a session yourself if session-creation tools are available
   `website/pages/GoRedirect.tsx`.
 - **Form API**: `website/worker/index.ts`. Careers applications → "Hoop Heroes
   HR" GHL sub-account (location `zxMh9T37AzC9DytMDQGr`) via the
-  `GHL_HR_API_KEY` secret. "Opening soon" waitlist leads → main CRM sub-account
-  (location `9p0wEiLpTaIe1FDTFFQI`) via `GHL_API_KEY`; Oxford has a hard-coded
-  inbound webhook. Resend email is optional (`RESEND_API_KEY`).
+  `GHL_HR_API_KEY` secret (still GHL API v1). "Opening soon" waitlist leads → main CRM
+  sub-account (location `9p0wEiLpTaIe1FDTFFQI`, override with `GHL_LOCATION_ID`) via
+  `GHL_API_KEY` on API v2 (`services.leadconnectorhq.com`, `Version: 2021-07-28`);
+  Oxford has a hard-coded inbound webhook, then a v2 click-id stamp. Resend email
+  is optional (`RESEND_API_KEY`).
 
 ## The update loop (every change, however small)
 

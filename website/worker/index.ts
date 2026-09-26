@@ -20,9 +20,21 @@ interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   RESEND_API_KEY?: string;
   GHL_API_KEY?: string;
+  /** Optional override. Defaults to the main Hoop Heroes location. */
+  GHL_LOCATION_ID?: string;
   GHL_HR_WEBHOOK_URL?: string;
   GHL_HR_API_KEY?: string;
   GHL_CAREERS_WEBHOOK_URL?: string;
+}
+
+/** Main Hoop Heroes sub-account. Private Integration tokens call API v2 on this location. */
+const DEFAULT_GHL_LOCATION_ID = '9p0wEiLpTaIe1FDTFFQI';
+const GHL_V2_BASE = 'https://services.leadconnectorhq.com';
+const GHL_V2_VERSION = '2021-07-28';
+
+function ghlLocationId(env: Env): string {
+  const override = env.GHL_LOCATION_ID?.trim();
+  return override || DEFAULT_GHL_LOCATION_ID;
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -30,18 +42,24 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 
-// Normalize UK phone numbers to E.164 for GHL
-function normalizePhone(phone: string): string {
+// Normalize UK phone numbers to E.164 for GHL. Missing phone is optional and must not throw.
+function normalizePhone(phone: unknown): string {
+  if (typeof phone !== 'string') return '';
   let normalized = phone.trim().replace(/\s+/g, '');
+  if (!normalized) return '';
   if (normalized.startsWith('0') && !normalized.startsWith('00')) {
     normalized = '+44' + normalized.substring(1);
   }
   return normalized;
 }
 
-function splitName(name: string): { firstName: string; lastName: string } {
-  const parts = name.trim().split(' ');
-  return { firstName: parts[0], lastName: parts.slice(1).join(' ') || '.' };
+function asTrimmed(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function splitName(name: unknown): { firstName: string; lastName: string } {
+  const parts = asTrimmed(name).split(' ');
+  return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') || '.' };
 }
 
 function escapeHtml(value: unknown): string {
@@ -89,6 +107,7 @@ function attachClickIdCustomFields(payload: Record<string, unknown>, clickIds: T
   if (customField) payload.customField = customField;
 }
 
+// GHL API v1. Used only by the HR sub-account (GHL_HR_API_KEY). Main-location calls are v2.
 async function ghlRequest(apiKey: string, path: string, method: string, body: Record<string, unknown>): Promise<Response> {
   return fetch(`https://rest.gohighlevel.com/v1${path}`, {
     method,
@@ -136,6 +155,7 @@ async function stampClickIdFields(apiKey: string, email: string, clickIds: Track
   }
 }
 
+// HR sub-account only. Main-location calls use the v2 helpers below.
 // Create a contact via the GHL v1 REST API. Returns true on success.
 // If v1 rejects the customFields array, retry with the id map, then without click-id fields.
 async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
@@ -159,6 +179,124 @@ async function createGhlContact(apiKey: string, payload: Record<string, unknown>
   return true;
 }
 
+function ghlV2Headers(apiKey: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    Version: GHL_V2_VERSION,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+}
+
+async function ghlV2Request(
+  apiKey: string,
+  path: string,
+  method: string,
+  body?: Record<string, unknown>,
+): Promise<Response> {
+  return fetch(`${GHL_V2_BASE}${path}`, {
+    method,
+    headers: ghlV2Headers(apiKey),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+}
+
+/**
+ * v2 contact body for the main location.
+ * Drops the v1 `customField` id map and `locationName` (not in the upsert schema).
+ * customFields use `{ id, key, fieldValue }` — current docs prefer fieldValue;
+ * `field_value` is deprecated. Native contact.gclid is never sent.
+ */
+function mainLocationUpsertBody(lead: Record<string, unknown>, locationId: string): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    locationId,
+    firstName: lead.firstName,
+    lastName: lead.lastName,
+    name: lead.name,
+    email: lead.email,
+    tags: lead.tags,
+    source: lead.source,
+  };
+  if (typeof lead.phone === 'string' && lead.phone) body.phone = lead.phone;
+  if (Array.isArray(lead.customFields) && lead.customFields.length) body.customFields = lead.customFields;
+  return body;
+}
+
+/** On 400/422, retry once without click-id custom fields so the lead is not dropped. */
+async function ghlV2Write(
+  apiKey: string,
+  path: string,
+  method: string,
+  body: Record<string, unknown>,
+  label: string,
+): Promise<{ response: Response; droppedClickIds: boolean }> {
+  const response = await ghlV2Request(apiKey, path, method, body);
+  if (!response.ok && body.customFields && (response.status === 400 || response.status === 422)) {
+    const errText = await response.text();
+    console.error(`[${label}] GHL API Error:`, response.status, errText);
+    const withoutClickIds = { ...body };
+    delete withoutClickIds.customFields;
+    // A stamp that only carried click ids has nothing safe left to write.
+    if (Object.keys(withoutClickIds).length === 0) {
+      return {
+        response: new Response(errText, { status: response.status, headers: { 'Content-Type': 'application/json' } }),
+        droppedClickIds: false,
+      };
+    }
+    console.warn(`[${label}] retrying without click-id fields`);
+    return {
+      response: await ghlV2Request(apiKey, path, method, withoutClickIds),
+      droppedClickIds: true,
+    };
+  }
+  return { response, droppedClickIds: false };
+}
+
+async function lookupMainContactId(apiKey: string, locationId: string, email: string): Promise<string | null> {
+  const params = new URLSearchParams({ locationId, email });
+  const path = `/contacts/search/duplicate?${params.toString()}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await ghlV2Request(apiKey, path, 'GET');
+    if (!response.ok) {
+      console.error('[GHL] contact lookup failed:', response.status, await response.text());
+      return null;
+    }
+    const data = await response.json() as { contacts?: { id?: string }[]; contact?: { id?: string } };
+    const id = data.contacts?.[0]?.id || data.contact?.id || null;
+    if (id) return id;
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  return null;
+}
+
+/** Follow-up stamp for the main location after the Oxford inbound webhook. */
+async function stampMainLocationClickIds(env: Env, email: string, clickIds: TrackedParams): Promise<void> {
+  if (!env.GHL_API_KEY || !email) return;
+  const customFields = ghlClickIdCustomFields(clickIds);
+  if (!customFields.length) return;
+  const contactId = await lookupMainContactId(env.GHL_API_KEY, ghlLocationId(env), email);
+  if (!contactId) {
+    console.warn('[GHL] click ids not stamped; contact not found yet');
+    return;
+  }
+  const { response, droppedClickIds } = await ghlV2Write(
+    env.GHL_API_KEY,
+    `/contacts/${contactId}`,
+    'PUT',
+    { customFields },
+    'GHL',
+  );
+  if (!response.ok) {
+    console.warn('[GHL] click-id update failed:', response.status, (await response.text()).slice(0, 400));
+    return;
+  }
+  if (droppedClickIds) {
+    console.warn('[GHL] contact update succeeded without click-id fields');
+    return;
+  }
+  console.log(`[GHL] stamped ${customFields.map((entry) => entry.key).join(', ')}`);
+}
+
 // POST /api/contact — coaching applications into the Hoop Heroes HR GHL
 // sub-account. Resend email is an optional extra that only runs when
 // RESEND_API_KEY is configured.
@@ -170,20 +308,23 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
   let delivered = false;
 
   if (type === 'careers') {
-    const { firstName, lastName } = splitName(name);
+    const nameText = asTrimmed(name);
+    const roleText = typeof role === 'string' ? role : '';
+    const phoneText = normalizePhone(phone);
+    const { firstName, lastName } = splitName(nameText);
     const careerPayload: Record<string, unknown> = {
       firstName,
       lastName,
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: normalizePhone(phone),
-      tags: ['coach', 'recruitment', role.toLowerCase().replace(/\s+/g, '_'), role],
+      name: nameText,
+      email: asTrimmed(email).toLowerCase(),
+      tags: ['coach', 'recruitment', roleText.toLowerCase().replace(/\s+/g, '_'), roleText],
       source: 'Website HR & Recruitment Form',
       notes: about,
       nearest_hh_location: location,
-      role_applied: role,
+      role_applied: roleText,
       sub_account: 'HR & Recruitment',
     };
+    if (phoneText) careerPayload.phone = phoneText;
     attachClickIdCustomFields(careerPayload, clickIds);
     const careerEmail = String(careerPayload.email);
 
@@ -250,19 +391,22 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
   const { name, email, phone, tags, source, locationName } = body;
   const clickIds = clickIdsFromRecord(body);
 
-  const { firstName, lastName } = splitName(name);
+  const nameText = asTrimmed(name);
+  const emailText = asTrimmed(email).toLowerCase();
+  const phoneText = normalizePhone(phone);
+  const { firstName, lastName } = splitName(nameText);
   const leadPayload: Record<string, unknown> = {
     firstName,
     lastName,
-    name: name.trim(),
-    email: email.trim().toLowerCase(),
-    phone: normalizePhone(phone),
+    name: nameText,
+    email: emailText,
     tags: Array.isArray(tags) ? tags : [tags],
     source,
     locationName,
   };
+  if (phoneText) leadPayload.phone = phoneText;
   attachClickIdCustomFields(leadPayload, clickIds);
-  const leadEmail = String(leadPayload.email);
+  const leadEmail = emailText;
 
   // Location-specific GHL inbound webhooks take priority over the API
   const WEBHOOK_MAP: Record<string, string> = {
@@ -283,7 +427,7 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     }
     if (env.GHL_API_KEY) {
       try {
-        await stampClickIdFields(env.GHL_API_KEY, leadEmail, clickIds);
+        await stampMainLocationClickIds(env, leadEmail, clickIds);
       } catch (stampErr) {
         console.error('[Waitlist] click-id stamp error:', stampErr);
       }
@@ -299,18 +443,13 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
     }, 500);
   }
 
-  let ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', leadPayload);
-  if (!ghlResponse.ok && (leadPayload.customFields || leadPayload.customField) && (ghlResponse.status === 400 || ghlResponse.status === 422)) {
-    console.error('[GHL] API Error:', ghlResponse.status, await ghlResponse.text());
-    const withoutArray = { ...leadPayload };
-    delete withoutArray.customFields;
-    ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', withoutArray);
-    if (!ghlResponse.ok) {
-      delete withoutArray.customField;
-      console.warn('[GHL] retrying waitlist create without click-id fields');
-      ghlResponse = await ghlRequest(env.GHL_API_KEY, '/contacts/', 'POST', withoutArray);
-    }
+  if (!emailText && !phoneText) {
+    console.error('[GHL] waitlist missing email and phone');
+    return json({ error: 'Email or phone is required' }, 400);
   }
+
+  const upsertBody = mainLocationUpsertBody(leadPayload, ghlLocationId(env));
+  const { response: ghlResponse } = await ghlV2Write(env.GHL_API_KEY, '/contacts/upsert', 'POST', upsertBody, 'GHL');
 
   const responseText = await ghlResponse.text();
   let data: unknown;
@@ -522,6 +661,9 @@ export default {
           ghlConfigured: !!env.GHL_API_KEY,
           ghlHrConfigured: !!(env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL || env.GHL_HR_API_KEY),
           resendConfigured: !!env.RESEND_API_KEY,
+          ghlKeySet: !!env.GHL_API_KEY,
+          ghlApiVersion: 'v2',
+          ghlLocationId: ghlLocationId(env),
         });
       }
 
