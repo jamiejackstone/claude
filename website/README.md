@@ -37,10 +37,26 @@ One-time setup:
 
 ```bash
 npx wrangler login                          # sign in to Cloudflare
-npx wrangler secret put GHL_HR_API_KEY      # Hoop Heroes HR sub-account (careers form)
-npx wrangler secret put GHL_API_KEY         # main GHL CRM (only for "opening soon" waitlists)
+npx wrangler secret put GHL_HR_API_KEY      # HR sub-account Private Integration token (API v2; contacts.write + contacts.readonly)
+npx wrangler secret put GHL_API_KEY         # main GHL CRM (only for "opening soon" waitlists; still API v1 on this branch)
 npx wrangler secret put RESEND_API_KEY      # OPTIONAL: email notifications
 ```
+
+`GHL_HR_API_KEY` must be a Private Integration token created on the Hoop Heroes
+HR sub-account (location `zxMh9T37AzC9DytMDQGr`), not the legacy Business
+Profile API key and not the main-location token. Careers writes use API v2
+(`https://services.leadconnectorhq.com`, `Version: 2021-07-28`):
+`POST /contacts/upsert` with that `locationId`, then `POST /contacts/{id}/tags`.
+Tags are not sent on the upsert, because an upsert replaces every existing tag.
+`GET /api/health` reports `ghlHrKeySet` and `ghlHrApiVersion` (`v2`) and never
+the key.
+
+Click-id custom fields (`hh_gclid`, `gbraid`, `wbraid`) are sent with the field
+ids verified on the main location. If the HR sub-account rejects them, the
+Worker retries the upsert without those fields and still saves the application.
+Preferred location, role, and the free-text "about" answer are included on the
+optional inbound webhook payload. They are not custom fields on the v2 upsert:
+the repo has no HR field id or key for them.
 
 (Or set the same values in the dashboard: **Worker → Settings → Variables and
 Secrets**. When the Worker is deployed via Workers Builds / Git integration,

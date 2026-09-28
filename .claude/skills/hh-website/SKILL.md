@@ -40,10 +40,22 @@ hand the task to such a session yourself if session-creation tools are available
   BOTH `website/worker/index.ts` (`VALID_GO_SLUGS`) and
   `website/pages/GoRedirect.tsx`.
 - **Form API**: `website/worker/index.ts`. Careers applications → "Hoop Heroes
-  HR" GHL sub-account (location `zxMh9T37AzC9DytMDQGr`) via the
-  `GHL_HR_API_KEY` secret. "Opening soon" waitlist leads → main CRM sub-account
-  (location `9p0wEiLpTaIe1FDTFFQI`) via `GHL_API_KEY`; Oxford has a hard-coded
-  inbound webhook. Resend email is optional (`RESEND_API_KEY`).
+  HR" GHL sub-account (location `zxMh9T37AzC9DytMDQGr`) via `GHL_HR_API_KEY` on
+  API v2 (`services.leadconnectorhq.com`, `Version: 2021-07-28`). The secret is
+  a Private Integration token for that sub-account with scopes `contacts.write`
+  and `contacts.readonly` — not the main-location token and not a legacy v1
+  API key. The direct API path is `POST /contacts/upsert` (no tags in the body;
+  tags are added afterwards with `POST /contacts/{id}/tags`). An optional HR
+  inbound webhook still takes priority; click ids are then stamped with
+  `GET /contacts/search/duplicate` and `PUT /contacts/{id}`. "Opening soon"
+  waitlist leads → main CRM sub-account (location `9p0wEiLpTaIe1FDTFFQI`) via
+  `GHL_API_KEY` (still API v1 until the main-location v2 change lands); Oxford
+  has a hard-coded inbound webhook. Resend email is optional (`RESEND_API_KEY`).
+  `GET /api/health` reports `ghlHrKeySet` and `ghlHrApiVersion` (`v2`) and never
+  the key. Click-id field ids in the repo belong to the main location; if HR
+  rejects them the upsert is retried without those fields. Preferred location,
+  role, and the about text are not sent as HR custom fields — no HR field id or
+  key is recorded for them.
 
 ## The update loop (every change, however small)
 
@@ -80,9 +92,11 @@ The sandbox cannot reach Cloudflare's API, so anything in the Cloudflare
 dashboard (adding Worker secrets under Settings → Variables and Secrets,
 custom domains, changing build settings) is done by Jamie — usually via a
 Claude in Chrome prompt. Write him a precise numbered prompt naming exact
-menu paths and exact secret names. GHL API keys come from
+menu paths and exact secret names. Legacy GHL API keys come from
 https://crm.rallyai.co.uk/ → (correct sub-account) → Settings → Business
-Profile → API Key.
+Profile → API Key. The HR careers secret `GHL_HR_API_KEY` is a Private
+Integration token instead: HR sub-account → Settings → Private Integrations,
+scopes `contacts.write` and `contacts.readonly`.
 
 ## Guardrails
 
