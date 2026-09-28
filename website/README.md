@@ -43,20 +43,48 @@ npx wrangler secret put RESEND_API_KEY      # OPTIONAL: email notifications
 ```
 
 `GHL_HR_API_KEY` must be a Private Integration token created on the Hoop Heroes
-HR sub-account (location `zxMh9T37AzC9DytMDQGr`), not the legacy Business
-Profile API key and not the main-location token. Careers writes use API v2
+HR sub-account, not the legacy Business Profile API key and not the
+main-location token. Location `zxMh9T37AzC9DytMDQGr` is verified in GHL as
+**Hoop Heroes HR**, timezone Europe/London. Careers writes use API v2
 (`https://services.leadconnectorhq.com`, `Version: 2021-07-28`):
-`POST /contacts/upsert` with that `locationId`, then `POST /contacts/{id}/tags`.
-Tags are not sent on the upsert, because an upsert replaces every existing tag.
-`GET /api/health` reports `ghlHrKeySet` and `ghlHrApiVersion` (`v2`) and never
-the key.
+`POST /contacts/upsert` with that `locationId`, then `POST /contacts/{id}/tags`
+and, when there is text to store, `POST /contacts/{id}/notes` with
+`{"body":"..."}`. Tags are not sent on the upsert, because an upsert replaces
+every existing tag. A failed tag or note call is logged and does not fail the
+application. `sub_account` is not sent. `GET /api/health` reports `ghlHrKeySet`
+and `ghlHrApiVersion` (`v2`) and never the key.
 
-Click-id custom fields (`hh_gclid`, `gbraid`, `wbraid`) are sent with the field
-ids verified on the main location. If the HR sub-account rejects them, the
-Worker retries the upsert without those fields and still saves the application.
-Preferred location, role, and the free-text "about" answer are included on the
-optional inbound webhook payload. They are not custom fields on the v2 upsert:
-the repo has no HR field id or key for them.
+HR custom fields on the upsert:
+
+| Form value | GHL field | id | key sent |
+| --- | --- | --- | --- |
+| Preferred location | Coaching Location(s) (`contact.preferred_location`, multiple options) | `xTVtfVcxCcLKDslvR5AY` | `preferred_location` |
+| Role | Coach: Role (`contact.role`, single option) | `U1NmOQc8eMon4gyVHvAj` | `role` |
+
+Allowed locations, matched exactly after the free-text value is split, trimmed,
+and compared case-insensitively: Aylesbury, Wendover, Tring, Marlow, Holmer
+Green, Great Missenden, Bicester, Oxford, Sandhurst. Unknown values are logged
+and dropped. If none match, the field is left out. `fieldValue` is an array.
+
+Coach: Role mapping from the buttons in [`pages/Careers.tsx`](./pages/Careers.tsx):
+
+| Form `role` | Sent as |
+| --- | --- |
+| Head Coach | Head Coach |
+| Assistant Coach | Assistant Coach |
+| Volunteer Coach | not sent — no matching option. The note gains `Role applied (unmapped): Volunteer Coach` |
+| Junior Assistant Coach | Junior Assistant Coach (allowed value; the form has no button for it) |
+| Head Coach in Training | Head Coach in Training (allowed value; the form has no button for it) |
+
+Volunteer Coach is left unmapped on purpose. Its job description covers parents,
+DofE candidates, and junior assistants, so it is not stored as Junior Assistant
+Coach. The about answer is the contact note. An unmapped role is appended on
+the next line. The notes call is skipped when both are empty.
+
+Click-id custom fields (`hh_gclid`, `gbraid`, `wbraid`) still use the field ids
+verified on the main location. If the HR sub-account returns 400 or 422, the
+Worker retries the upsert without custom fields, then still adds the tags and
+the note.
 
 (Or set the same values in the dashboard: **Worker → Settings → Variables and
 Secrets**. When the Worker is deployed via Workers Builds / Git integration,

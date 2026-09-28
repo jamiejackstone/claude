@@ -40,22 +40,29 @@ hand the task to such a session yourself if session-creation tools are available
   BOTH `website/worker/index.ts` (`VALID_GO_SLUGS`) and
   `website/pages/GoRedirect.tsx`.
 - **Form API**: `website/worker/index.ts`. Careers applications → "Hoop Heroes
-  HR" GHL sub-account (location `zxMh9T37AzC9DytMDQGr`) via `GHL_HR_API_KEY` on
-  API v2 (`services.leadconnectorhq.com`, `Version: 2021-07-28`). The secret is
-  a Private Integration token for that sub-account with scopes `contacts.write`
-  and `contacts.readonly` — not the main-location token and not a legacy v1
-  API key. The direct API path is `POST /contacts/upsert` (no tags in the body;
-  tags are added afterwards with `POST /contacts/{id}/tags`). An optional HR
-  inbound webhook still takes priority; click ids are then stamped with
-  `GET /contacts/search/duplicate` and `PUT /contacts/{id}`. "Opening soon"
-  waitlist leads → main CRM sub-account (location `9p0wEiLpTaIe1FDTFFQI`) via
-  `GHL_API_KEY` (still API v1 until the main-location v2 change lands); Oxford
-  has a hard-coded inbound webhook. Resend email is optional (`RESEND_API_KEY`).
-  `GET /api/health` reports `ghlHrKeySet` and `ghlHrApiVersion` (`v2`) and never
-  the key. Click-id field ids in the repo belong to the main location; if HR
-  rejects them the upsert is retried without those fields. Preferred location,
-  role, and the about text are not sent as HR custom fields — no HR field id or
-  key is recorded for them.
+  HR" GHL sub-account via `GHL_HR_API_KEY` on API v2
+  (`services.leadconnectorhq.com`, `Version: 2021-07-28`). Location
+  `zxMh9T37AzC9DytMDQGr` is verified in GHL as **Hoop Heroes HR**, timezone
+  Europe/London. The secret is a Private Integration token for that sub-account
+  with scopes `contacts.write` and `contacts.readonly` — not the main-location
+  token and not a legacy v1 API key. The direct API path is `POST /contacts/upsert`
+  (no tags in the body; tags are added afterwards with `POST /contacts/{id}/tags`;
+  the about text is `POST /contacts/{id}/notes`). `sub_account` is not sent.
+  Preferred location maps to Coaching Location(s) (`xTVtfVcxCcLKDslvR5AY`,
+  key `preferred_location`): Aylesbury, Wendover, Tring, Marlow, Holmer Green,
+  Great Missenden, Bicester, Oxford, Sandhurst. Unknown values are dropped.
+  Form roles: Head Coach and Assistant Coach map to Coach: Role
+  (`U1NmOQc8eMon4gyVHvAj`, key `role`). Volunteer Coach does not map; the raw
+  value is added to the note as `Role applied (unmapped): ...`. A failed tag or
+  note call does not fail the application. An optional HR inbound webhook still
+  takes priority; click ids are then stamped with `GET /contacts/search/duplicate`
+  and `PUT /contacts/{id}`. "Opening soon" waitlist leads → main CRM sub-account
+  (location `9p0wEiLpTaIe1FDTFFQI`) via `GHL_API_KEY` (still API v1 until the
+  main-location v2 change lands); Oxford has a hard-coded inbound webhook.
+  Resend email is optional (`RESEND_API_KEY`). `GET /api/health` reports
+  `ghlHrKeySet` and `ghlHrApiVersion` (`v2`) and never the key. Click-id field
+  ids belong to the main location; a 400/422 retries the upsert without custom
+  fields, then still adds tags and the note.
 
 ## The update loop (every change, however small)
 

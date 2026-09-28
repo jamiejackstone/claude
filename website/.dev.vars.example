@@ -4,7 +4,8 @@
 
 # Hoop Heroes HR GHL sub-account — careers/coaching applications (set ONE of these).
 # GHL_HR_API_KEY is a Private Integration token on location zxMh9T37AzC9DytMDQGr
-# (scopes contacts.write and contacts.readonly). API v2. Never commit the value.
+# (verified: Hoop Heroes HR, Europe/London; scopes contacts.write and contacts.readonly).
+# API v2. Never commit the value.
 GHL_HR_API_KEY=
 GHL_HR_WEBHOOK_URL=
 

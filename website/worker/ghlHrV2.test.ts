@@ -20,6 +20,16 @@ const CLICK_FIELDS = [
   { id: 'fMkXv33gXAGUuHBDcber', key: 'wbraid', fieldValue: 'WBRAID1' },
 ];
 const ROLE_TAGS = ['coach', 'recruitment', 'head_coach', 'Head Coach'];
+const LOCATION_FIELD = {
+  id: 'xTVtfVcxCcLKDslvR5AY',
+  key: 'preferred_location',
+  fieldValue: ['Oxford'],
+};
+const ROLE_FIELD = {
+  id: 'U1NmOQc8eMon4gyVHvAj',
+  key: 'role',
+  fieldValue: 'Head Coach',
+};
 
 interface Call {
   url: string;
@@ -128,11 +138,26 @@ function assertV2Headers(call: Call, token: string): void {
   assert(!call.url.includes('rest.gohighlevel.com'), 'HR path does not call API v1');
 }
 
+function asFields(customFields: unknown): Array<Record<string, unknown>> {
+  assert(Array.isArray(customFields), 'customFields is an array');
+  return customFields as Array<Record<string, unknown>>;
+}
+
 function assertClickFields(customFields: unknown): void {
-  assertEqual(customFields, CLICK_FIELDS, 'customFields use id + fieldValue for the three click ids');
+  const list = asFields(customFields);
+  for (const expected of CLICK_FIELDS) {
+    assertEqual(list.find((entry) => entry.id === expected.id), expected, `${expected.key} click field`);
+  }
   const serialized = JSON.stringify(customFields);
   assert(!serialized.includes('"field_value"'), 'deprecated field_value key is not sent');
   assert(!serialized.includes('"key":"gclid"'), 'native contact.gclid key is not sent');
+}
+
+function assertNoSubAccount(body: Record<string, unknown>): void {
+  assert(!('sub_account' in body), 'sub_account is not sent');
+  const serialized = JSON.stringify(body);
+  assert(!serialized.includes('"sub_account"'), 'sub_account key is not sent');
+  assert(!serialized.includes('HR & Recruitment"'), 'sub_account value is not sent');
 }
 
 function upsertCalls(): Call[] {
@@ -141,6 +166,10 @@ function upsertCalls(): Call[] {
 
 function tagCalls(): Call[] {
   return calls.filter((call) => call.url.includes('/tags'));
+}
+
+function noteCalls(): Call[] {
+  return calls.filter((call) => /\/contacts\/[^/]+\/notes$/.test(call.url));
 }
 
 function assertNoSecrets(text: string): void {
@@ -173,13 +202,29 @@ async function testUpsertThenTags(): Promise<void> {
     assertEqual(body.lastName, 'Coach', 'last name mapping');
     assertEqual(body.source, 'Website HR & Recruitment Form', 'source is kept');
     assertClickFields(body.customFields);
+    assertEqual(
+      asFields(body.customFields).find((entry) => entry.key === 'preferred_location'),
+      LOCATION_FIELD,
+      'Oxford maps onto Coaching Location(s)',
+    );
+    assertEqual(
+      asFields(body.customFields).find((entry) => entry.key === 'role'),
+      ROLE_FIELD,
+      'Head Coach maps onto Coach: Role',
+    );
     assert(!('tags' in body), 'upsert body does not include tags');
     assert(!('customField' in body), 'v1 customField map is not sent');
-    assert(!('notes' in body), 'notes are not sent without an HR custom-field id');
-    assert(!('nearest_hh_location' in body), 'nearest_hh_location is not sent without an HR custom-field id');
-    assert(!('role_applied' in body), 'role_applied is not sent without an HR custom-field id');
-    assert(!('sub_account' in body), 'sub_account is not sent without an HR custom-field id');
+    assert(!('notes' in body), 'notes are not a custom field on the upsert');
+    assert(!('nearest_hh_location' in body), 'nearest_hh_location is not a top-level v2 field');
+    assert(!('role_applied' in body), 'role_applied is not a top-level v2 field');
+    assertNoSubAccount(body);
     assert(!('gclid' in body), 'native gclid property is not sent');
+    assertEqual(noteCalls().length, 1, 'one note call after upsert');
+    const note = noteCalls()[0];
+    assertEqual(note.method, 'POST', 'notes are created with POST');
+    assertEqual(note.url, 'https://services.leadconnectorhq.com/contacts/hr-contact-1/notes', 'POST /contacts/{id}/notes');
+    assertV2Headers(note, HR_KEY);
+    assertEqual(note.body, { body: 'I coach under-12s' }, 'note body is the applicant text');
     const tags = tagCalls()[0];
     assertEqual(tags.method, 'POST', 'tags are added with POST');
     assertEqual(tags.url, 'https://services.leadconnectorhq.com/contacts/hr-contact-1/tags', 'POST /contacts/{id}/tags');
@@ -198,7 +243,11 @@ async function testContactIdFromContactsArray(): Promise<void> {
     assertEqual(response.status, 200, 'contacts[0].id still delivers');
     assertEqual(tagCalls()[0]?.url, 'https://services.leadconnectorhq.com/contacts/from-list/tags', 'tags use contacts[0].id');
     const body = upsertCalls()[0].body as Record<string, unknown>;
-    assert(!('customFields' in body), 'no click ids means no customFields');
+    const fields = asFields(body.customFields);
+    assert(!fields.some((entry) => entry.key === 'hh_gclid'), 'no click ids means no click-id fields');
+    assertEqual(fields.find((entry) => entry.key === 'preferred_location'), LOCATION_FIELD, 'location field still sent');
+    assertEqual(fields.find((entry) => entry.key === 'role'), ROLE_FIELD, 'role field still sent');
+    assertEqual(noteCalls()[0]?.body, { body: 'I coach under-12s' }, 'note still posted without click ids');
   } finally {
     restoreFetch();
   }
@@ -221,6 +270,7 @@ async function testTagFailureDoesNotFailApplication(): Promise<void> {
     assertEqual(JSON.parse(text).success, true, 'tag failure still succeeds');
     assertNoSecrets(text);
     assertEqual(tagCalls().length, 1, 'tag call was attempted');
+    assertEqual(noteCalls().length, 1, 'a failed tag call still writes the note');
     assert(errors.some((args) => String(args[0]).includes('[HR] tag update failed')), 'tag failure is logged');
     assert(!JSON.stringify(errors).includes(HR_KEY), 'tag error log does not contain the API key');
   } finally {
@@ -240,6 +290,7 @@ async function testMissingContactIdSkipsTags(): Promise<void> {
     const response = await post('/api/contact', application(), env({ GHL_HR_API_KEY: HR_KEY }));
     assertEqual(response.status, 200, 'upsert without an id still delivers');
     assertEqual(tagCalls().length, 0, 'tags are not called without a contact id');
+    assertEqual(noteCalls().length, 0, 'notes are not called without a contact id');
     assert(warnings.some((args) => String(args[0]).includes('without a contact id')), 'missing contact id is logged');
   } finally {
     console.warn = original;
@@ -269,6 +320,12 @@ async function testClickIdRetry(status: 400 | 422): Promise<void> {
     assertEqual(second.email, 'ada@example.com', 'retry still sends email');
     assertEqual(tagCalls().length, 1, `${status} retry still adds tags`);
     assertEqual((tagCalls()[0].body as { tags: string[] }).tags, ROLE_TAGS, 'tags are unchanged after retry');
+    assertEqual(noteCalls().length, 1, `${status} retry still creates the note`);
+    assertEqual(noteCalls()[0].url, 'https://services.leadconnectorhq.com/contacts/hr-contact-1/notes', `${status} note URL`);
+    assertV2Headers(noteCalls()[0], HR_KEY);
+    assertEqual(noteCalls()[0].body, { body: 'I coach under-12s' }, `${status} note body`);
+    assertNoSubAccount(attempts[0].body as Record<string, unknown>);
+    assertNoSubAccount(second);
   } finally {
     restoreFetch();
   }
@@ -284,6 +341,7 @@ async function testNoRetryOn500(): Promise<void> {
     assertNoSecrets(text);
     assertEqual(upsertCalls().length, 1, '500 does not retry');
     assertEqual(tagCalls().length, 0, 'failed upsert does not add tags');
+    assertEqual(noteCalls().length, 0, 'failed upsert does not create a note');
   } finally {
     restoreFetch();
   }
@@ -465,6 +523,174 @@ async function testFailedWebhookDoesNotCallV2(): Promise<void> {
   }
 }
 
+async function testLocationNormalisation(): Promise<void> {
+  installFetch(() => jsonResponse({ contact: { id: 'hr-contact-1' } }));
+  const warnings: unknown[][] = [];
+  const original = console.warn;
+  console.warn = (...args: unknown[]) => {
+    warnings.push(args);
+  };
+  try {
+    const response = await post('/api/contact', application({
+      location: '  oxford , Holmer green , Nowhere ,  Sandhurst, oxford  ',
+      gclid: undefined,
+      gbraid: undefined,
+      wbraid: undefined,
+    }), env({ GHL_HR_API_KEY: HR_KEY }));
+    assertEqual(response.status, 200, 'mixed locations still deliver');
+    const body = upsertCalls()[0].body as Record<string, unknown>;
+    assertEqual(
+      asFields(body.customFields).find((entry) => entry.key === 'preferred_location'),
+      {
+        id: 'xTVtfVcxCcLKDslvR5AY',
+        key: 'preferred_location',
+        fieldValue: ['Oxford', 'Holmer Green', 'Sandhurst'],
+      },
+      'locations are trimmed, cased, de-duplicated, and unknown values dropped',
+    );
+    assert(
+      warnings.some((args) => String(args.join(' ')).includes('Nowhere')),
+      'unknown location is logged',
+    );
+    assert(!JSON.stringify(body).includes('Nowhere'), 'unknown location is not sent');
+    assertNoSubAccount(body);
+  } finally {
+    console.warn = original;
+    restoreFetch();
+  }
+}
+
+async function testAllUnknownLocationsOmitField(): Promise<void> {
+  installFetch(() => jsonResponse({ contact: { id: 'hr-contact-1' } }));
+  const warnings: unknown[][] = [];
+  const original = console.warn;
+  console.warn = (...args: unknown[]) => {
+    warnings.push(args);
+  };
+  try {
+    await post('/api/contact', application({
+      location: '  High Wycombe  ',
+      role: 'Head Coach',
+      about: 'I coach under-12s',
+      gclid: undefined,
+      gbraid: undefined,
+      wbraid: undefined,
+    }), env({ GHL_HR_API_KEY: HR_KEY }));
+    const fields = asFields((upsertCalls()[0].body as Record<string, unknown>).customFields);
+    assert(!fields.some((entry) => entry.key === 'preferred_location'), 'no matching location omits the field');
+    assert(warnings.some((args) => String(args.join(' ')).includes('High Wycombe')), 'unmatched location is logged');
+  } finally {
+    console.warn = original;
+    restoreFetch();
+  }
+}
+
+async function testMappedAndUnmappedRoles(): Promise<void> {
+  installFetch(() => jsonResponse({ contact: { id: 'hr-contact-1' } }));
+  const warnings: unknown[][] = [];
+  const original = console.warn;
+  console.warn = (...args: unknown[]) => {
+    warnings.push(args);
+  };
+  try {
+    const mapped = await post('/api/contact', application({
+      role: ' assistant coach ',
+      location: 'Bicester',
+      about: 'Ready to assist',
+      gclid: undefined,
+      gbraid: undefined,
+      wbraid: undefined,
+    }), env({ GHL_HR_API_KEY: HR_KEY }));
+    assertEqual(mapped.status, 200, 'mapped role delivers');
+    const mappedBody = upsertCalls()[0].body as Record<string, unknown>;
+    assertEqual(
+      asFields(mappedBody.customFields).find((entry) => entry.key === 'role'),
+      { id: 'U1NmOQc8eMon4gyVHvAj', key: 'role', fieldValue: 'Assistant Coach' },
+      'Assistant Coach maps onto Coach: Role',
+    );
+    assertEqual(noteCalls()[0].body, { body: 'Ready to assist' }, 'mapped role note is only the applicant text');
+    assert(!JSON.stringify(noteCalls()[0].body).includes('unmapped'), 'mapped role is not repeated in the note');
+
+    calls = [];
+    const unmapped = await post('/api/contact', application({
+      role: 'Volunteer Coach',
+      location: 'Marlow',
+      about: 'I can help on Saturdays',
+      gclid: undefined,
+      gbraid: undefined,
+      wbraid: undefined,
+    }), env({ GHL_HR_API_KEY: HR_KEY }));
+    const unmappedText = await unmapped.text();
+    assertEqual(unmapped.status, 200, 'unmapped role still delivers');
+    assertEqual(JSON.parse(unmappedText).success, true, 'unmapped role success');
+    const unmappedBody = upsertCalls()[0].body as Record<string, unknown>;
+    const fields = asFields(unmappedBody.customFields);
+    assert(!fields.some((entry) => entry.key === 'role'), 'unmapped role is left out of custom fields');
+    assertEqual(
+      fields.find((entry) => entry.key === 'preferred_location'),
+      { id: 'xTVtfVcxCcLKDslvR5AY', key: 'preferred_location', fieldValue: ['Marlow'] },
+      'location is still sent when the role does not map',
+    );
+    assertEqual(noteCalls().length, 1, 'unmapped role still creates a note');
+    assertEqual(
+      noteCalls()[0].body,
+      { body: 'I can help on Saturdays\nRole applied (unmapped): Volunteer Coach' },
+      'raw unmapped role is appended to the note',
+    );
+    assertV2Headers(noteCalls()[0], HR_KEY);
+    assertEqual(noteCalls()[0].url, 'https://services.leadconnectorhq.com/contacts/hr-contact-1/notes', 'unmapped role note URL');
+    assert(warnings.some((args) => String(args.join(' ')).includes('Volunteer Coach')), 'unmapped role is logged');
+    assertNoSubAccount(unmappedBody);
+  } finally {
+    console.warn = original;
+    restoreFetch();
+  }
+}
+
+async function testFailedNoteStillSucceeds(): Promise<void> {
+  installFetch((call) => {
+    if (call.url.endsWith('/notes')) return jsonResponse({ message: 'note rejected' }, 500);
+    return jsonResponse({ contact: { id: 'hr-contact-1' } });
+  });
+  const errors: unknown[][] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    errors.push(args);
+  };
+  try {
+    const response = await post('/api/contact', application(), env({ GHL_HR_API_KEY: HR_KEY }));
+    const text = await response.text();
+    assertEqual(response.status, 200, 'note failure still returns 200');
+    assertEqual(JSON.parse(text).success, true, 'note failure still succeeds');
+    assertNoSecrets(text);
+    assertEqual(noteCalls().length, 1, 'note call was attempted');
+    assertEqual(tagCalls().length, 1, 'tags are still added when the note fails');
+    assert(errors.some((args) => String(args[0]).includes('[HR] note create failed')), 'note failure is logged');
+    assert(!JSON.stringify(errors).includes(HR_KEY), 'note error log does not contain the API key');
+  } finally {
+    console.error = original;
+    restoreFetch();
+  }
+}
+
+async function testBlankNoteIsSkipped(): Promise<void> {
+  installFetch(() => jsonResponse({ contact: { id: 'hr-contact-1' } }));
+  try {
+    const response = await post('/api/contact', application({
+      about: '   ',
+      role: 'Head Coach',
+      gclid: undefined,
+      gbraid: undefined,
+      wbraid: undefined,
+    }), env({ GHL_HR_API_KEY: HR_KEY }));
+    assertEqual(response.status, 200, 'blank note still delivers');
+    assertEqual(noteCalls().length, 0, 'nothing to write means no notes call');
+    assertEqual(tagCalls().length, 1, 'tags are still added when the note is skipped');
+  } finally {
+    restoreFetch();
+  }
+}
+
 // Main-location waitlist is still API v1 on this branch. Remove this test when
 // rebasing onto the main-location v2 change (PR #5); that branch moves waitlist to v2.
 async function testWaitlistStaysOnV1(): Promise<void> {
@@ -504,6 +730,11 @@ await testWebhookWithoutClickIdsSkipsStamp();
 await testLookupFailureDoesNotFailApplication();
 await testStampRejectionDoesNotSendEmptyUpdate();
 await testFailedWebhookDoesNotCallV2();
+await testLocationNormalisation();
+await testAllUnknownLocationsOmitField();
+await testMappedAndUnmappedRoles();
+await testFailedNoteStillSucceeds();
+await testBlankNoteIsSkipped();
 await testWaitlistStaysOnV1();
 
 console.log('ghl HR v2 worker tests passed');

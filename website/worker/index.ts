@@ -138,9 +138,52 @@ async function stampClickIdFields(apiKey: string, email: string, clickIds: Track
   }
 }
 
-// Hoop Heroes HR sub-account. Documented in .claude/skills/hh-website/SKILL.md.
-// Not invented, and not read from an env var: the id is already in the repo.
+// Hoop Heroes HR sub-account. Verified in GHL: "Hoop Heroes HR", Europe/London.
 const HR_GHL_LOCATION_ID = 'zxMh9T37AzC9DytMDQGr';
+
+/** Coaching Location(s). GHL key contact.preferred_location. MULTIPLE_OPTIONS. */
+const HR_COACHING_LOCATION_FIELD = {
+  id: 'xTVtfVcxCcLKDslvR5AY',
+  key: 'preferred_location',
+} as const;
+
+const HR_COACHING_LOCATIONS = [
+  'Aylesbury',
+  'Wendover',
+  'Tring',
+  'Marlow',
+  'Holmer Green',
+  'Great Missenden',
+  'Bicester',
+  'Oxford',
+  'Sandhurst',
+] as const;
+
+/** Coach: Role. GHL key contact.role. SINGLE_OPTIONS. */
+const HR_COACH_ROLE_FIELD = {
+  id: 'U1NmOQc8eMon4gyVHvAj',
+  key: 'role',
+} as const;
+
+const HR_COACH_ROLES = [
+  'Head Coach',
+  'Assistant Coach',
+  'Junior Assistant Coach',
+  'Head Coach in Training',
+] as const;
+
+/**
+ * Careers form buttons in website/pages/Careers.tsx.
+ * Volunteer Coach is a form option with no Coach: Role value: the description
+ * covers parents, DofE candidates, and junior assistants, so it is not stored
+ * as Junior Assistant Coach. It is omitted from the field and written on the note.
+ * Junior Assistant Coach and Head Coach in Training are accepted when the raw
+ * value already matches those spellings; the form does not offer them.
+ */
+const HR_FORM_ROLE_TO_GHL: Record<string, (typeof HR_COACH_ROLES)[number]> = {
+  'head coach': 'Head Coach',
+  'assistant coach': 'Assistant Coach',
+};
 const GHL_V2_BASE = 'https://services.leadconnectorhq.com';
 const GHL_V2_VERSION = '2021-07-28';
 
@@ -177,15 +220,87 @@ function contactIdFromPayload(data: unknown): string | null {
   return typeof id === 'string' && id ? id : null;
 }
 
+/** Split a free-text location, trim, and keep only exact allowed spellings. */
+function normaliseCoachingLocations(input: unknown): string[] {
+  if (typeof input !== 'string' || !input.trim()) return [];
+  const allowed = new Map(HR_COACHING_LOCATIONS.map((name) => [name.toLowerCase(), name]));
+  const matched: string[] = [];
+  const unknown: string[] = [];
+  const seen = new Set<string>();
+  for (const part of input.split(/\s*(?:,|;|\/|&|\band\b)\s*/i)) {
+    const value = part.trim();
+    if (!value) continue;
+    const exact = allowed.get(value.toLowerCase());
+    if (!exact) {
+      unknown.push(value);
+      continue;
+    }
+    if (seen.has(exact)) continue;
+    seen.add(exact);
+    matched.push(exact);
+  }
+  if (unknown.length) {
+    console.warn('[HR] coaching location values not in the allowed list:', unknown.join(', '));
+  }
+  return matched;
+}
+
+function mapHrCoachRole(input: unknown): { value: string | null; unmappedRaw: string | null } {
+  if (typeof input !== 'string') return { value: null, unmappedRaw: null };
+  const raw = input.trim();
+  if (!raw) return { value: null, unmappedRaw: null };
+  const key = raw.toLowerCase();
+  const fromForm = HR_FORM_ROLE_TO_GHL[key];
+  if (fromForm) return { value: fromForm, unmappedRaw: null };
+  const fromAllowed = HR_COACH_ROLES.find((role) => role.toLowerCase() === key);
+  if (fromAllowed) return { value: fromAllowed, unmappedRaw: null };
+  console.warn('[HR] role does not map to Coach: Role:', raw);
+  return { value: null, unmappedRaw: raw };
+}
+
+function hrContactNote(about: unknown, unmappedRole: string | null): string | null {
+  const aboutText = typeof about === 'string' ? about.trim() : '';
+  const lines: string[] = [];
+  if (aboutText) lines.push(aboutText);
+  if (unmappedRole) lines.push(`Role applied (unmapped): ${unmappedRole}`);
+  return lines.length ? lines.join('\n') : null;
+}
+
+interface HrCustomField {
+  id: string;
+  key: string;
+  fieldValue: string | string[];
+}
+
 /**
  * v2 upsert body for the HR sub-account.
  * Tags are omitted: an upsert replaces every tag on an existing contact.
- * The v1 `customField` id map is omitted. Click-id custom fields are included
- * only as `{ id, key, fieldValue }` from the known main-location field list.
- * `notes`, `nearest_hh_location`, `role_applied`, and `sub_account` have no
- * HR custom-field id or key in the repo, so they are not sent here.
+ * `sub_account` is not a v2 field and is not sent.
+ * Notes are posted separately after the contact id comes back.
  */
-function hrUpsertBody(career: Record<string, unknown>): Record<string, unknown> {
+function prepareHrUpsert(career: Record<string, unknown>): { body: Record<string, unknown>; note: string | null } {
+  const customFields: HrCustomField[] = [];
+  if (Array.isArray(career.customFields)) {
+    for (const entry of career.customFields) {
+      if (entry && typeof entry === 'object') customFields.push(entry as HrCustomField);
+    }
+  }
+  const locations = normaliseCoachingLocations(career.nearest_hh_location);
+  if (locations.length) {
+    customFields.push({
+      id: HR_COACHING_LOCATION_FIELD.id,
+      key: HR_COACHING_LOCATION_FIELD.key,
+      fieldValue: locations,
+    });
+  }
+  const role = mapHrCoachRole(career.role_applied);
+  if (role.value) {
+    customFields.push({
+      id: HR_COACH_ROLE_FIELD.id,
+      key: HR_COACH_ROLE_FIELD.key,
+      fieldValue: role.value,
+    });
+  }
   const body: Record<string, unknown> = {
     locationId: HR_GHL_LOCATION_ID,
     firstName: career.firstName,
@@ -195,11 +310,11 @@ function hrUpsertBody(career: Record<string, unknown>): Record<string, unknown> 
     source: career.source,
   };
   if (typeof career.phone === 'string' && career.phone) body.phone = career.phone;
-  if (Array.isArray(career.customFields) && career.customFields.length) body.customFields = career.customFields;
-  return body;
+  if (customFields.length) body.customFields = customFields;
+  return { body, note: hrContactNote(career.notes, role.unmappedRaw) };
 }
 
-/** On 400/422, retry once without click-id custom fields so the application is not dropped. */
+/** On 400/422, retry once without custom fields so the application is not dropped. Tags and the note still run. */
 async function upsertHrContact(
   apiKey: string,
   body: Record<string, unknown>,
@@ -209,7 +324,7 @@ async function upsertHrContact(
     console.error('[HR Sub-Account] GHL API Error:', response.status, await response.text());
     const withoutClickIds = { ...body };
     delete withoutClickIds.customFields;
-    console.warn('[HR Sub-Account] retrying without click-id fields');
+    console.warn('[HR Sub-Account] retrying without custom fields');
     response = await ghlV2Request(apiKey, '/contacts/upsert', 'POST', withoutClickIds);
   }
   if (!response.ok) {
@@ -224,8 +339,20 @@ async function upsertHrContact(
     data = null;
   }
   const contactId = contactIdFromPayload(data);
-  if (!contactId) console.warn('[HR] upsert succeeded without a contact id; tags were not added');
+  if (!contactId) console.warn('[HR] upsert succeeded without a contact id; tags and notes were not added');
   return { ok: true, contactId };
+}
+
+/** A failure is logged and does not fail the application. */
+async function addHrContactNote(apiKey: string, contactId: string, body: string): Promise<void> {
+  try {
+    const response = await ghlV2Request(apiKey, `/contacts/${contactId}/notes`, 'POST', { body });
+    if (!response.ok) {
+      console.error('[HR] note create failed:', response.status, (await response.text()).slice(0, 400));
+    }
+  } catch (err) {
+    console.error('[HR] note create failed:', err);
+  }
 }
 
 /** Adds tags without replacing existing ones. A failure is logged and does not fail the application. */
@@ -326,10 +453,12 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
         }
       }
     } else if (env.GHL_HR_API_KEY) {
-      const upsert = await upsertHrContact(env.GHL_HR_API_KEY, hrUpsertBody(careerPayload));
+      const prepared = prepareHrUpsert(careerPayload);
+      const upsert = await upsertHrContact(env.GHL_HR_API_KEY, prepared.body);
       delivered = upsert.ok;
       if (upsert.ok && upsert.contactId) {
         await addHrContactTags(env.GHL_HR_API_KEY, upsert.contactId, tags);
+        if (prepared.note) await addHrContactNote(env.GHL_HR_API_KEY, upsert.contactId, prepared.note);
       }
     } else {
       return json({
