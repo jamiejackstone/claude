@@ -89,6 +89,8 @@ function attachClickIdCustomFields(payload: Record<string, unknown>, clickIds: T
   if (customField) payload.customField = customField;
 }
 
+// Main-location waitlist still uses GHL API v1.
+// HR careers uses the v2 helpers further down.
 async function ghlRequest(apiKey: string, path: string, method: string, body: Record<string, unknown>): Promise<Response> {
   return fetch(`https://rest.gohighlevel.com/v1${path}`, {
     method,
@@ -136,27 +138,268 @@ async function stampClickIdFields(apiKey: string, email: string, clickIds: Track
   }
 }
 
-// Create a contact via the GHL v1 REST API. Returns true on success.
-// If v1 rejects the customFields array, retry with the id map, then without click-id fields.
-async function createGhlContact(apiKey: string, payload: Record<string, unknown>, label: string): Promise<boolean> {
-  let response = await ghlRequest(apiKey, '/contacts/', 'POST', payload);
-  if (!response.ok && (payload.customFields || payload.customField) && (response.status === 400 || response.status === 422)) {
-    console.error(`[${label}] GHL API Error:`, response.status, await response.text());
-    const withoutArray = { ...payload };
-    delete withoutArray.customFields;
-    response = await ghlRequest(apiKey, '/contacts/', 'POST', withoutArray);
-    if (!response.ok) {
-      console.error(`[${label}] GHL API Error after dropping customFields:`, response.status, await response.text());
-      delete withoutArray.customField;
-      console.warn(`[${label}] retrying contact create without click-id fields`);
-      response = await ghlRequest(apiKey, '/contacts/', 'POST', withoutArray);
+// Hoop Heroes HR sub-account. Verified in GHL: "Hoop Heroes HR", Europe/London.
+const HR_GHL_LOCATION_ID = 'zxMh9T37AzC9DytMDQGr';
+
+/** Coaching Location(s). GHL key contact.preferred_location. MULTIPLE_OPTIONS. */
+const HR_COACHING_LOCATION_FIELD = {
+  id: 'xTVtfVcxCcLKDslvR5AY',
+  key: 'preferred_location',
+} as const;
+
+const HR_COACHING_LOCATIONS = [
+  'Aylesbury',
+  'Wendover',
+  'Tring',
+  'Marlow',
+  'Holmer Green',
+  'Great Missenden',
+  'Bicester',
+  'Oxford',
+  'Sandhurst',
+] as const;
+
+/** Coach: Role. GHL key contact.role. SINGLE_OPTIONS. */
+const HR_COACH_ROLE_FIELD = {
+  id: 'U1NmOQc8eMon4gyVHvAj',
+  key: 'role',
+} as const;
+
+const HR_COACH_ROLES = [
+  'Head Coach',
+  'Assistant Coach',
+  'Junior Assistant Coach',
+  'Head Coach in Training',
+] as const;
+
+/**
+ * Careers form buttons in website/pages/Careers.tsx.
+ * Volunteer Coach is a form option with no Coach: Role value: the description
+ * covers parents, DofE candidates, and junior assistants, so it is not stored
+ * as Junior Assistant Coach. It is omitted from the field and written on the note.
+ * Junior Assistant Coach and Head Coach in Training are accepted when the raw
+ * value already matches those spellings; the form does not offer them.
+ */
+const HR_FORM_ROLE_TO_GHL: Record<string, (typeof HR_COACH_ROLES)[number]> = {
+  'head coach': 'Head Coach',
+  'assistant coach': 'Assistant Coach',
+};
+const GHL_V2_BASE = 'https://services.leadconnectorhq.com';
+const GHL_V2_VERSION = '2021-07-28';
+
+function ghlV2Headers(apiKey: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    Version: GHL_V2_VERSION,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+}
+
+async function ghlV2Request(
+  apiKey: string,
+  path: string,
+  method: string,
+  body?: Record<string, unknown>,
+): Promise<Response> {
+  return fetch(`${GHL_V2_BASE}${path}`, {
+    method,
+    headers: ghlV2Headers(apiKey),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+}
+
+function contactIdFromPayload(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const record = data as {
+    id?: unknown;
+    contact?: { id?: unknown };
+    contacts?: { id?: unknown }[];
+  };
+  const id = record.contact?.id || record.contacts?.[0]?.id || record.id;
+  return typeof id === 'string' && id ? id : null;
+}
+
+/** Split a free-text location, trim, and keep only exact allowed spellings. */
+function normaliseCoachingLocations(input: unknown): string[] {
+  if (typeof input !== 'string' || !input.trim()) return [];
+  const allowed = new Map(HR_COACHING_LOCATIONS.map((name) => [name.toLowerCase(), name]));
+  const matched: string[] = [];
+  const unknown: string[] = [];
+  const seen = new Set<string>();
+  for (const part of input.split(/\s*(?:,|;|\/|&|\band\b)\s*/i)) {
+    const value = part.trim();
+    if (!value) continue;
+    const exact = allowed.get(value.toLowerCase());
+    if (!exact) {
+      unknown.push(value);
+      continue;
+    }
+    if (seen.has(exact)) continue;
+    seen.add(exact);
+    matched.push(exact);
+  }
+  if (unknown.length) {
+    console.warn('[HR] coaching location values not in the allowed list:', unknown.join(', '));
+  }
+  return matched;
+}
+
+function mapHrCoachRole(input: unknown): { value: string | null; unmappedRaw: string | null } {
+  if (typeof input !== 'string') return { value: null, unmappedRaw: null };
+  const raw = input.trim();
+  if (!raw) return { value: null, unmappedRaw: null };
+  const key = raw.toLowerCase();
+  const fromForm = HR_FORM_ROLE_TO_GHL[key];
+  if (fromForm) return { value: fromForm, unmappedRaw: null };
+  const fromAllowed = HR_COACH_ROLES.find((role) => role.toLowerCase() === key);
+  if (fromAllowed) return { value: fromAllowed, unmappedRaw: null };
+  console.warn('[HR] role does not map to Coach: Role:', raw);
+  return { value: null, unmappedRaw: raw };
+}
+
+function hrContactNote(about: unknown, unmappedRole: string | null): string | null {
+  const aboutText = typeof about === 'string' ? about.trim() : '';
+  const lines: string[] = [];
+  if (aboutText) lines.push(aboutText);
+  if (unmappedRole) lines.push(`Role applied (unmapped): ${unmappedRole}`);
+  return lines.length ? lines.join('\n') : null;
+}
+
+interface HrCustomField {
+  id: string;
+  key: string;
+  fieldValue: string | string[];
+}
+
+/**
+ * v2 upsert body for the HR sub-account.
+ * Tags are omitted: an upsert replaces every tag on an existing contact.
+ * `sub_account` is not a v2 field and is not sent.
+ * Notes are posted separately after the contact id comes back.
+ */
+function prepareHrUpsert(career: Record<string, unknown>): { body: Record<string, unknown>; note: string | null } {
+  const customFields: HrCustomField[] = [];
+  if (Array.isArray(career.customFields)) {
+    for (const entry of career.customFields) {
+      if (entry && typeof entry === 'object') customFields.push(entry as HrCustomField);
     }
   }
-  if (!response.ok) {
-    console.error(`[${label}] GHL API Error:`, response.status, await response.text());
-    return false;
+  const locations = normaliseCoachingLocations(career.nearest_hh_location);
+  if (locations.length) {
+    customFields.push({
+      id: HR_COACHING_LOCATION_FIELD.id,
+      key: HR_COACHING_LOCATION_FIELD.key,
+      fieldValue: locations,
+    });
   }
-  return true;
+  const role = mapHrCoachRole(career.role_applied);
+  if (role.value) {
+    customFields.push({
+      id: HR_COACH_ROLE_FIELD.id,
+      key: HR_COACH_ROLE_FIELD.key,
+      fieldValue: role.value,
+    });
+  }
+  const body: Record<string, unknown> = {
+    locationId: HR_GHL_LOCATION_ID,
+    firstName: career.firstName,
+    lastName: career.lastName,
+    name: career.name,
+    email: career.email,
+    source: career.source,
+  };
+  if (typeof career.phone === 'string' && career.phone) body.phone = career.phone;
+  if (customFields.length) body.customFields = customFields;
+  return { body, note: hrContactNote(career.notes, role.unmappedRaw) };
+}
+
+/** On 400/422, retry once without custom fields so the application is not dropped. Tags and the note still run. */
+async function upsertHrContact(
+  apiKey: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: boolean; contactId: string | null }> {
+  let response = await ghlV2Request(apiKey, '/contacts/upsert', 'POST', body);
+  if (!response.ok && body.customFields && (response.status === 400 || response.status === 422)) {
+    console.error('[HR Sub-Account] GHL API Error:', response.status, await response.text());
+    const withoutClickIds = { ...body };
+    delete withoutClickIds.customFields;
+    console.warn('[HR Sub-Account] retrying without custom fields');
+    response = await ghlV2Request(apiKey, '/contacts/upsert', 'POST', withoutClickIds);
+  }
+  if (!response.ok) {
+    console.error('[HR Sub-Account] GHL API Error:', response.status, await response.text());
+    return { ok: false, contactId: null };
+  }
+  const text = await response.text();
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = null;
+  }
+  const contactId = contactIdFromPayload(data);
+  if (!contactId) console.warn('[HR] upsert succeeded without a contact id; tags and notes were not added');
+  return { ok: true, contactId };
+}
+
+/** A failure is logged and does not fail the application. */
+async function addHrContactNote(apiKey: string, contactId: string, body: string): Promise<void> {
+  try {
+    const response = await ghlV2Request(apiKey, `/contacts/${contactId}/notes`, 'POST', { body });
+    if (!response.ok) {
+      console.error('[HR] note create failed:', response.status, (await response.text()).slice(0, 400));
+    }
+  } catch (err) {
+    console.error('[HR] note create failed:', err);
+  }
+}
+
+/** Adds tags without replacing existing ones. A failure is logged and does not fail the application. */
+async function addHrContactTags(apiKey: string, contactId: string, tags: string[]): Promise<void> {
+  if (!tags.length) return;
+  try {
+    const response = await ghlV2Request(apiKey, `/contacts/${contactId}/tags`, 'POST', { tags });
+    if (!response.ok) {
+      console.error('[HR] tag update failed:', response.status, (await response.text()).slice(0, 400));
+    }
+  } catch (err) {
+    console.error('[HR] tag update failed:', err);
+  }
+}
+
+async function lookupHrContactId(apiKey: string, email: string): Promise<string | null> {
+  const params = new URLSearchParams({ locationId: HR_GHL_LOCATION_ID, email });
+  const path = `/contacts/search/duplicate?${params.toString()}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await ghlV2Request(apiKey, path, 'GET');
+    if (!response.ok) {
+      console.error('[HR] contact lookup failed:', response.status, await response.text());
+      return null;
+    }
+    const data = await response.json() as { contacts?: { id?: string }[]; contact?: { id?: string } };
+    const id = contactIdFromPayload(data);
+    if (id) return id;
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  return null;
+}
+
+/** Follow-up click-id stamp after the HR inbound webhook. Does not send tags. */
+async function stampHrClickIds(apiKey: string, email: string, clickIds: TrackedParams): Promise<void> {
+  const customFields = ghlClickIdCustomFields(clickIds);
+  if (!customFields.length || !email) return;
+  const contactId = await lookupHrContactId(apiKey, email);
+  if (!contactId) {
+    console.warn('[HR] click ids not stamped; contact not found yet');
+    return;
+  }
+  const response = await ghlV2Request(apiKey, `/contacts/${contactId}`, 'PUT', { customFields });
+  if (!response.ok) {
+    console.warn('[HR] click-id update failed:', response.status, (await response.text()).slice(0, 400));
+    return;
+  }
+  console.log(`[HR] stamped ${customFields.map((entry) => entry.key).join(', ')}`);
 }
 
 // POST /api/contact — coaching applications into the Hoop Heroes HR GHL
@@ -170,22 +413,26 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
   let delivered = false;
 
   if (type === 'careers') {
-    const { firstName, lastName } = splitName(name);
+    const nameText = typeof name === 'string' ? name.trim() : '';
+    const roleText = typeof role === 'string' ? role : '';
+    const emailText = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const phoneText = typeof phone === 'string' ? normalizePhone(phone) : '';
+    const { firstName, lastName } = splitName(nameText);
+    const tags = ['coach', 'recruitment', roleText.toLowerCase().replace(/\s+/g, '_'), roleText];
     const careerPayload: Record<string, unknown> = {
       firstName,
       lastName,
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: normalizePhone(phone),
-      tags: ['coach', 'recruitment', role.toLowerCase().replace(/\s+/g, '_'), role],
+      name: nameText,
+      email: emailText,
+      tags,
       source: 'Website HR & Recruitment Form',
       notes: about,
       nearest_hh_location: location,
-      role_applied: role,
+      role_applied: roleText,
       sub_account: 'HR & Recruitment',
     };
+    if (phoneText) careerPayload.phone = phoneText;
     attachClickIdCustomFields(careerPayload, clickIds);
-    const careerEmail = String(careerPayload.email);
 
     const HR_WEBHOOK_URL = env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL;
 
@@ -200,13 +447,19 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
         console.error('[HR Sub-Account Webhook] Error:', webhookResponse.status, await webhookResponse.text());
       } else if (env.GHL_HR_API_KEY) {
         try {
-          await stampClickIdFields(env.GHL_HR_API_KEY, careerEmail, clickIds);
+          await stampHrClickIds(env.GHL_HR_API_KEY, emailText, clickIds);
         } catch (stampErr) {
           console.error('[HR] click-id stamp error:', stampErr);
         }
       }
     } else if (env.GHL_HR_API_KEY) {
-      delivered = await createGhlContact(env.GHL_HR_API_KEY, careerPayload, 'HR Sub-Account');
+      const prepared = prepareHrUpsert(careerPayload);
+      const upsert = await upsertHrContact(env.GHL_HR_API_KEY, prepared.body);
+      delivered = upsert.ok;
+      if (upsert.ok && upsert.contactId) {
+        await addHrContactTags(env.GHL_HR_API_KEY, upsert.contactId, tags);
+        if (prepared.note) await addHrContactNote(env.GHL_HR_API_KEY, upsert.contactId, prepared.note);
+      }
     } else {
       return json({
         error: 'CRM Configuration Error',
@@ -522,6 +775,8 @@ export default {
           ghlConfigured: !!env.GHL_API_KEY,
           ghlHrConfigured: !!(env.GHL_HR_WEBHOOK_URL || env.GHL_CAREERS_WEBHOOK_URL || env.GHL_HR_API_KEY),
           resendConfigured: !!env.RESEND_API_KEY,
+          ghlHrKeySet: !!env.GHL_HR_API_KEY,
+          ghlHrApiVersion: 'v2',
         });
       }
 
