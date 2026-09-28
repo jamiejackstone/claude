@@ -43,9 +43,12 @@ hand the task to such a session yourself if session-creation tools are available
   HR" GHL sub-account (location `zxMh9T37AzC9DytMDQGr`) via the
   `GHL_HR_API_KEY` secret (still GHL API v1). "Opening soon" waitlist leads → main CRM
   sub-account (location `9p0wEiLpTaIe1FDTFFQI`, override with `GHL_LOCATION_ID`) via
-  `GHL_API_KEY` on API v2 (`services.leadconnectorhq.com`, `Version: 2021-07-28`);
-  Oxford has a hard-coded inbound webhook, then a v2 click-id stamp. Resend email
-  is optional (`RESEND_API_KEY`).
+  `GHL_API_KEY` on API v2 (`services.leadconnectorhq.com`, `Version: 2021-07-28`).
+  The waitlist upsert body does not include `tags` (upsert replaces every tag).
+  After it succeeds, tags are added with `POST /contacts/{id}/tags`, which keeps
+  existing tags. A failed tag call is logged and does not fail the lead. Oxford
+  has a hard-coded inbound webhook, then a v2 click-id stamp. Resend email is
+  optional (`RESEND_API_KEY`).
 
 ## The update loop (every change, however small)
 

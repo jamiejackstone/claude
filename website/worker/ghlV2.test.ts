@@ -136,8 +136,14 @@ function assertClickFields(customFields: unknown): void {
   assert(!serialized.includes('"key":"gclid"'), 'native contact.gclid key is not sent');
 }
 
+const EXPECTED_TAGS = ['Sandhurst', 'Sandhurst Waitlist', 'Source: Website Waitlist'];
+
 function upsertCalls(): Call[] {
   return calls.filter((call) => call.url === 'https://services.leadconnectorhq.com/contacts/upsert');
+}
+
+function tagCalls(): Call[] {
+  return calls.filter((call) => /\/contacts\/[^/]+\/tags$/.test(new URL(call.url).pathname));
 }
 
 async function testUpsertShape(): Promise<void> {
@@ -158,11 +164,19 @@ async function testUpsertShape(): Promise<void> {
     assertEqual(body.firstName, 'Jamie', 'first name mapping');
     assertEqual(body.lastName, 'Stone', 'last name mapping');
     assertEqual(body.source, 'Website Waitlist - Sandhurst', 'source is kept');
-    assertEqual(body.tags, ['Sandhurst', 'Sandhurst Waitlist', 'Source: Website Waitlist'], 'tags are kept');
+    assert(!('tags' in body), 'upsert body has no tags key');
     assertClickFields(body.customFields);
     assert(!('customField' in body), 'v1 customField map is not sent');
     assert(!('locationName' in body), 'locationName is not sent on v2 upsert');
     assert(!('gclid' in body), 'native gclid property is not sent');
+    const added = tagCalls();
+    assertEqual(added.length, 1, 'tags are added in a follow-up call');
+    assertEqual(added[0].url, 'https://services.leadconnectorhq.com/contacts/c1/tags', 'add-tags URL');
+    assertEqual(added[0].method, 'POST', 'add-tags is POST');
+    assertEqual(added[0].body, { tags: EXPECTED_TAGS }, 'add-tags body');
+    assertV2Headers(added[0], KEY);
+    assertEqual(calls[0].url, 'https://services.leadconnectorhq.com/contacts/upsert', 'upsert happens before tags');
+    assertEqual(calls[1], added[0], 'the second call is the tag add');
     const client = await response.json() as { success?: boolean };
     assertEqual(client.success, true, 'client success');
   } finally {
@@ -198,11 +212,17 @@ async function testClickIdRetry(status: 400 | 422): Promise<void> {
     assertEqual(second.locationId, LOCATION_ID, 'retry still sends locationId');
     assertEqual(second.email, 'jamie@example.com', 'retry still sends email');
     assertEqual(second.phone, '+447123456789', 'retry still sends phone');
-    assertEqual(second.tags, ['Sandhurst', 'Sandhurst Waitlist', 'Source: Website Waitlist'], 'retry still sends tags');
+    assert(!('tags' in second), `${status} retry upsert has no tags key`);
     const serialized = JSON.stringify(second);
     assert(!serialized.includes('9frYn0xCQ45lkz4R6q0e'), 'retry body has no hh_gclid id');
     assert(!serialized.includes('Vco6cxY4VKBWQ9FPB6rQ'), 'retry body has no gbraid id');
     assert(!serialized.includes('fMkXv33gXAGUuHBDcber'), 'retry body has no wbraid id');
+    const added = tagCalls();
+    assertEqual(added.length, 1, `${status} retry still adds tags`);
+    assertEqual(added[0].url, 'https://services.leadconnectorhq.com/contacts/c1/tags', `${status} add-tags URL`);
+    assertEqual(added[0].method, 'POST', `${status} add-tags is POST`);
+    assertEqual(added[0].body, { tags: EXPECTED_TAGS }, `${status} add-tags body`);
+    assertV2Headers(added[0], KEY);
   } finally {
     restoreFetch();
   }
@@ -214,6 +234,7 @@ async function testNoRetryOn500(): Promise<void> {
     const response = await post('/api/waitlist', lead(), env({ GHL_API_KEY: KEY }));
     assertEqual(response.status, 500, 'upstream 500 is returned');
     assertEqual(upsertCalls().length, 1, '500 does not retry');
+    assertEqual(tagCalls().length, 0, 'failed upsert does not add tags');
   } finally {
     restoreFetch();
   }
@@ -237,6 +258,51 @@ async function testMissingKey(): Promise<void> {
     assert(!JSON.stringify(data).includes(KEY), 'missing-key error does not contain a key');
   } finally {
     console.error = original;
+    restoreFetch();
+  }
+}
+
+async function testFailedTagCallDoesNotFailLead(): Promise<void> {
+  installFetch((call) => {
+    if (call.url.endsWith('/tags')) return jsonResponse({ message: 'tag write failed' }, 500);
+    return jsonResponse({ new: true, contact: { id: 'c1' } });
+  });
+  const errors: unknown[][] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    errors.push(args);
+  };
+  try {
+    const response = await post('/api/waitlist', lead(), env({ GHL_API_KEY: KEY }));
+    const data = await response.json() as { success?: boolean; error?: string };
+    assertEqual(response.status, 200, 'failed tag call still returns 200');
+    assertEqual(data.success, true, 'failed tag call still reports success');
+    assert(data.error === undefined, 'failed tag call does not return an error');
+    assertEqual(tagCalls().length, 1, 'tag call was attempted');
+    assert(!('tags' in (upsertCalls()[0].body as Record<string, unknown>)), 'failed tag path still omits tags from upsert');
+    assert(errors.some((args) => String(args[0]).includes('add tags failed')), 'failed tag call is logged');
+  } finally {
+    console.error = original;
+    restoreFetch();
+  }
+}
+
+async function testMissingUpsertIdSkipsTags(): Promise<void> {
+  installFetch(() => jsonResponse({ new: true }));
+  const warnings: unknown[][] = [];
+  const original = console.warn;
+  console.warn = (...args: unknown[]) => {
+    warnings.push(args);
+  };
+  try {
+    const response = await post('/api/waitlist', lead(), env({ GHL_API_KEY: KEY }));
+    const data = await response.json() as { success?: boolean };
+    assertEqual(response.status, 200, 'missing contact id still returns the lead');
+    assertEqual(data.success, true, 'missing contact id is still success');
+    assertEqual(tagCalls().length, 0, 'missing contact id does not call add-tags');
+    assert(warnings.some((args) => String(args[0]).includes('contact id was missing')), 'missing contact id is logged');
+  } finally {
+    console.warn = original;
     restoreFetch();
   }
 }
@@ -386,6 +452,8 @@ await testClickIdRetry(400);
 await testClickIdRetry(422);
 await testNoRetryOn500();
 await testMissingKey();
+await testFailedTagCallDoesNotFailLead();
+await testMissingUpsertIdSkipsTags();
 await testMissingPhoneDoesNotThrow();
 await testHealth();
 await testOxfordWebhookThenV2Stamp();

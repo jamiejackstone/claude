@@ -15,7 +15,7 @@ GoHighLevel and Resend.
 - **React 18 + Vite + Tailwind CSS** (compiled at build time — no CDN scripts)
 - **Cloudflare Worker** ([`worker/index.ts`](./worker/index.ts)) serving:
   - `POST /api/contact` — careers forms → Hoop Heroes HR GHL sub-account; optional Resend email on top
-  - `POST /api/waitlist` — "opening soon" waitlist leads → main GHL CRM (Oxford uses its dedicated inbound webhook)
+  - `POST /api/waitlist` — "opening soon" waitlist leads → main GHL CRM (Oxford uses its dedicated inbound webhook). Tags are added with `POST /contacts/{id}/tags` after upsert so a repeat signup does not replace tags already on the contact.
   - `GET /go/:slug` — QR-code short links for printed banners/flyers (adds UTM tags)
   - `GET /api/health` — config check
   - Everything else → static SPA assets

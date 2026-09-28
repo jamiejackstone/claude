@@ -214,12 +214,38 @@ function mainLocationUpsertBody(lead: Record<string, unknown>, locationId: strin
     lastName: lead.lastName,
     name: lead.name,
     email: lead.email,
-    tags: lead.tags,
     source: lead.source,
   };
   if (typeof lead.phone === 'string' && lead.phone) body.phone = lead.phone;
   if (Array.isArray(lead.customFields) && lead.customFields.length) body.customFields = lead.customFields;
   return body;
+}
+
+/** Upsert replaces every tag. Add tags afterwards so existing ones stay. */
+function contactIdFromUpsert(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const contact = (data as { contact?: { id?: unknown } }).contact;
+  const id = contact?.id;
+  return typeof id === 'string' && id ? id : null;
+}
+
+function stringTags(tags: unknown): string[] {
+  const list = Array.isArray(tags) ? tags : [];
+  return list.filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0);
+}
+
+async function addMainLocationTags(apiKey: string, contactId: string, tags: string[]): Promise<void> {
+  if (!tags.length) return;
+  try {
+    const response = await ghlV2Request(apiKey, `/contacts/${contactId}/tags`, 'POST', { tags });
+    if (!response.ok) {
+      console.error('[GHL] add tags failed:', response.status, (await response.text()).slice(0, 400));
+      return;
+    }
+    await response.text();
+  } catch (err) {
+    console.error('[GHL] add tags error:', err);
+  }
 }
 
 /** On 400/422, retry once without click-id custom fields so the lead is not dropped. */
@@ -462,6 +488,14 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
   if (!ghlResponse.ok) {
     console.error('[GHL] API Error:', ghlResponse.status, data);
     return json({ error: 'Failed to submit to CRM', details: data }, ghlResponse.status);
+  }
+
+  const contactId = contactIdFromUpsert(data);
+  const tagsToAdd = stringTags(leadPayload.tags);
+  if (!contactId) {
+    console.warn('[GHL] upsert succeeded but contact id was missing; tags not added');
+  } else {
+    await addMainLocationTags(env.GHL_API_KEY, contactId, tagsToAdd);
   }
   return json({ success: true, data });
 }
