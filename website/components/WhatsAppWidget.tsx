@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
+// Not mounted. The live chat control is the LeadConnector widget in index.html.
+// This wa.me link stays a short greeting. Raw click ids are not put in the message.
 export const WhatsAppWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 

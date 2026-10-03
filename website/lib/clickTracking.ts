@@ -18,9 +18,10 @@ export type TrackedParam = (typeof TRACKED_PARAMS)[number];
 export type TrackedParams = Partial<Record<TrackedParam, string>>;
 
 const STORAGE_KEY = 'hh_click_ids';
-// Matches a typical Google Ads click-through window so a return visit in the
-// same browser can still be tied to the ad click. sessionStorage covers the tab.
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
+/** First-party cookie. gclid, gbraid and wbraid are separate keys inside it. */
+export const CLICK_COOKIE_NAME = STORAGE_KEY;
+/** About 90 days, in line with a typical Google Ads click-through window. */
+export const CLICK_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
 const MAX_VALUE_LENGTH = 512;
 
 export function sanitizeTrackedValue(value: string): string | null {
@@ -177,49 +178,132 @@ function serializeTracked(params: TrackedParams): string {
   return search.toString();
 }
 
-function readStoredOnly(): TrackedParams {
-  if (typeof window === 'undefined') return {};
-  let fromSession = '';
-  try {
-    fromSession = sessionStorage.getItem(STORAGE_KEY) || '';
-  } catch {
-    fromSession = '';
-  }
-  return mergeTrackedParams(pickTrackedParams(readCookieValue()), pickTrackedParams(fromSession));
+/** Set-Cookie assignment: Path=/, SameSite=Lax, Secure on https, Max-Age ~90 days. */
+export function buildClickCookie(serialized: string, secure: boolean): string {
+  const secureAttr = secure ? '; Secure' : '';
+  return `${CLICK_COOKIE_NAME}=${encodeURIComponent(serialized)}; Path=/; Max-Age=${CLICK_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureAttr}`;
 }
 
-function readCookieValue(): string {
-  if (typeof document === 'undefined') return '';
-  const prefix = `${STORAGE_KEY}=`;
-  const parts = document.cookie ? document.cookie.split('; ') : [];
-  for (const part of parts) {
-    if (part.startsWith(prefix)) {
-      try {
-        return decodeURIComponent(part.slice(prefix.length));
-      } catch {
-        return '';
-      }
+/** Decoded value of hh_click_ids from a document.cookie or Cookie header. */
+export function readClickCookieValue(cookieHeader: string, name = CLICK_COOKIE_NAME): string {
+  if (!cookieHeader) return '';
+  const prefix = `${name}=`;
+  for (const part of cookieHeader.split(';')) {
+    const trimmed = part.trim();
+    if (!trimmed.startsWith(prefix)) continue;
+    try {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    } catch {
+      return '';
     }
   }
   return '';
 }
 
-function writeStored(params: TrackedParams): void {
-  if (typeof window === 'undefined') return;
-  const serialized = serializeTracked(params);
-  try {
-    sessionStorage.setItem(STORAGE_KEY, serialized);
-  } catch {
-    // Private mode or blocked storage — cookie below still helps other tabs.
-  }
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${STORAGE_KEY}=${encodeURIComponent(serialized)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
+/**
+ * Click ids for a page view.
+ * Session is the lowest layer, then the cookie, then the URL.
+ * A new id on the URL replaces only that id.
+ */
+export function resolveTrackedParams(input: {
+  session?: string | null;
+  cookie?: string;
+  search?: string;
+}): TrackedParams {
+  return mergeTrackedParams(
+    pickTrackedParams(input.session || ''),
+    pickTrackedParams(readClickCookieValue(input.cookie || '')),
+    pickTrackedParams(input.search || ''),
+  );
 }
 
-/** Cookie + sessionStorage + the current URL. Current URL wins on conflict. */
+/**
+ * Search string with cookie click ids filled in where the URL has none.
+ * Returns null when the URL already has every stored click id.
+ */
+export function restoreSearchFromClickCookie(search: string, cookieHeader: string): string | null {
+  const stored = clickIdFields(pickTrackedParams(readClickCookieValue(cookieHeader)));
+  const current = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+  let changed = false;
+  for (const key of CLICK_ID_PARAMS) {
+    const value = stored[key];
+    if (!value || current.get(key)) continue;
+    current.set(key, value);
+    changed = true;
+  }
+  if (!changed) return null;
+  const next = current.toString();
+  return next ? `?${next}` : null;
+}
+
+export interface ClickIdBrowser {
+  getCookie(): string;
+  setCookie(value: string): void;
+  getSession(): string | null;
+  setSession(value: string): void;
+  getSearch(): string;
+  getProtocol(): string;
+}
+
+/**
+ * Persist click ids from this page load.
+ * A new click id replaces the stored one. Other stored ids are kept.
+ */
+export function captureClickIds(browser: ClickIdBrowser, search?: string): TrackedParams {
+  const incoming = pickTrackedParams(search ?? browser.getSearch());
+  const existing = resolveTrackedParams({
+    session: browser.getSession(),
+    cookie: browser.getCookie(),
+    search: '',
+  });
+  const merged = mergeTrackedParams(existing, incoming);
+  if (hasTrackedParams(incoming) || (hasTrackedParams(existing) && !browser.getSession())) {
+    const serialized = serializeTracked(merged);
+    browser.setSession(serialized);
+    browser.setCookie(buildClickCookie(serialized, browser.getProtocol() === 'https:'));
+  }
+  return resolveTrackedParams({
+    session: browser.getSession(),
+    cookie: browser.getCookie(),
+    search: browser.getSearch(),
+  });
+}
+
+function browserClickStore(): ClickIdBrowser | null {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+  return {
+    getCookie: () => document.cookie || '',
+    setCookie: (value) => {
+      document.cookie = value;
+    },
+    getSession: () => {
+      try {
+        return sessionStorage.getItem(STORAGE_KEY);
+      } catch {
+        return null;
+      }
+    },
+    setSession: (value) => {
+      try {
+        sessionStorage.setItem(STORAGE_KEY, value);
+      } catch {
+        // Private mode or blocked storage. The cookie still covers later visits.
+      }
+    },
+    getSearch: () => window.location.search || '',
+    getProtocol: () => window.location.protocol || '',
+  };
+}
+
+/** Cookie, then the current URL. The URL wins when both have the same key. */
 export function readTrackedParams(): TrackedParams {
-  if (typeof window === 'undefined') return {};
-  return mergeTrackedParams(readStoredOnly(), pickTrackedParams(window.location.search));
+  const store = browserClickStore();
+  if (!store) return {};
+  return resolveTrackedParams({
+    session: store.getSession(),
+    cookie: store.getCookie(),
+    search: store.getSearch(),
+  });
 }
 
 /**
@@ -228,22 +312,9 @@ export function readTrackedParams(): TrackedParams {
  * A new click id replaces the stored one; other stored keys are kept.
  */
 export function captureLandingClickIds(search?: string): TrackedParams {
-  if (typeof window === 'undefined') return {};
-  const incoming = pickTrackedParams(search ?? window.location.search);
-  const existing = readStoredOnly();
-  const merged = mergeTrackedParams(existing, incoming);
-  if (hasTrackedParams(incoming) || (hasTrackedParams(existing) && !hasSessionCopy())) {
-    writeStored(merged);
-  }
-  return readTrackedParams();
-}
-
-function hasSessionCopy(): boolean {
-  try {
-    return Boolean(sessionStorage.getItem(STORAGE_KEY));
-  } catch {
-    return false;
-  }
+  const store = browserClickStore();
+  if (!store) return {};
+  return captureClickIds(store, search);
 }
 
 /** Click ids only, for POST /api/waitlist and POST /api/contact. */

@@ -37,6 +37,7 @@ interface TestEnv {
   GHL_HR_WEBHOOK_URL?: string;
   GHL_HR_API_KEY?: string;
   GHL_CAREERS_WEBHOOK_URL?: string;
+  TASTER_PRECAPTURE?: string;
 }
 
 let calls: Call[] = [];
@@ -327,13 +328,13 @@ async function testMissingPhoneDoesNotThrow(): Promise<void> {
 async function testHealth(): Promise<void> {
   const response = await worker.fetch(new Request('https://www.hoopheroes.co.uk/api/health'), env({
     GHL_API_KEY: KEY,
+    GHL_HR_API_KEY: HR_KEY,
     RESEND_API_KEY: 'resend-secret-not-for-health',
   }));
   const text = await response.text();
   const data = JSON.parse(text) as Record<string, unknown>;
   assertEqual(data.status, 'ok', 'health status');
   assertEqual(data.ghlConfigured, true, 'existing ghlConfigured');
-  assertEqual(data.ghlHrConfigured, false, 'existing ghlHrConfigured');
   assertEqual(data.resendConfigured, true, 'existing resendConfigured');
   assertEqual(data.ghlKeySet, true, 'ghlKeySet true when key present');
   assertEqual(data.ghlApiVersion, 'v2', 'ghlApiVersion');
@@ -342,6 +343,8 @@ async function testHealth(): Promise<void> {
   assert(!text.includes('9f3c1e7a'), 'health does not contain part of the API key');
   assert(!text.includes('DO-NOT-LEAK'), 'health does not contain part of the API key');
   assert(!text.includes('resend-secret-not-for-health'), 'health does not contain the resend key');
+  assert(!text.includes(HR_KEY), 'health does not contain the HR API key');
+  assertEqual(data.ghlHrConfigured, true, 'ghlHrConfigured when the HR key is set');
 
   const missing = await worker.fetch(new Request('https://www.hoopheroes.co.uk/api/health'), env());
   const missingData = await missing.json() as Record<string, unknown>;
@@ -433,6 +436,8 @@ async function testHrStaysOnV1(): Promise<void> {
       about: 'I coach',
       role: 'Head Coach',
       gclid: 'GCLID1',
+      gbraid: 'GBRAID1',
+      wbraid: 'WBRAID1',
     }, env({ GHL_HR_API_KEY: HR_KEY }));
     assertEqual(response.status, 200, 'careers still delivers');
     assertEqual(calls.length, 1, 'careers API path is a single v1 create');
@@ -441,6 +446,54 @@ async function testHrStaysOnV1(): Promise<void> {
     assertEqual(calls[0].headers.authorization, `Bearer ${HR_KEY}`, 'HR uses GHL_HR_API_KEY');
     assert(!('version' in calls[0].headers), 'HR v1 request has no Version header');
     assert(!calls[0].url.includes('services.leadconnectorhq.com'), 'HR create does not use the v2 host');
+    const hrBody = calls[0].body as Record<string, unknown>;
+    assertClickFields(hrBody.customFields);
+    assert(!('gclid' in hrBody), 'HR create does not send native gclid');
+  } finally {
+    restoreFetch();
+  }
+}
+
+async function testTasterPrecaptureOff(): Promise<void> {
+  installFetch(() => jsonResponse({}));
+  try {
+    const response = await post('/api/taster-click', lead(), env({ GHL_API_KEY: KEY }));
+    assertEqual(response.status, 404, 'taster pre-capture is off unless TASTER_PRECAPTURE=1');
+    assertEqual(calls.length, 0, 'disabled taster route does not call GHL');
+    const text = await response.text();
+    assert(!text.includes(KEY), 'disabled taster route does not echo the API key');
+  } finally {
+    restoreFetch();
+  }
+}
+
+async function testTasterPrecaptureWritesClickIds(): Promise<void> {
+  installFetch(() => jsonResponse({ new: true, contact: { id: 'c-taster' } }));
+  try {
+    const response = await post('/api/taster-click', {
+      name: 'Pat Parent',
+      email: 'Pat@Example.com',
+      gclid: 'GCLID1',
+      gbraid: 'GBRAID1',
+      wbraid: 'WBRAID1',
+    }, env({ GHL_API_KEY: KEY, TASTER_PRECAPTURE: '1' }));
+    assertEqual(response.status, 200, 'enabled taster pre-capture succeeds');
+    const client = await response.json() as { success?: boolean; data?: unknown };
+    assertEqual(client.success, true, 'taster success flag');
+    assert(!('data' in client), 'taster response does not echo the CRM body');
+    const upsert = upsertCalls();
+    assertEqual(upsert.length, 1, 'taster path upserts once');
+    assertV2Headers(upsert[0], KEY);
+    const body = upsert[0].body as Record<string, unknown>;
+    assertEqual(body.email, 'pat@example.com', 'taster email is normalised');
+    assertEqual(body.source, 'Website taster click', 'taster source');
+    assert(!('tags' in body), 'taster upsert does not send tags');
+    assert(!('gclid' in body), 'taster upsert does not send native gclid');
+    assertClickFields(body.customFields);
+    const added = calls.filter((call) => call.url.endsWith('/tags'));
+    assertEqual(added.length, 1, 'taster tag is a follow-up call');
+    assertEqual(added[0].url, 'https://services.leadconnectorhq.com/contacts/c-taster/tags', 'taster tag URL');
+    assertEqual((added[0].body as { tags: string[] }).tags, ['website taster click'], 'taster tag');
   } finally {
     restoreFetch();
   }
@@ -459,5 +512,7 @@ await testHealth();
 await testOxfordWebhookThenV2Stamp();
 await testOxfordStampDoesNotSendEmptyUpdate();
 await testHrStaysOnV1();
+await testTasterPrecaptureOff();
+await testTasterPrecaptureWritesClickIds();
 
 console.log('ghl v2 worker tests passed');

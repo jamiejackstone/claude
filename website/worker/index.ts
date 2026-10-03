@@ -15,6 +15,7 @@ import {
   SANDHURST_PAGE_TITLE,
   buildLocationJsonLd,
 } from '../lib/locationSchema';
+import { TASTER_CLICK_SOURCE, TASTER_CLICK_TAG } from '../lib/tasterPrecapture';
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
@@ -25,6 +26,8 @@ interface Env {
   GHL_HR_WEBHOOK_URL?: string;
   GHL_HR_API_KEY?: string;
   GHL_CAREERS_WEBHOOK_URL?: string;
+  /** Set to "1" to accept POST /api/taster-click. Off unless Jamie turns it on. */
+  TASTER_PRECAPTURE?: string;
 }
 
 /** Main Hoop Heroes sub-account. Private Integration tokens call API v2 on this location. */
@@ -500,6 +503,64 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
   return json({ success: true, data });
 }
 
+// POST /api/taster-click — optional pre-capture before TeamUp. Off unless
+// TASTER_PRECAPTURE=1. Upserts the parent, writes the three click-id fields,
+// then adds the tag so a repeat visit does not wipe existing tags.
+async function handleTasterClick(request: Request, env: Env): Promise<Response> {
+  if (env.TASTER_PRECAPTURE !== '1') {
+    return json({ error: 'Not found' }, 404);
+  }
+
+  const body = await request.json() as Record<string, unknown>;
+  const clickIds = clickIdsFromRecord(body);
+  const nameText = asTrimmed(body.name);
+  const emailText = asTrimmed(body.email).toLowerCase();
+  const phoneText = normalizePhone(body.phone);
+  if (!nameText || !emailText) {
+    return json({ error: 'Name and email are required' }, 400);
+  }
+  if (!env.GHL_API_KEY) {
+    console.error('GHL_API_KEY is not configured');
+    return json({
+      error: 'CRM Configuration Error',
+      details: 'GHL_API_KEY is missing. Set it with: wrangler secret put GHL_API_KEY',
+    }, 500);
+  }
+
+  const { firstName, lastName } = splitName(nameText);
+  const leadPayload: Record<string, unknown> = {
+    firstName,
+    lastName,
+    name: nameText,
+    email: emailText,
+    source: TASTER_CLICK_SOURCE,
+  };
+  if (phoneText) leadPayload.phone = phoneText;
+  attachClickIdCustomFields(leadPayload, clickIds);
+
+  const upsertBody = mainLocationUpsertBody(leadPayload, ghlLocationId(env));
+  const { response: ghlResponse } = await ghlV2Write(env.GHL_API_KEY, '/contacts/upsert', 'POST', upsertBody, 'GHL');
+  const responseText = await ghlResponse.text();
+  let data: unknown;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    data = { rawResponse: responseText };
+  }
+  if (!ghlResponse.ok) {
+    console.error('[GHL] taster click API Error:', ghlResponse.status, data);
+    return json({ error: 'Failed to submit to CRM' }, ghlResponse.status);
+  }
+
+  const contactId = contactIdFromUpsert(data);
+  if (!contactId) {
+    console.warn('[GHL] taster click upsert succeeded but contact id was missing; tag not added');
+  } else {
+    await addMainLocationTags(env.GHL_API_KEY, contactId, [TASTER_CLICK_TAG]);
+  }
+  return json({ success: true });
+}
+
 const LOCATION_NAMES: Record<string, string> = {
   aylesbury: 'Aylesbury',
   'great-missenden': 'Great Missenden',
@@ -707,6 +768,10 @@ export default {
 
       if (url.pathname === '/api/waitlist' && request.method === 'POST') {
         return await handleWaitlist(request, env);
+      }
+
+      if (url.pathname === '/api/taster-click' && request.method === 'POST') {
+        return await handleTasterClick(request, env);
       }
 
       if (url.pathname === '/go' || url.pathname.startsWith('/go/')) {

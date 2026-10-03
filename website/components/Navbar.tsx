@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, MapPin, ChevronRight, ChevronDown, User, Search } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 import { withTrackedParams } from '../lib/clickTracking';
+import { onFreeTasterClick } from '../lib/tasterPrecapture';
 import { Logo } from './Logo';
 
 export const Navbar: React.FC = () => {
@@ -148,6 +149,7 @@ export const Navbar: React.FC = () => {
                         href={withTrackedParams(FREE_TRIAL_URL)}
                         target="_blank" 
                         rel="noopener noreferrer"
+                        onClick={(event) => onFreeTasterClick(event, withTrackedParams(FREE_TRIAL_URL))}
                         className="group relative overflow-hidden bg-brand-orange text-brand-dark px-8 py-3 rounded-full font-display text-lg uppercase tracking-wide shadow-sticker border-2 border-brand-dark hover:shadow-sticker-hover transition-all transform hover:-translate-y-0.5"
                     >
                         <span className="relative z-10 flex items-center gap-2">
@@ -231,7 +233,10 @@ export const Navbar: React.FC = () => {
                     href={withTrackedParams(FREE_TRIAL_URL)}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    onClick={() => setIsOpen(false)}
+                    onClick={(event) => {
+                      setIsOpen(false);
+                      onFreeTasterClick(event, withTrackedParams(FREE_TRIAL_URL));
+                    }}
                     className="bg-brand-orange text-brand-dark px-10 py-4 rounded-full font-display uppercase tracking-wider text-xl shadow-sticker border-2 border-brand-dark"
                 >
                     Book Free Trial

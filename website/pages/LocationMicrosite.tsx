@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
+import { waitlistRequestBody } from '../lib/leadPayloads';
+import { requestTasterPrecapture, TASTER_PRECAPTURE_ENABLED } from '../lib/tasterPrecapture';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData } from '../types';
@@ -110,7 +112,12 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    window.open(withTrackedParams(FREE_TRIAL_URL), '_blank');
+    const destination = withTrackedParams(FREE_TRIAL_URL);
+    if (TASTER_PRECAPTURE_ENABLED) {
+      requestTasterPrecapture(destination);
+      return;
+    }
+    window.open(destination, '_blank');
   };
 
   const toggleMute = () => {
@@ -127,19 +134,14 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     setIsSubmitting(true);
 
     try {
-        const leadPayload = {
+        const leadPayload = waitlistRequestBody({
             name: waitlistData.name,
             email: waitlistData.email,
             phone: waitlistData.phone,
             locationName: location.name,
-            tags: [
-                location.name, 
-                location.ghlTag || `${location.name} Waitlist`,
-                `Source: Website Waitlist`
-            ],
-            source: `Website Waitlist - ${location.name}`,
-            ...getClickIdsForLead(),
-        };
+            ghlTag: location.ghlTag,
+            clickIds: getClickIdsForLead(),
+        });
 
         const response = await fetch('/api/waitlist', {
             method: 'POST',

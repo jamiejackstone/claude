@@ -88,6 +88,60 @@ site free of external databases:
 
 After editing, run `npm run deploy`.
 
+## Live click-id test plan
+
+Run this only after PR #5 and the click-id PR are merged into
+`claude/website-recreation-hosting-ubxxtr`, Worker secret `GHL_API_KEY` is set,
+and Jamie has said to run it. Do not run it before that. Use one probe contact
+and delete it only with Jamie's OK.
+
+Probe:
+
+- Name: `ZZ Probe Click-ID`
+- Email: `click-id-probe-YYYYMMDD@example.com` (use the day of the test)
+- Phone: `+447700900000`
+- Landing URL:
+  `https://www.hoopheroes.co.uk/?gclid=TESTGCLID-YYYYMMDD&gbraid=TESTGBRAID-YYYYMMDD&wbraid=TESTWBRAID-YYYYMMDD`
+
+Confirm the three custom fields on the main location `9p0wEiLpTaIe1FDTFFQI`:
+
+- `hh_gclid` (`9frYn0xCQ45lkz4R6q0e`) = `TESTGCLID-YYYYMMDD`
+- `gbraid` (`Vco6cxY4VKBWQ9FPB6rQ`) = `TESTGBRAID-YYYYMMDD`
+- `wbraid` (`fMkXv33gXAGUuHBDcber`) = `TESTWBRAID-YYYYMMDD`
+
+Native `contact.gclid` is not the field to check.
+
+1. Open the landing URL in a private window. In devtools, confirm cookie
+   `hh_click_ids` is present, `Secure`, `SameSite=Lax`, `Path=/`, and that its
+   value contains the three ids as separate keys.
+2. Waitlist. Open a coming-soon location from that same window (the URL should
+   still show the click ids). Submit the waitlist form with the probe name,
+   email and phone. In GHL, open the probe contact and confirm the three fields.
+   Oxford uses the inbound webhook and then a v2 stamp; any other location uses
+   upsert. Check both if you run two probes, with a different email for the
+   second.
+3. Careers. From the same browser, open `/careers` and submit an application
+   with the probe details. The contact is created in the Hoop Heroes HR
+   sub-account, not the main trial location. Confirm the three fields there.
+4. Accident form. Open `/accident` and view the iframe URL. It should include
+   `hh_gclid`, `gbraid` and `wbraid`. Submit only if Jamie wants a staff-form
+   probe. The form stores values only for hidden fields that exist on that GHL
+   form.
+5. Chat widget. From the landing URL, open the LeadConnector chat widget and
+   submit the probe name, email and phone. The widget reads `gclid`, `gbraid`
+   and `wbraid` from the page URL. It does not write `hh_gclid` unless that
+   chat widget's form in GHL has a hidden field with that key. Record whether
+   the three custom fields are filled. That result decides if the widget form
+   needs those hidden fields in GHL.
+6. TeamUp. Click Book Free Taster. The TeamUp URL should include `gclid`.
+   Finish a booking only with Jamie's OK, then check whether the GHL contact
+   gained the three fields. Pre-capture (`POST /api/taster-click`, tag
+   `website taster click`) stays off until `TASTER_PRECAPTURE` is `1` in the
+   Worker and `TASTER_PRECAPTURE_ENABLED` is turned on in code.
+7. Cleanup. Search GHL for `click-id-probe-YYYYMMDD@example.com` and delete
+   that contact only after Jamie agrees. Do the same in the HR sub-account if
+   the careers step was run.
+
 ## Changes from the AI Studio export
 
 - Removed Firebase/Firestore entirely (project was suspended; the site always
