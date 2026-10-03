@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, CheckCircle, ArrowRight, Smartphone, Mail, User, MapPin, AlignLeft, FileText, Info, Award, Clock, PoundSterling } from 'lucide-react';
 import { getClickIdsForLead } from '../lib/clickTracking';
+import { careersRequestBody } from '../lib/leadPayloads';
 
 interface JobDescription {
   title: string;
@@ -162,16 +163,15 @@ export const Careers: React.FC = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          type: 'careers',
+        body: JSON.stringify(careersRequestBody({
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
           location: formData.location,
           about: formData.about,
-          role: selectedRole,
-          ...getClickIdsForLead(),
-        })
+          role: selectedRole || '',
+          clickIds: getClickIdsForLead(),
+        }))
       });
 
       const result = await response.json();

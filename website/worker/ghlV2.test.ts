@@ -327,13 +327,13 @@ async function testMissingPhoneDoesNotThrow(): Promise<void> {
 async function testHealth(): Promise<void> {
   const response = await worker.fetch(new Request('https://www.hoopheroes.co.uk/api/health'), env({
     GHL_API_KEY: KEY,
+    GHL_HR_API_KEY: HR_KEY,
     RESEND_API_KEY: 'resend-secret-not-for-health',
   }));
   const text = await response.text();
   const data = JSON.parse(text) as Record<string, unknown>;
   assertEqual(data.status, 'ok', 'health status');
   assertEqual(data.ghlConfigured, true, 'existing ghlConfigured');
-  assertEqual(data.ghlHrConfigured, false, 'existing ghlHrConfigured');
   assertEqual(data.resendConfigured, true, 'existing resendConfigured');
   assertEqual(data.ghlKeySet, true, 'ghlKeySet true when key present');
   assertEqual(data.ghlApiVersion, 'v2', 'ghlApiVersion');
@@ -342,6 +342,8 @@ async function testHealth(): Promise<void> {
   assert(!text.includes('9f3c1e7a'), 'health does not contain part of the API key');
   assert(!text.includes('DO-NOT-LEAK'), 'health does not contain part of the API key');
   assert(!text.includes('resend-secret-not-for-health'), 'health does not contain the resend key');
+  assert(!text.includes(HR_KEY), 'health does not contain the HR API key');
+  assertEqual(data.ghlHrConfigured, true, 'ghlHrConfigured when the HR key is set');
 
   const missing = await worker.fetch(new Request('https://www.hoopheroes.co.uk/api/health'), env());
   const missingData = await missing.json() as Record<string, unknown>;
@@ -433,6 +435,8 @@ async function testHrStaysOnV1(): Promise<void> {
       about: 'I coach',
       role: 'Head Coach',
       gclid: 'GCLID1',
+      gbraid: 'GBRAID1',
+      wbraid: 'WBRAID1',
     }, env({ GHL_HR_API_KEY: HR_KEY }));
     assertEqual(response.status, 200, 'careers still delivers');
     assertEqual(calls.length, 1, 'careers API path is a single v1 create');
@@ -441,6 +445,9 @@ async function testHrStaysOnV1(): Promise<void> {
     assertEqual(calls[0].headers.authorization, `Bearer ${HR_KEY}`, 'HR uses GHL_HR_API_KEY');
     assert(!('version' in calls[0].headers), 'HR v1 request has no Version header');
     assert(!calls[0].url.includes('services.leadconnectorhq.com'), 'HR create does not use the v2 host');
+    const hrBody = calls[0].body as Record<string, unknown>;
+    assertClickFields(hrBody.customFields);
+    assert(!('gclid' in hrBody), 'HR create does not send native gclid');
   } finally {
     restoreFetch();
   }

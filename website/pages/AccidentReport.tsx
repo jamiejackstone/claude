@@ -1,6 +1,8 @@
 
 import React, { useEffect } from 'react';
 import { ShieldAlert, AlertCircle, Info } from 'lucide-react';
+import { getClickIdsForLead } from '../lib/clickTracking';
+import { ACCIDENT_FORM_URL, ghlHiddenClickInputs, withGhlFormClickFields } from '../lib/leadPayloads';
 
 export const AccidentReport: React.FC = () => {
   useEffect(() => {
@@ -57,8 +59,11 @@ export const AccidentReport: React.FC = () => {
         {/* Form Container */}
         <div className="bg-white rounded-[2.5rem] overflow-hidden border-4 border-brand-dark shadow-sticker min-h-[1500px]">
             <div className="p-4 md:p-8">
+                {ghlHiddenClickInputs(getClickIdsForLead()).map((field) => (
+                    <input key={field.name} type="hidden" name={field.name} value={field.value} />
+                ))}
                 <iframe
-                    src="https://link.halomarketinghub.com/widget/form/lpGjE9ktlOROvEaaAu7d"
+                    src={withGhlFormClickFields(ACCIDENT_FORM_URL, getClickIdsForLead())}
                     style={{ width: '100%', height: '1474px', border: 'none', borderRadius: '3px' }}
                     id="inline-lpGjE9ktlOROvEaaAu7d" 
                     data-layout="{'id':'INLINE'}"

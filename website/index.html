@@ -30,6 +30,44 @@
     </script>
     <!-- End Meta Pixel Code -->
 
+    <!--
+      Restore gclid/gbraid/wbraid from the hh_click_ids cookie onto the URL
+      before LeadConnector reads the page. Must stay in step with
+      restoreSearchFromClickCookie in lib/clickTracking.ts.
+    -->
+    <script>
+      (function () {
+        try {
+          var name = 'hh_click_ids=';
+          var parts = document.cookie ? document.cookie.split(';') : [];
+          var raw = '';
+          for (var i = 0; i < parts.length; i++) {
+            var part = parts[i].replace(/^\s+/, '');
+            if (part.indexOf(name) === 0) {
+              raw = decodeURIComponent(part.slice(name.length));
+              break;
+            }
+          }
+          if (!raw) return;
+          var stored = new URLSearchParams(raw);
+          var current = new URLSearchParams(window.location.search);
+          var keys = ['gclid', 'gbraid', 'wbraid'];
+          var changed = false;
+          for (var k = 0; k < keys.length; k++) {
+            var key = keys[k];
+            var value = stored.get(key);
+            if (value && !current.get(key)) {
+              current.set(key, value);
+              changed = true;
+            }
+          }
+          if (!changed) return;
+          var next = window.location.pathname + '?' + current.toString() + window.location.hash;
+          history.replaceState(null, '', next);
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- GHL External Tracking Script -->
     <script
       src="https://link.halomarketinghub.com/js/external-tracking.js"

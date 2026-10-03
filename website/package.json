@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "tsc --noEmit",
-    "test": "tsx lib/clickTracking.test.ts && tsx worker/ghlV2.test.ts",
+    "test": "tsx lib/clickTracking.test.ts && tsx worker/ghlV2.test.ts && node scripts/checkClickScript.mjs",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },
