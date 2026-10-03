@@ -133,14 +133,182 @@ Native `contact.gclid` is not the field to check.
    chat widget's form in GHL has a hidden field with that key. Record whether
    the three custom fields are filled. That result decides if the widget form
    needs those hidden fields in GHL.
-6. TeamUp. Click Book Free Taster. The TeamUp URL should include `gclid`.
-   Finish a booking only with Jamie's OK, then check whether the GHL contact
-   gained the three fields. Pre-capture (`POST /api/taster-click`, tag
-   `website taster click`) stays off until `TASTER_PRECAPTURE` is `1` in the
-   Worker and `TASTER_PRECAPTURE_ENABLED` is turned on in code.
+6. TeamUp. Click Book Free Taster. The TeamUp URL may include `gclid`,
+   `gbraid` and `wbraid` (that append is already live and is left as it is).
+   Do not finish a booking for this probe, and do not expect `hh_gclid` on the
+   GHL contact. Bookings and memberships reach GHL through classic Zapier Zaps
+   (TeamUp trigger, then a LeadConnector contact upsert and tags; source
+   `Zapier/TeamUp`). The taster also goes TeamUp to Google Calendar via a Zap,
+   then into GHL by calendar sync. Those Zaps do not carry URL parameters, so
+   the click id is dropped at TeamUp. The join for that route is Enhanced
+   Conversions for Leads in Zapier, specified below. There is no site step
+   before TeamUp.
 7. Cleanup. Search GHL for `click-id-probe-YYYYMMDD@example.com` and delete
    that contact only after Jamie agrees. Do the same in the HR sub-account if
    the careers step was run.
+
+## Enhanced Conversions for Leads (spec only)
+
+Systems is building the TeamUp join in Zapier as Google Ads Enhanced
+Conversions for Leads (ECfL). This section is a spec. It does not change GTM
+or the Google tag. Do not add a `gtag` snippet, a `dataLayer` user-data push,
+or an Ads customer id in this repo as part of that work.
+
+### How the tag is loaded today
+
+The site loads Google Tag Manager container `GTM-WBRDHQ5T` with the standard
+snippet in [`index.html`](./index.html): the head script pushes `gtm.start`
+onto `dataLayer` and loads `gtm.js`, and the body has the matching `noscript`
+iframe. The live homepage HTML at `https://www.hoopheroes.co.uk/` matches that
+snippet. The repo has no `gtag.js`, no `AW-` id, no `gtag('set', 'user_data')`,
+and no Consent Mode v2 defaults (`ad_storage`, `analytics_storage`,
+`ad_user_data`, `ad_personalization`). What the container itself fires is not
+in the repo.
+
+### Does ECfL need anything on the site?
+
+No site code change is required for the Zapier upload Systems is building.
+ECfL is turned on in Google Ads, not in this repository.
+
+What Google does require, in Ads and in GTM:
+
+- Accept the customer data terms and turn on enhanced conversions for leads,
+  with the method set to Google Tag Manager. See
+  [Configure Google Tag Manager for enhanced conversions for leads](https://support.google.com/google-ads/answer/11347292).
+- If measurement were done with the Google tag directly (it is not: this site
+  has no `gtag`), the tag settings would need automatic form-interaction
+  collection, or an explicit `gtag('set', 'user_data', { email, phone_number })`
+  before a `form_submit` event. Plain email and E.164 phone are allowed; Google
+  hashes them. Pre-hashed values use hex SHA-256 under `sha256_email_address`
+  and `sha256_phone_number`. See
+  [Configure the Google tag for enhanced conversions for leads](https://support.google.com/google-ads/answer/11021502).
+- The Google tag setting often labelled "Include user-provided data from your
+  website" is that same enhanced-conversions switch. It lives in Google Ads or
+  in the tag inside GTM. It is not a checkbox in this repo. Turning it on here
+  would be a GTM publish, which this PR does not do.
+- Automatic collection does not collect phone numbers. A waitlist or careers
+  match that should include phone needs Manual (CSS) or Code (`dataLayer`)
+  configuration in GTM.
+
+### Which of our forms could send email or phone to the tag?
+
+Only forms whose email and phone exist in the parent page DOM at submit time.
+
+| Form | Where | Fields | When a tag could fire |
+| --- | --- | --- | --- |
+| Waitlist | Coming-soon location pages, `#waitlist` | `input[type=email]`, `input[type=tel]`, parent name | `handleWaitlistSubmit` in `pages/LocationMicrosite.tsx`. The handler calls `preventDefault` and `POST /api/waitlist`. There is no navigation. The form stays mounted until the request finishes, then it is replaced by the thank-you state. |
+| Careers | `/careers` apply modal | `input[type=email]`, `input[type=tel]` | `handleSubmit` in `pages/Careers.tsx`. Same pattern: `preventDefault`, then `POST /api/contact` with `type: 'careers'`. The modal switches to thank-you after success. |
+
+These handlers do not push `formSubmitted` or any user-data object onto
+`dataLayer`. A GTM Form Submission trigger can still see the native `submit`
+event, but Preview has to prove that, because the forms never navigate.
+
+Out of reach of a parent-page tag:
+
+- TeamUp bookings and memberships. The email is entered on `goteamup.com`.
+- The accident form. It is a cross-origin GHL iframe
+  (`link.halomarketinghub.com`). The parent page cannot read its fields.
+- The LeadConnector chat widget. It runs in its own frame and today only
+  receives the page URL.
+- The location `wa.me` link and the unmounted `WhatsAppWidget`. Neither is a
+  lead form with email and phone.
+- There is no separate contact form. `/contact` redirects home.
+
+### Minimum GTM change
+
+For Systems or Jamie, in container `GTM-WBRDHQ5T`. Do not do this from the repo.
+
+1. In Google Ads, open Goals, then Settings. Turn on enhanced conversions for
+   leads and choose Google Tag Manager. Accept the customer data terms if they
+   are not already accepted. If conversions are tracked by a manager account,
+   accept the terms there.
+   Source: [GTM setup, "Accept Customer data terms"](https://support.google.com/google-ads/answer/11347292).
+2. In GTM, if a Conversion Linker tag is missing, add one. Tag type Conversion
+   Linker. Trigger: All Pages. Save. Do not publish yet.
+3. Create a User-Provided Data variable. Type: Manual. Map Email to a DOM
+   Element variable whose CSS selector is `input[type="email"]`. Map Phone to
+   a DOM Element variable whose CSS selector is `input[type="tel"]`. Leave the
+   attribute name blank. Do not use Automatic: Google's automatic method does
+   not collect phone numbers.
+4. Create a tag. Type: Google Ads User-Provided Data Event. Conversion ID: the
+   Google Ads customer id (not in this repo). User-provided data: the variable
+   from step 3.
+5. Trigger: Form Submission, limited to the waitlist form and the careers
+   apply form (or All Forms if Preview shows no other forms submit email).
+   The trigger must be the submit itself, while the inputs are still on the
+   page, not the thank-you state that replaces them.
+6. Add a consent exception so this tag fires only after the visitor has
+   accepted cookies. The site already pushes `cookie_consent_accepted` and
+   `cookie_consent_rejected` on `dataLayer` from `components/CookieConsent.tsx`.
+   There is no Consent Mode v2 in the page, so the tag needs its own consent
+   check inside GTM.
+7. Preview. Submit the waitlist form and the careers form. The User-Provided
+   Data Event tag must be under Tags Fired, and the tag detail must show the
+   email and phone. If the tag is under Tags Not Fired, the React
+   `preventDefault` path is blocking the Form Submission trigger.
+8. Only if Preview fails: stop and ask for a site change. The follow-up would
+   push `dataLayer` after a successful Worker response, with event
+   `formSubmitted` and `leadsUserData.email` plus `leadsUserData.phone_number`
+   in E.164, then a User-Provided Data variable of type Code pointing at
+   `leadsUserData`. That push is not in this PR. Google's example is in the
+   same GTM article, under code configuration.
+9. Publish the container only after Preview shows hashed user data on the
+   `https://google.com/pagead/form-data/` request.
+
+### TeamUp bookings, which happen off-site
+
+ECfL can match an offline upload of hashed email or phone to signed-in Google
+accounts that engaged with the ad, without the website tag having seen that
+email. Google describes the match as two paths: data the website tag collected
+at lead time, and signed-in customers who engaged with the ad.
+[About enhanced conversions for leads](https://support.google.com/google-ads/answer/15713840).
+
+The website-tag path does not exist for a TeamUp-only booking. The booking
+email is never submitted on hoopheroes.co.uk, so a site tag cannot collect it.
+The signed-in path is the one Zapier can feed: hash the TeamUp email and phone
+and upload them. The Google Ads API guide says that if you do not plan to use
+the Google tag, skip tagging and implement the upload.
+[Manage offline conversions](https://developers.google.com/google-ads/api/docs/conversions/upload-offline).
+Normalize, then SHA-256. For `gmail.com` and `googlemail.com`, lowercase, trim,
+and remove dots and the plus-suffix in the local part before hashing. Phone
+must be E.164.
+
+GCLID is still required on the upload when you are not using a tag to collect
+user-provided data for that lead
+([About ECfL](https://support.google.com/google-ads/answer/15713840),
+[GTM setup](https://support.google.com/google-ads/answer/11347292),
+[Google tag setup](https://support.google.com/google-ads/answer/11021502)).
+The TeamUp Zaps do not carry URL parameters, so they do not have a gclid.
+Appending click ids to TeamUp links does not fix that. A site tag is optional
+for the signed-in match and cannot create the website-form match for these
+bookings. From 15 June 2026, offline and ECfL uploads move to the Data Manager
+API; Zapier needs to follow that cutover
+([About ECfL](https://support.google.com/google-ads/answer/15713840)).
+
+### Consent and privacy (flag only)
+
+No policy copy is changed here.
+
+- A hashed email or phone is still personal data under UK GDPR. Sending it to
+  Google for ad measurement needs a lawful basis and a privacy-notice line.
+  The current privacy copy does not mention hashed lead data or Google Ads
+  enhanced conversions.
+- PECR requires consent before a non-essential tag stores or reads information
+  on the device, or sends user-provided data for advertising. The cookie policy
+  says GTM and Meta only activate on Accept. The GTM snippet in `index.html`
+  loads on every page before a choice. Meta PageView is gated on Accept.
+  ECfL's user-provided-data tag must not fire before Accept.
+- Google says the consent field on the upload is highly recommended, and that
+  leaving it empty may make conversions unattributable. Zapier should set it
+  from the banner choice. This site has no Consent Mode v2 signals to copy.
+- Do not send a child's email or phone. The waitlist name field is the parent.
+  Careers is an adult applicant. TeamUp's own account email is whatever the
+  booker typed on TeamUp.
+
+Checklist for the upload side:
+[Enhanced conversions for leads implementation checklist](https://support.google.com/google-ads/answer/16782203).
+Upgrade path from plain offline import:
+[Upgrade offline conversion imports](https://support.google.com/google-ads/answer/14274408).
 
 ## Changes from the AI Studio export
 

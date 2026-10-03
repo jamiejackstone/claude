@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
 import { waitlistRequestBody } from '../lib/leadPayloads';
-import { requestTasterPrecapture, TASTER_PRECAPTURE_ENABLED } from '../lib/tasterPrecapture';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData } from '../types';
@@ -112,12 +111,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    const destination = withTrackedParams(FREE_TRIAL_URL);
-    if (TASTER_PRECAPTURE_ENABLED) {
-      requestTasterPrecapture(destination);
-      return;
-    }
-    window.open(destination, '_blank');
+    window.open(withTrackedParams(FREE_TRIAL_URL), '_blank');
   };
 
   const toggleMute = () => {

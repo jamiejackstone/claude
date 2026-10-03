@@ -4,7 +4,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Search, MapPin, Trophy, Users, ArrowRight, Star, ShieldCheck, Heart, Clock, Award, Calendar, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 import { withTrackedParams } from '../lib/clickTracking';
-import { onFreeTasterClick } from '../lib/tasterPrecapture';
 import { ClassSessionList } from '../components/ClassSessionList';
 
 export const Home: React.FC = () => {
@@ -101,7 +100,6 @@ export const Home: React.FC = () => {
                   href={withTrackedParams(FREE_TRIAL_URL)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(event) => onFreeTasterClick(event, withTrackedParams(FREE_TRIAL_URL))}
                   className="w-full sm:w-auto bg-white hover:bg-slate-50 text-brand-dark border-2 border-brand-dark px-10 py-4 rounded-full font-display text-xl uppercase tracking-wide transition-all shadow-sticker hover:shadow-sticker-hover transform hover:-translate-y-1 flex items-center justify-center gap-3"
                 >
                    Book a free trial
@@ -353,7 +351,7 @@ export const Home: React.FC = () => {
                 We're on a mission to positively impact 10,000 children across the UK every week through basketball by 2030. Every hero on the court helps us reach that goal.
               </p>
               
-              <a href={withTrackedParams(FREE_TRIAL_URL)} target="_blank" rel="noopener noreferrer" onClick={(event) => onFreeTasterClick(event, withTrackedParams(FREE_TRIAL_URL))} className="inline-block bg-brand-dark text-white px-12 py-6 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker hover:shadow-sticker-hover hover:scale-105 transition-all border-4 border-transparent hover:border-white">
+              <a href={withTrackedParams(FREE_TRIAL_URL)} target="_blank" rel="noopener noreferrer" className="inline-block bg-brand-dark text-white px-12 py-6 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker hover:shadow-sticker-hover hover:scale-105 transition-all border-4 border-transparent hover:border-white">
                   TRY YOUR FIRST CLASS FREE
               </a>
           </div>

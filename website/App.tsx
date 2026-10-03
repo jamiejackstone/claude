@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, useParams, Navigate, Link as RouterLink } from 'react-router-dom';
 import { captureLandingClickIds, pathWithTrackedParams, TRACKED_PARAMS } from './lib/clickTracking';
-import { TASTER_PRECAPTURE_ENABLED } from './lib/tasterPrecapture';
-import { TasterPrecaptureHost } from './components/TasterPrecapture';
 import { LOCATIONS } from './constants';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -265,7 +263,6 @@ const App: React.FC = () => {
         </main>
         <Footer />
         <CookieConsent />
-        {TASTER_PRECAPTURE_ENABLED ? <TasterPrecaptureHost /> : null}
       </div>
     </Router>
   );

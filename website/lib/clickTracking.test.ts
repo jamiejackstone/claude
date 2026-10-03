@@ -16,11 +16,9 @@ import {
   restoreSearchFromClickCookie,
   withTrackedParams,
 } from './clickTracking.ts';
-import { TASTER_PRECAPTURE_ENABLED } from './tasterPrecapture.ts';
 import {
   careersRequestBody,
   ghlHiddenClickInputs,
-  tasterClickRequestBody,
   waitlistRequestBody,
   withGhlFormClickFields,
   ACCIDENT_FORM_URL,
@@ -252,12 +250,5 @@ assert(accident.includes('hh_gclid=GCLID1'), 'accident form URL carries hh_gclid
 assert(accident.includes('gbraid=GBRAID1'), 'accident form URL carries gbraid');
 assert(accident.includes('wbraid=WBRAID1'), 'accident form URL carries wbraid');
 assert(accident.startsWith(ACCIDENT_FORM_URL), 'accident form path is unchanged');
-
-const taster = tasterClickRequestBody({ name: 'Pat Parent', email: 'pat@example.com', clickIds: ids });
-assertEqual(taster.gclid, 'GCLID1', 'taster payload carries gclid');
-assertEqual(taster.gbraid, 'GBRAID1', 'taster payload carries gbraid');
-assertEqual(taster.wbraid, 'WBRAID1', 'taster payload carries wbraid');
-assertEqual(taster.tag, 'website taster click', 'taster payload tag');
-assertEqual(TASTER_PRECAPTURE_ENABLED, false, 'taster pre-capture is off by default');
 
 console.log('clickTracking tests passed');

@@ -3,7 +3,6 @@ import {
   clickIdFields,
   ghlClickIdCustomFields,
 } from './clickTracking';
-import { TASTER_CLICK_SOURCE, TASTER_CLICK_TAG } from './tasterPrecapture';
 
 export const ACCIDENT_FORM_URL = 'https://link.halomarketinghub.com/widget/form/lpGjE9ktlOROvEaaAu7d';
 
@@ -80,20 +79,6 @@ export function careersRequestBody(input: {
     location: input.location,
     about: input.about,
     role: input.role,
-    ...clickIdFields(input.clickIds),
-  };
-}
-
-export function tasterClickRequestBody(input: {
-  name: string;
-  email: string;
-  clickIds: TrackedParams;
-}): Record<string, unknown> {
-  return {
-    name: input.name,
-    email: input.email,
-    tag: TASTER_CLICK_TAG,
-    source: TASTER_CLICK_SOURCE,
     ...clickIdFields(input.clickIds),
   };
 }
