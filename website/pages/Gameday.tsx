@@ -4,15 +4,15 @@ import { withTrackedParams } from '../lib/clickTracking';
 
 export const Gameday: React.FC = () => {
   const settings = ({
-    nextDate: 'Sunday 12th April',
-    times: '3:00 PM - 6:00 PM',
-    location: 'John Colet School, Wendover',
-    address: 'Wharf Road, Wendover HP22 6HF',
+    nextDate: 'Sunday 25th October',
+    times: '9:00 AM - 12:00 PM',
+    location: 'The Oxford Academy, Oxford',
+    address: 'Sandy Lane West, Oxford OX4 6JZ',
     ages: '8-15 (Split into leagues by age)',
     cost: '£30 per player',
-    registrationCloses: 'Sunday 5th April',
+    registrationCloses: 'Sunday 18th October',
     description: 'Experience the fast-paced excitement of 3x3 basketball with our small internal mini-tournament',
-    registrationUrl: 'https://goteamup.com/p/6822945-hoop-heroes/courses/131282/',
+    registrationUrl: 'https://goteamup.com/p/6822945-hoop-heroes/courses/139859/',
     isLive: true
   });
 
@@ -172,6 +172,7 @@ export const Gameday: React.FC = () => {
                               <div>
                                   <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Time</p>
                                   <p className="text-xl font-bold text-brand-dark">{settings.times}</p>
+                                  <p className="text-sm text-slate-600 font-medium">Clocks go back that morning - check your alarm!</p>
                               </div>
                           </div>
 
