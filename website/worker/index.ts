@@ -15,6 +15,11 @@ import {
   SANDHURST_PAGE_TITLE,
   buildLocationJsonLd,
 } from '../lib/locationSchema';
+import {
+  GAMEDAY_META_DESCRIPTION,
+  GAMEDAY_PAGE_TITLE,
+  buildGamedayJsonLd,
+} from '../lib/gamedayEvent';
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
@@ -447,9 +452,8 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
       'Hoop Heroes policies: membership terms and conditions, privacy policy, safeguarding policy and code of conduct.',
   },
   '/3x3-gameday': {
-    title: '3x3 Gameday | Hoop Heroes Basketball',
-    description:
-      'The Hoop Heroes 3x3 Gameday — a fast-paced 3-on-3 basketball tournament for Hoop Heroes members aged 8-15.',
+    title: GAMEDAY_PAGE_TITLE,
+    description: GAMEDAY_META_DESCRIPTION,
   },
   '/accident': {
     title: 'Accident Report | Hoop Heroes',
@@ -477,6 +481,15 @@ function pageMetaFor(path: string): { title: string; description: string } | nul
   return null;
 }
 
+function gamedayHeadExtras(meta: { title: string; description: string }): string {
+  const script = `<script type="application/ld+json" id="hh-gameday-schema">${JSON.stringify(buildGamedayJsonLd()).replace(/</g, '\\u003c')}</script>`;
+  return [
+    `<meta property="og:title" content="${escapeHtml(meta.title)}">`,
+    `<meta property="og:description" content="${escapeHtml(meta.description)}">`,
+    script,
+  ].join('');
+}
+
 function sandhurstHeadExtras(meta: { title: string; description: string }): string {
   const location = LOCATIONS.find((item) => item.slug === 'sandhurst');
   const jsonLd = location ? buildLocationJsonLd(location) : null;
@@ -499,11 +512,16 @@ function injectMeta(
     .on('title', { element: (el) => el.setInnerContent(meta.title) })
     .on('meta[name="description"]', { element: (el) => el.setAttribute('content', meta.description) });
   if (canonicalPath !== null) {
-    const sandhurstExtras = canonicalPath === '/location/sandhurst' ? sandhurstHeadExtras(meta) : '';
+    const headExtras =
+      canonicalPath === '/location/sandhurst'
+        ? sandhurstHeadExtras(meta)
+        : canonicalPath === '/3x3-gameday'
+          ? gamedayHeadExtras(meta)
+          : '';
     rewriter = rewriter.on('head', {
       element: (el) =>
         el.append(
-          `<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">${sandhurstExtras}`,
+          `<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">${headExtras}`,
           { html: true },
         ),
     });

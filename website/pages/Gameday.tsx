@@ -1,20 +1,53 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Calendar, MapPin, Clock, Users, ArrowRight, Trophy, Activity, Heart, ShieldCheck } from 'lucide-react';
 import { withTrackedParams } from '../lib/clickTracking';
+import {
+  GAMEDAY_EVENT,
+  GAMEDAY_META_DESCRIPTION,
+  GAMEDAY_PAGE_TITLE,
+  buildGamedayJsonLd,
+} from '../lib/gamedayEvent';
+
+const GAMEDAY_SCHEMA_ID = 'hh-gameday-schema';
 
 export const Gameday: React.FC = () => {
-  const settings = ({
-    nextDate: 'Sunday 12th April',
-    times: '3:00 PM - 6:00 PM',
-    location: 'John Colet School, Wendover',
-    address: 'Wharf Road, Wendover HP22 6HF',
-    ages: '8-15 (Split into leagues by age)',
-    cost: '£30 per player',
-    registrationCloses: 'Sunday 5th April',
-    description: 'Experience the fast-paced excitement of 3x3 basketball with our small internal mini-tournament',
-    registrationUrl: 'https://goteamup.com/p/6822945-hoop-heroes/courses/131282/',
-    isLive: true
-  });
+  // Copy and schema live in lib/gamedayEvent.ts so the Worker SEO stays in step.
+  const settings = {
+    eventName: GAMEDAY_EVENT.name,
+    nextDate: GAMEDAY_EVENT.dateLabel,
+    times: GAMEDAY_EVENT.timesLabel,
+    location: GAMEDAY_EVENT.locationName,
+    address: GAMEDAY_EVENT.addressLabel,
+    ages: GAMEDAY_EVENT.agesLabel,
+    cost: GAMEDAY_EVENT.costLabel,
+    registrationCloses: GAMEDAY_EVENT.registrationClosesLabel,
+    description: GAMEDAY_EVENT.summary,
+    registrationUrl: GAMEDAY_EVENT.registrationUrl,
+    halfTermNote: GAMEDAY_EVENT.halfTermNote,
+    clocksNote: GAMEDAY_EVENT.clocksNote,
+    isLive: true,
+  };
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    const metaDescription = document.querySelector('meta[name="description"]');
+    const previousDescription = metaDescription?.getAttribute('content') ?? '';
+    document.title = GAMEDAY_PAGE_TITLE;
+    metaDescription?.setAttribute('content', GAMEDAY_META_DESCRIPTION);
+
+    const existing = document.getElementById(GAMEDAY_SCHEMA_ID);
+    const script = existing ?? document.createElement('script');
+    script.id = GAMEDAY_SCHEMA_ID;
+    script.setAttribute('type', 'application/ld+json');
+    script.textContent = JSON.stringify(buildGamedayJsonLd());
+    if (!existing) document.head.appendChild(script);
+
+    return () => {
+      document.title = previousTitle;
+      metaDescription?.setAttribute('content', previousDescription);
+      document.getElementById(GAMEDAY_SCHEMA_ID)?.remove();
+    };
+  }, []);
 
   const REGISTRATION_URL = withTrackedParams(settings.registrationUrl);
 
@@ -116,8 +149,17 @@ export const Gameday: React.FC = () => {
                 3x3 <span className="text-brand-orange">Gameday</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-slate-200 mb-10 font-medium max-w-3xl mx-auto drop-shadow-md">
+            <p className="text-xl md:text-2xl text-slate-200 mb-4 font-medium max-w-3xl mx-auto drop-shadow-md">
                 {settings.description}
+            </p>
+            <p className="text-lg md:text-xl text-white font-bold mb-2">
+                {settings.eventName}
+            </p>
+            <p className="text-base md:text-lg text-slate-200 font-medium max-w-3xl mx-auto">
+                {settings.nextDate}, {settings.times}. {settings.halfTermNote}
+            </p>
+            <p className="text-base text-brand-orange font-bold mt-3 mb-10 max-w-3xl mx-auto">
+                {settings.clocksNote}
             </p>
 
             {settings.isLive ? (
@@ -152,26 +194,28 @@ export const Gameday: React.FC = () => {
                 {/* Details Card */}
                 {settings.isLive ? (
                   <div className="bg-white rounded-[2.5rem] border-4 border-brand-dark shadow-sticker p-8 md:p-10 transform rotate-1 hover:rotate-0 transition-transform duration-300">
-                      <h2 className="font-display text-4xl uppercase mb-8 text-brand-dark border-b-4 border-slate-100 pb-4">Next Event Details</h2>
+                      <h2 className="font-display text-4xl uppercase mb-8 text-brand-dark border-b-4 border-slate-100 pb-4">{settings.eventName}</h2>
                       
                       <div className="space-y-6">
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-start gap-4">
                               <div className="w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center border-2 border-brand-dark flex-shrink-0">
                                   <Calendar className="text-brand-orange" size={28} strokeWidth={2.5} />
                               </div>
                               <div>
                                   <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Date</p>
                                   <p className="text-xl font-bold text-brand-dark">{settings.nextDate}</p>
+                                  <p className="text-sm text-slate-600 font-medium mt-1">{settings.halfTermNote}</p>
                               </div>
                           </div>
 
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-start gap-4">
                               <div className="w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center border-2 border-brand-dark flex-shrink-0">
                                   <Clock className="text-brand-orange" size={28} strokeWidth={2.5} />
                               </div>
                               <div>
                                   <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Time</p>
                                   <p className="text-xl font-bold text-brand-dark">{settings.times}</p>
+                                  <p className="text-sm text-slate-600 font-medium mt-1">{settings.clocksNote}</p>
                               </div>
                           </div>
 

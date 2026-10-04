@@ -79,8 +79,10 @@ site free of external databases:
 
 - **Locations** (addresses, coaches, class times, booking links, reviews):
   edit [`constants.ts`](./constants.ts)
-- **3x3 Gameday details**: edit the `settings` object at the top of
-  [`pages/Gameday.tsx`](./pages/Gameday.tsx)
+- **3x3 Gameday details** (date, venue, cost, registration link, event schema):
+  edit [`lib/gamedayEvent.ts`](./lib/gamedayEvent.ts). The page, Worker title
+  and description, and JSON-LD all read that file. Booking link:
+  `https://goteamup.com/p/6822945-hoop-heroes/courses/139859/`
 - **Sitemap**: [`public/sitemap.xml`](./public/sitemap.xml) — add new
   locations here too
 
