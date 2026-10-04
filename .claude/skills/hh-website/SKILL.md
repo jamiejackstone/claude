@@ -29,10 +29,8 @@ hand the task to such a session yourself if session-creation tools are available
 - **Location details** (address, class times, coach, photos, reviews, booking
   links, notices): `website/constants.ts` — one `LocationData` entry per
   location. The navbar, homepage cards and location pages all render from it.
-- **3x3 Gameday details** (date, venue, cost, registration link, event schema):
-  `website/lib/gamedayEvent.ts`. The page, Worker title/description and JSON-LD
-  all read that file. Current booking link:
-  `https://goteamup.com/p/6822945-hoop-heroes/courses/139859/`.
+- **3x3 Gameday details** (date, venue, cost, registration link): the
+  `settings` object at the top of `website/pages/Gameday.tsx`.
 - **Page copy / layout**: `website/pages/*.tsx` (Home, Mission, Careers,
   Policies, Gameday, AccidentReport, LocationMicrosite) and shared parts in
   `website/components/` (Navbar, Footer, CookieConsent, WhatsAppWidget).
