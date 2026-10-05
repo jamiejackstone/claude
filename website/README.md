@@ -15,7 +15,7 @@ GoHighLevel and Resend.
 - **React 18 + Vite + Tailwind CSS** (compiled at build time — no CDN scripts)
 - **Cloudflare Worker** ([`worker/index.ts`](./worker/index.ts)) serving:
   - `POST /api/contact` — careers forms → Hoop Heroes HR GHL sub-account; optional Resend email on top
-  - `POST /api/waitlist` — "opening soon" waitlist leads → main GHL CRM (Oxford uses its dedicated inbound webhook)
+  - `POST /api/waitlist` — "opening soon" waitlist leads → main GHL CRM (Oxford uses its dedicated inbound webhook). Tags are added with `POST /contacts/{id}/tags` after upsert so a repeat signup does not replace tags already on the contact.
   - `GET /go/:slug` — QR-code short links for printed banners/flyers (adds UTM tags)
   - `GET /api/health` — config check
   - Everything else → static SPA assets
@@ -38,13 +38,15 @@ One-time setup:
 ```bash
 npx wrangler login                          # sign in to Cloudflare
 npx wrangler secret put GHL_HR_API_KEY      # Hoop Heroes HR sub-account (careers form)
-npx wrangler secret put GHL_API_KEY         # main GHL CRM (only for "opening soon" waitlists)
+npx wrangler secret put GHL_API_KEY         # main GHL CRM Private Integration token (API v2; contacts.write + contacts.readonly)
 npx wrangler secret put RESEND_API_KEY      # OPTIONAL: email notifications
 ```
 
 (Or set the same values in the dashboard: **Worker → Settings → Variables and
 Secrets**. When the Worker is deployed via Workers Builds / Git integration,
-the dashboard is the natural place.)
+the dashboard is the natural place.) Optional plain variable `GHL_LOCATION_ID`
+overrides the main location `9p0wEiLpTaIe1FDTFFQI`. `GET /api/health` reports
+`ghlKeySet`, `ghlApiVersion` (`v2`), and `ghlLocationId`, and never the key.
 
 Then every deploy is:
 
