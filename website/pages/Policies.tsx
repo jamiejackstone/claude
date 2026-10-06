@@ -115,7 +115,7 @@ export const Policies: React.FC = () => {
                             </div>
                             
                             <div className="prose prose-slate max-w-none prose-headings:font-display prose-headings:uppercase prose-headings:text-brand-dark prose-p:text-slate-600 prose-p:font-medium prose-li:text-slate-600 prose-li:font-medium">
-                                <p className="text-sm font-black text-brand-orange uppercase tracking-widest mb-8">Last Updated: March 2026</p>
+                                <p className="text-sm font-black text-brand-orange uppercase tracking-widest mb-8">Last Updated: October 2026</p>
                                 <p>Hoop Heroes, the trading name of Hoop Heroes Region 1 Ltd ("we", "our", or "us"), is committed to protecting your personal data. This policy details how we collect, use, and store your information in accordance with the UK General Data Protection Regulation (UK GDPR).</p>
                                 
                                 <h3>1. Information We Collect</h3>
@@ -142,8 +142,9 @@ export const Policies: React.FC = () => {
                                     <li><strong>TeamUp:</strong> Our primary software for booking, attendance tracking, and membership management. TeamUp acts as a Data Processor, and your data is stored securely in accordance with their privacy standards.</li>
                                     <li><strong>HighLevel (GHL):</strong> Our platform for managing website inquiries, franchise requests, and careers applications. When you submit a form on our site, your data is processed by HighLevel and its <strong>LeadConnector</strong> infrastructure to facilitate communication and CRM services.</li>
                                     <li><strong>Stripe / GoCardless:</strong> For secure payment processing. We do not store full credit card details on our own servers.</li>
+                                    <li><strong>Advertising on Meta (Facebook and Instagram):</strong> We may use the email address and phone number of parents and guardians who have enquired, booked a trial, or been members, to show them relevant Hoop Heroes adverts on Facebook and Instagram, and to avoid showing adverts to current members. Before sharing, we convert these details into an irreversible scrambled code (hashing). Meta uses this only to match people who already have a Meta account and deletes unmatched data. We never share children&apos;s or players&apos; details for advertising. We rely on our legitimate interests to do this. You can object at any time by emailing <a href="mailto:privacy@hoopheroes.co.uk" className="text-brand-orange font-bold">privacy@hoopheroes.co.uk</a> or replying STOP to any of our messages.</li>
                                 </ul>
-                                <p>We do not sell your personal data. We only share information with these providers as necessary to fulfill our service contract with you.</p>
+                                <p>We do not sell your personal data. We only share information with these providers as necessary to fulfill our service contract with you, and with Meta only for the advertising described above.</p>
 
                                 <h3>4. Your Rights</h3>
                                 <p>Under the UK GDPR, you have the right to access, correct, or request deletion of your personal data. To exercise these rights, please contact us at <a href="mailto:privacy@hoopheroes.co.uk" className="text-brand-orange font-bold">privacy@hoopheroes.co.uk</a>.</p>
