@@ -77,24 +77,8 @@ export function buildLocationJsonLd(location: SchemaLocation): Record<string, un
     closes: hours.closes,
   }));
 
-  const event = bookable.map((session) => ({
-    '@type': 'Event',
-    name: `${session.ageGroup} at Hoop Heroes ${location.name}`,
-    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    eventStatus: 'https://schema.org/EventScheduled',
-    location: {
-      '@type': 'Place',
-      name: `Hoop Heroes ${location.name}`,
-      address: location.address,
-    },
-    eventSchedule: {
-      '@type': 'Schedule',
-      repeatFrequency: 'P1W',
-      byDay: `https://schema.org/${session.day}`,
-      startTime: session.start,
-      endTime: session.end,
-    },
-  }));
+  // Weekly classes are recurring sessions, not dated Events. Class dates are
+  // not in this repo, so do not emit Event markup (Google requires startDate).
 
   const description = ages
     ? `Youth basketball classes for ages ${ages.min}-${ages.max} in ${location.name}.`
@@ -112,7 +96,6 @@ export function buildLocationJsonLd(location: SchemaLocation): Record<string, un
       addressCountry: 'GB',
     },
     openingHoursSpecification,
-    event,
   };
 
   if (ages) {
