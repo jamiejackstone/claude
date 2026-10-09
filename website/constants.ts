@@ -248,8 +248,7 @@ export const LOCATIONS: LocationData[] = [
     comingSoon: false,
     displayDays: 'Sundays',
     scheduleNotice: 'Classes run every Sunday during term time. Please check the booking calendar below for up to date information.',
-    ghlTag: "Oxford Earlybird",
-    startDate: '2026-05-03'
+    ghlTag: "Oxford Earlybird"
   },
   {
     id: 'loc_sandhurst',
