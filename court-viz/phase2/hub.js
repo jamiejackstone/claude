@@ -475,7 +475,9 @@ class Unit {
       cg.fillRect(0, (h - 0.05) * s, w * s, 0.05 * s);
       drawText(cg, s, h, 'RECEPTION', w / 2, 0.26, 0.3, '#ffffff', w - 0.3);
     }, { ribs: false });
-    g.add(place(fascia, court, faceX - side * 0.06, ch + 0.26, (d0 + d1) / 2));
+    // stood forward of the arch ribs on short brackets
+    g.add(place(fascia, court, faceX - side * 0.2, ch + 0.26, (d0 + d1) / 2));
+    for (const o of [-0.9, 0.9]) g.add(box(0.2, 0.04, 0.04, std('#2b2f35', { metalness: 0.6 }), faceX - side * 0.1, ch + 0.3, (d0 + d1) / 2 + o));
     const wcSign = facePanel(0.3, 0.3, '#ffffff', (cg, s, w, h) => drawText(cg, s, h, 'WC', w / 2, h / 2, 0.16, COL.navy, 0.26), { ribs: false });
     g.add(place(wcSign, court, wcX1 - side * 0.05, 1.55, 0));
     const band = facePanel(z1 - z0 - 0.4, 0.7, null, (cg, s, w, h) => {
