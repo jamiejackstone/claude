@@ -1,36 +1,44 @@
 // Hoop Hub Phase 2: the Phase 1 court enclosed under a translucent PVC arch on two 40 ft container rows,
 // built to the Phase 2 brief v3 and its plan and elevations. Concept only, not to supplier spec.
-// Hub coordinates in the brief (across 0..18 m from the left inner face, depth 0..14 m from the Mega Slam
-// end wall) map to world x = across - 9, z = depth - 2. The Phase 1 court is unchanged at x ±7.4, z 0..10.
+// Hub coordinates in the brief (across 0..18 m from the left inner face) map to world x = across - 9.
+// Revised 21 Oct 2026 (Jamie): the canopy and floor are cut to the 40 ft container length, 12.19 m, with no
+// corner gaps, so the end walls sit flush with the container ends and the court is centred between them.
+// The Phase 1 court is unchanged at x ±7.4, z 0..10.
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { COL, DIM, FT, canvas, tex, std, shadowed, buildCourt, buildSurroundings, cloudDome, corrugation, loadImage, MegaSlam, PortableHoop } from './scene.js';
+import { COL, DIM, FT, canvas, tex, std, shadowed, buildCourt, buildSurroundings, cloudDome, corrugation, loadImage, MegaSlam, PortableHoop, ballRack } from './scene.js';
 
 export const HUB = {
   x0: -9,
   x1: 9,
-  z0: -2,
-  z1: 12,
+  z0: -1.095,
+  z1: 11.095,
   cw: 2.44, // container width
   ch: 2.59, // container height: the arch springs from the roofs
   crown: 7.6,
   runoff: '#3b4a6b',
-  reception: { z0: -1.1, z1: 11.1 }, // 40 ft, left
-  hhStore: { z0: -1.1, z1: 5.0 }, // 20 ft navy, right, Mega Slam end
-  schoolStore: { z0: 5.0, z1: 11.1 }, // 20 ft gold, right, entrance end
+  reception: { z0: -1.095, z1: 11.095 }, // 40 ft, left
+  hhStore: { z0: -1.095, z1: 4.963 }, // 20 ft navy, right, Mega Slam end
+  schoolStore: { z0: 5.032, z1: 11.095 }, // 20 ft gold, right, entrance end
   roller: { w: 6.0, h: 4.5 },
-  exit: { w: 0.85, h: 2.1 }, // a fire exit in each of the four corner gap panels (Jamie, 21 Oct 2026)
+  fe1: { x0: 4.5, x1: 5.5, h: 2.1 }, // the single fire exit, in the Mega Slam end wall right of the hoop
   navyTo: 6.0, // end walls navy to here, white fabric above
   glazedDoor: { z0: 7.0, z1: 8.0 },
-  lights: { x: [-6, -2, 2, 6], z: [0.6, 5.75, 10.9] },
+  lights: { x: [-6, -2, 2, 6], z: [0.9, 5.0, 9.1] },
   benches: [
     [0.6, 2.4],
     [2.6, 4.4],
     [8.6, 10.4],
   ],
   ribs: 7,
+  racks: [
+    [-3.4, -0.55, 0],
+    [3.4, -0.55, 0],
+    [8.5, 2.8, Math.PI / 2],
+    [8.5, 7.25, Math.PI / 2],
+  ],
 };
 const RISE = HUB.crown - HUB.ch;
 const HALF = (HUB.x1 - HUB.x0) / 2;
@@ -48,7 +56,7 @@ const box = (w, h, d, mat, x, y, z) => {
 function runoffTexture() {
   // navy-grey interlocking tiles around the court, on the same panel grid as the court
   const s = 60;
-  const c = canvas(18 * s, 14 * s);
+  const c = canvas(18 * s, Math.round(LEN * s));
   const g = c.getContext('2d');
   g.fillStyle = HUB.runoff;
   g.fillRect(0, 0, c.width, c.height);
@@ -63,8 +71,8 @@ function runoffTexture() {
   }
   for (let z = -2; z <= 12; z += 2) {
     g.beginPath();
-    g.moveTo(0, (z + 2) * s);
-    g.lineTo(c.width, (z + 2) * s);
+    g.moveTo(0, (z - HUB.z0) * s);
+    g.lineTo(c.width, (z - HUB.z0) * s);
     g.stroke();
   }
   return tex(c);
@@ -474,32 +482,26 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const tSlamOut = endWallTexture('slam-out');
   wallFace(HUB.z1 + 0.005, 1, [rollerNotch], tEntranceOut);
   wallFace(HUB.z1 - 0.005, -1, [rollerNotch], tEntranceIn);
-  wallFace(HUB.z0 + 0.005, 1, [], tSlamIn);
-  wallFace(HUB.z0 - 0.005, -1, [], tSlamOut);
+  const fe1Notch = [HUB.fe1.x0, HUB.fe1.x1, HUB.fe1.h];
+  wallFace(HUB.z0 + 0.005, 1, [fe1Notch], tSlamIn);
+  wallFace(HUB.z0 - 0.005, -1, [fe1Notch], tSlamOut);
   enclosure.add(walls);
 
   const roller = new RollerDoor();
   roller.group.position.z = HUB.z1;
   enclosure.add(roller.group);
 
-  // gap panels: about 0.9 m of white fabric at each end of each container row, each with an
-  // outward-opening fire exit, so the end walls carry only the roller door
-  const panelMat = std('#f4f5f6', { roughness: 0.85, side: THREE.DoubleSide });
-  const gaps = [
-    [-1, HUB.z0, HUB.reception.z0],
-    [-1, HUB.reception.z1, HUB.z1],
-    [1, HUB.z0, HUB.hhStore.z0],
-    [1, HUB.schoolStore.z1, HUB.z1],
-  ];
-  for (const [s, a, b] of gaps) {
-    const x = s * HALF;
-    const { w, h } = HUB.exit;
-    const door = exitDoor(w, h);
-    door.rotation.y = (s * Math.PI) / 2; // local +z points outside
-    door.position.set(x, 0, (a + b) / 2);
-    enclosure.add(door);
-    enclosure.add(box(0.03, HUB.ch - h - 0.06, b - a, panelMat, x, (HUB.ch + h + 0.06) / 2, (a + b) / 2));
-    enclosure.add(box(0.12, HUB.ch, 0.12, steel, x, HUB.ch / 2, a === HUB.z0 ? a + 0.06 : b - 0.06));
+  const fe1 = exitDoor(HUB.fe1.x1 - HUB.fe1.x0, HUB.fe1.h);
+  fe1.position.set((HUB.fe1.x0 + HUB.fe1.x1) / 2, 0, HUB.z0);
+  fe1.rotation.y = Math.PI; // opens outward, away from the court
+  enclosure.add(fe1);
+
+  // ball racks: either side of the Mega Slam, and in front of the two storage units
+  for (const [x, z, ry] of HUB.racks) {
+    const r = ballRack();
+    r.position.set(x, 0.015, z);
+    r.rotation.y = ry;
+    enclosure.add(r);
   }
 
   // parents' benches along the reception glazing
@@ -536,6 +538,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     walls.visible = !state.cutaway;
     roller.group.visible = !state.cutaway;
     units.reception.roof.visible = units.reception.ceil.visible = !state.cutaway;
+    sun.castShadow = !state.cutaway; // a clean plan, without the canopy's missing shadow or the trees'
   };
   apply();
   return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT };
@@ -546,6 +549,4 @@ export const SHOTS = {
   1: { label: 'Outside', pos: [12.5, 3.6, 28.5], target: [0.4, 3.0, 5.5], fov: 42, state: { roller: 1 } },
   2: { label: 'Inside', pos: [4.6, 1.8, 11.3], target: [-2.2, 2.0, 1.2], fov: 52, state: { roller: 1 } },
   3: { label: 'Top-down', ortho: { cx: 0, cz: 5, height: 16.6 }, state: { roller: 1, cutaway: true } },
-  // detail for signing off the corner fire exits
-  e1: { label: 'Corner exit', pos: [14.2, 1.9, 16.5], target: [9.2, 1.3, 11.2], fov: 45, state: { roller: 0 } },
 };

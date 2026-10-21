@@ -1044,6 +1044,49 @@ function ball() {
   return m;
 }
 
+// gold ball rack, 0.95 x 0.4 x 1.5 m, four shelves of four balls; long side along local x
+export function ballRack() {
+  const goldM = std(COL.gold, { roughness: 0.45, metalness: 0.4 });
+  const rail = (len, axis) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, len, 8), goldM);
+    if (axis === 'x') m.rotation.z = Math.PI / 2;
+    if (axis === 'z') m.rotation.x = Math.PI / 2;
+    m.castShadow = true;
+    return m;
+  };
+  const rack = new THREE.Group();
+  const rw = 0.95;
+  const rd = 0.4;
+  const rh = 1.5;
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) {
+      const r = rail(rh, 'y');
+      r.position.set((sx * rw) / 2, rh / 2 + 0.05, (sz * rd) / 2);
+      rack.add(r);
+    }
+  const shelves = [0.1, 0.45, 0.8, 1.15];
+  for (const y of [...shelves, 1.5]) {
+    for (const sz of [-1, 1]) {
+      const r = rail(rw, 'x');
+      r.position.set(0, y, (sz * rd) / 2);
+      rack.add(r);
+    }
+    for (const sx of [-1, 1]) {
+      const r = rail(rd, 'z');
+      r.position.set((sx * rw) / 2, y, 0);
+      rack.add(r);
+    }
+  }
+  for (const y of shelves)
+    for (let j = 0; j < 4; j++) {
+      const b = ball();
+      b.position.set(-0.36 + j * 0.24, y + 0.13, 0);
+      b.rotation.set(j, y * 3, j * 2);
+      rack.add(b);
+    }
+  return rack;
+}
+
 export class StorageContainer {
   constructor(art) {
     const { x0, x1, z0, z1, h } = DIM.container;
