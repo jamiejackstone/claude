@@ -18,7 +18,7 @@ export const HUB = {
   cw: 2.44, // container width
   ch: 2.59, // container height: the arch springs from the roofs
   crown: 7.6,
-  runoff: '#3b4a6b',
+  runoff: COL.court, // same grey panels as the court (Jamie, 21 Oct 2026)
   reception: { z0: -1.095, z1: 11.095 }, // 40 ft, left
   hhStore: { z0: -1.095, z1: 4.963 }, // 20 ft navy, right, Mega Slam end
   schoolStore: { z0: 5.032, z1: 11.095 }, // 20 ft gold, right, entrance end
@@ -33,11 +33,13 @@ export const HUB = {
     [8.6, 10.4],
   ],
   ribs: 7,
+  // ball racks along the end walls, clear of the side-opening storage and the exits
   racks: [
+    [-6.2, -0.55, 0],
     [-3.4, -0.55, 0],
     [3.4, -0.55, 0],
-    [8.5, 2.8, Math.PI / 2],
-    [8.5, 7.25, Math.PI / 2],
+    [-6.2, 10.55, 0],
+    [6.2, 10.55, 0],
   ],
 };
 const RISE = HUB.crown - HUB.ch;
@@ -60,7 +62,7 @@ function runoffTexture() {
   const g = c.getContext('2d');
   g.fillStyle = HUB.runoff;
   g.fillRect(0, 0, c.width, c.height);
-  g.strokeStyle = 'rgba(10, 18, 36, 0.55)';
+  g.strokeStyle = 'rgba(20, 22, 26, 0.45)';
   g.lineWidth = 2;
   const pw = DIM.panel.w;
   for (let x = -7.4 - pw * 2; x <= 9; x += pw) {
@@ -193,7 +195,7 @@ function exitDoor(w, h) {
 
 class Unit {
   // a container along z, its court-facing side at x = face; side = -1 on the left row, +1 on the right
-  constructor({ z0, z1, side, color, glazed = false, doors = [] }) {
+  constructor({ z0, z1, side, color, glazed = false, hinges = [1, -1, 1, -1] }) {
     const { cw, ch } = HUB;
     this.group = new THREE.Group();
     const len = z1 - z0;
@@ -232,20 +234,30 @@ class Unit {
     }
     if (glazed) this.glaze(z0, z1, faceX, side);
     else {
-      // court side: ribbed steel with side-opening door pairs
-      g.add(box(0.04, ch - 0.12, len, ribbed, faceX + side * 0.02, ch / 2 + 0.03, cz));
-      const leaf = std(color, { roughness: 0.55, metalness: 0.15, bumpMap: corrugation(1.1, 2.3), bumpScale: 2 });
+      // court side: a full-length side-opener, two pairs of leaves swinging out towards the court
+      const lh = ch - 0.32;
+      const leafLen = (len - 0.32) / 4;
+      const leaf = std(color, { roughness: 0.55, metalness: 0.15, bumpMap: corrugation(leafLen, lh), bumpScale: 2 });
       const bar = std('#9aa0a6', { roughness: 0.35, metalness: 0.8 });
-      for (const [dz0, dz1] of doors) {
-        const n = 2;
-        const w = (dz1 - dz0) / n;
-        for (let i = 0; i < n; i++) {
-          const z = dz0 + w * (i + 0.5);
-          g.add(box(0.03, 2.3, w - 0.02, leaf, faceX - side * 0.005, 1.29, z));
-          for (const o of [-w * 0.25, w * 0.25]) g.add(box(0.03, 2.2, 0.03, bar, faceX - side * 0.03, 1.29, z + o));
-        }
+      g.add(box(cw - 0.3, ch - 0.3, len - 0.3, std('#20232a', { roughness: 0.95, side: THREE.BackSide }), cx, ch / 2, cz));
+      this.leaves = [];
+      for (let i = 0; i < 4; i++) {
+        const low = hinges[i] > 0; // hinge on the leaf's low-z edge
+        const hz = z0 + 0.16 + leafLen * (low ? i : i + 1);
+        const pivot = new THREE.Group();
+        pivot.position.set(faceX - side * 0.02, ch / 2, hz);
+        const dir = low ? 1 : -1;
+        pivot.add(box(0.035, lh, leafLen - 0.015, leaf, 0, 0, (dir * leafLen) / 2));
+        for (const o of [0.3, 0.7]) pivot.add(box(0.03, lh - 0.1, 0.03, bar, -side * 0.03, 0, dir * leafLen * o));
+        pivot.userData.sign = -side * dir;
+        g.add(pivot);
+        this.leaves.push(pivot);
       }
     }
+  }
+  setDoors(open) {
+    // 0 shut, 1 open square to the container, into the run-off
+    for (const p of this.leaves ?? []) p.rotation.y = p.userData.sign * open * (Math.PI / 2);
   }
   glaze(z0, z1, faceX, side) {
     // reception: glazed court side in aluminium frames, with a glazed door
@@ -431,11 +443,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     hp.group.rotation.set(0, i ? Math.PI : 0, 0);
   });
 
-  // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, doors on the court side
+  // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, side-opening onto the court
   const units = {
     reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true }),
-    hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, doors: [[-0.85, 1.55]] }),
-    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, doors: [[8.45, 10.85]] }),
+    // the leaves next to the join hinge away from it, so they swing clear of the right portable hoop
+    hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, hinges: [1, -1, 1, 1] }),
+    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, hinges: [-1, -1, 1, -1] }),
   };
   for (const un of Object.values(units)) scene.add(un.group);
 
@@ -496,7 +509,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   fe1.rotation.y = Math.PI; // opens outward, away from the court
   enclosure.add(fe1);
 
-  // ball racks: either side of the Mega Slam, and in front of the two storage units
+  // ball racks
   for (const [x, z, ry] of HUB.racks) {
     const r = ballRack();
     r.position.set(x, 0.015, z);
@@ -519,7 +532,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       enclosure.add(l.group);
     }
 
-  const state = { mini: true, rimFt: 10, padding: 'navy', roller: 1, cutaway: false };
+  const state = { mini: true, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 0 };
   const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
   const apply = (next = {}) => {
     Object.assign(state, next);
@@ -532,6 +545,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       hp.setHeight(portableRim());
     });
     roller.set(state.roller);
+    units.hhStore.setDoors(state.storeDoors);
+    units.schoolStore.setDoors(state.storeDoors);
     // top-down cutaway: lift the canopy and the reception roof off
     archGroup.visible = !state.cutaway;
     for (const l of lamps) l.group.visible = !state.cutaway;
@@ -547,6 +562,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
 // camera presets for the six Phase 2 shots in the brief
 export const SHOTS = {
   1: { label: 'Outside', pos: [12.5, 3.6, 28.5], target: [0.4, 3.0, 5.5], fov: 42, state: { roller: 1 } },
-  2: { label: 'Inside', pos: [4.6, 1.8, 11.3], target: [-2.2, 2.0, 1.2], fov: 52, state: { roller: 1 } },
+  2: { label: 'Inside', pos: [4.6, 1.8, 10.7], target: [-2.2, 2.0, 0.8], fov: 54, state: { roller: 1 } },
   3: { label: 'Top-down', ortho: { cx: 0, cz: 5, height: 16.6 }, state: { roller: 1, cutaway: true } },
+  // detail for signing off the side-opening storage
+  s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: { roller: 1, storeDoors: 1 } },
 };
