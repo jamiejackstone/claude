@@ -8,7 +8,14 @@ import { openPage } from './browser.mjs';
 const { values } = parseArgs({ options: { out: { type: 'string', default: 'renders/plan' } } });
 await mkdir(values.out, { recursive: true });
 const { page, close } = await openPage({ w: 320, h: 180, query: 'shot=2&ao=0' });
-const variants = { court: {} };
+const GOLD = '#fba91a';
+const GREY = '#a7a9ac';
+const variants = {
+  court: {},
+  'keys-1-gold-mini': { keyFill: GREY, miniKeyFill: GOLD },
+  'keys-2-gold-main': { keyFill: GOLD, miniKeyFill: GREY },
+  'keys-3-all-grey': { keyFill: GREY, miniKeyFill: GREY },
+};
 for (const [name, opts] of Object.entries(variants)) {
   const data = await page.evaluate(async (opts) => {
     const { paintCourt } = await import('/scene.js');

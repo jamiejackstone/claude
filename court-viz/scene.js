@@ -49,7 +49,7 @@ export const DIM = {
 
 // Where the gold mini-court halfway line starts: 0 = full depth, baseline to end line,
 // straight through the 3x3 key (signed off by Hoop Heroes, 21 Oct 2026).
-export const MARKINGS = { halfwayStart: 0 };
+export const MARKINGS = { halfwayStart: 0, keyFill: COL.key, miniKeyFill: COL.gold };
 
 const FT = 0.3048;
 const PX = 400; // court texture pixels per metre
@@ -105,7 +105,7 @@ function shadowed(obj) {
 
 // ---------------------------------------------------------------- court surface
 
-export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) {
+export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart, keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill } = {}) {
   const { L, W } = DIM;
   const c = canvas(Math.round(W * PX), Math.round(L * PX));
   const g = c.getContext('2d');
@@ -124,7 +124,7 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) 
   }
   // key fill
   const inset = DIM.whiteInset;
-  g.fillStyle = COL.key;
+  g.fillStyle = keyFill;
   g.fillRect(X(-DIM.keyW / 2), Z(inset), DIM.keyW * PX, (DIM.keyD - inset) * PX);
 
   const stroke = (color, w, draw) => {
@@ -150,8 +150,10 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) 
     const edge = s * (W / 2);
     const inner = s * (W / 2 - DIM.miniKeyD);
     const z0 = DIM.miniKeyZ - DIM.miniKeyW / 2;
-    g.fillStyle = COL.gold;
+    g.fillStyle = miniKeyFill;
     g.fillRect(X(Math.min(edge, inner)), Z(z0), DIM.miniKeyD * PX, DIM.miniKeyW * PX);
+    if (miniKeyFill !== COL.gold)
+      stroke(COL.gold, gw, () => g.rect(X(Math.min(edge, inner)) + (s < 0 ? 0 : gh * PX), Z(z0 + gh), (DIM.miniKeyD - gh) * PX, (DIM.miniKeyW - gw) * PX));
     const a0 = s < 0 ? -Math.PI / 2 : Math.PI / 2;
     stroke(COL.gold, gw, () => g.arc(X(inner), Z(DIM.miniKeyZ), DIM.miniFtR * PX, a0, a0 + Math.PI));
     // three-point line: straight corner lines parallel to the 14.8 m sides, then the arc
