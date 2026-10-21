@@ -600,7 +600,7 @@ function rimAndNet(radius = 0.2286) {
   return grp;
 }
 
-function boardDecal(w, h, borderW, box) {
+function boardDecal(w, h, borderW, box, badge) {
   const s = 300;
   const c = canvas(Math.round(w * s), Math.round(h * s));
   const g = c.getContext('2d');
@@ -611,13 +611,18 @@ function boardDecal(w, h, borderW, box) {
     const [bw, bh, bottom] = box;
     g.strokeRect(((w - bw) / 2) * s + (borderW * s) / 2, (h - bottom - bh) * s, bw * s - borderW * s, bh * s);
   }
+  if (badge) {
+    // round logo centred above the target box: [image, diameter, height of its centre above the board bottom]
+    const [im, dia, cy] = badge;
+    g.drawImage(im, ((w - dia) / 2) * s, (h - cy - dia / 2) * s, dia * s, dia * s);
+  }
   return tex(c);
 }
 
 export class MegaSlam {
   // In-ground Mega Slam 72. Parallelogram arms: board face sits 1.22 m off the post at 10 ft,
   // about 1.52 m at 7.5 ft, so the rim travels onto the court as it is lowered.
-  constructor() {
+  constructor(badge) {
     this.group = new THREE.Group();
     this.L = 1.3;
     this.d = 0.25;
@@ -693,7 +698,7 @@ export class MegaSlam {
     edge.position.copy(glass.position);
     const decal = new THREE.Mesh(
       new THREE.PlaneGeometry(bw, bh),
-      new THREE.MeshStandardMaterial({ map: boardDecal(bw, bh, 0.05, [0.59, 0.45, 0.15]), transparent: true, roughness: 0.6 }),
+      new THREE.MeshStandardMaterial({ map: boardDecal(bw, bh, 0.05, [0.59, 0.45, 0.15], badge && [badge, 0.36, 0.83]), transparent: true, roughness: 0.6 }),
     );
     decal.position.set(0, -0.15 + bh / 2, 0.0005);
     this.carriage.add(decal);
@@ -750,7 +755,7 @@ export class MegaSlam {
 
 export class PortableHoop {
   // Tarmak B900 Box style: wheeled ballast base outside the tiles, board facing across the court.
-  constructor() {
+  constructor(badge) {
     this.faceX = 0.32; // board face forward of the base front edge [ASSUMED]
     this.rimLocal = this.faceX + 0.151 + 0.2286;
     this.group = new THREE.Group();
@@ -801,7 +806,7 @@ export class PortableHoop {
     fr.position.x = -0.03;
     const decal = new THREE.Mesh(
       new THREE.PlaneGeometry(bw, bh),
-      new THREE.MeshStandardMaterial({ map: boardDecal(bw, bh, 0.04, [0.5, 0.36, 0.12]), transparent: true }),
+      new THREE.MeshStandardMaterial({ map: boardDecal(bw, bh, 0.04, [0.5, 0.36, 0.12], badge && [badge, 0.25, 0.62]), transparent: true }),
     );
     decal.rotation.y = Math.PI / 2;
     decal.position.set(0.001, bh / 2 - 0.15, 0);
@@ -884,19 +889,60 @@ export class PortableHoop {
 
 // ---------------------------------------------------------------- container
 
-function containerFace(w, h, logo, { logoW = 0, logoY = 0.55, stripe = true } = {}) {
+// Container wraps: each is a billboard - huge logo and tagline on the long sides,
+// a QR code and call to action on the doors, the round logo on the far end.
+export const WRAPS = {
+  navy: { base: COL.navy, stripe: COL.gold, ink: COL.gold, logo: 'logo', round: 'roundWhite' },
+  gold: { base: COL.gold, stripe: COL.navy, ink: COL.navy, logo: 'logoWhiteNavy', round: 'roundNavy' },
+};
+
+function fitText(g, text, font, px, maxW) {
+  g.font = `${px}px ${font}`;
+  const w = g.measureText(text).width;
+  if (w > maxW) g.font = `${(px * maxW) / w}px ${font}`;
+}
+
+function containerFace(w, h, wrap, art, kind) {
   const s = 300;
   const c = canvas(Math.round(w * s), Math.round(h * s));
   const g = c.getContext('2d');
-  g.fillStyle = COL.navy;
-  g.fillRect(0, 0, c.width, c.height);
-  if (stripe) {
-    g.fillStyle = COL.gold;
-    g.fillRect(0, (h - 0.5) * s, c.width, 0.2 * s);
-  }
-  if (logo && logoW) {
-    const lh = (logoW * logo.height) / logo.width;
-    g.drawImage(logo, ((w - logoW) / 2) * s, (h - logoY - lh) * s, logoW * s, lh * s);
+  const W = c.width;
+  const Y = (m) => m * s; // metres down from the top edge
+  g.fillStyle = wrap.base;
+  g.fillRect(0, 0, W, c.height);
+  // stripe low down on every face
+  g.fillStyle = wrap.stripe;
+  g.fillRect(0, Y(h - 0.5), W, Y(0.16));
+  const img = (im, x, y, iw) => im && g.drawImage(im, x * s, y * s, iw * s, ((iw * im.height) / im.width) * s);
+  g.textAlign = 'center';
+  g.textBaseline = 'alphabetic';
+  if (kind === 'side') {
+    img(art[wrap.logo], 0.04, 0.04, w - 0.08);
+    g.fillStyle = wrap.ink;
+    fitText(g, 'SWAP SCREENTIME FOR GAMETIME', '"Lilita One", sans-serif', Y(0.2), W - Y(0.4));
+    g.fillText('SWAP SCREENTIME FOR GAMETIME', W / 2, Y(1.55));
+  } else if (kind === 'end') {
+    img(art[wrap.round], (w - 1.3) / 2, 0.2, 1.3);
+  } else if (kind === 'doorLogo') {
+    // artwork kept between the two locking bars (0.18 m in from each edge)
+    img(art[wrap.round], (w - 0.6) / 2, 0.3, 0.6);
+    g.fillStyle = wrap.ink;
+    fitText(g, 'HOOP HEROES', '"Lilita One", sans-serif', Y(0.13), Y(0.6));
+    g.fillText('HOOP HEROES', W / 2, Y(1.32));
+  } else if (kind === 'doorQr') {
+    // white panel so the code scans on either wrap
+    const pw = 0.6;
+    const px = (w - pw) / 2;
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.roundRect(px * s, Y(0.12), pw * s, Y(1.25), Y(0.06));
+    g.fill();
+    g.fillStyle = COL.navy;
+    fitText(g, 'SCAN TO BOOK A', '"Lilita One", sans-serif', Y(0.11), (pw - 0.1) * s);
+    g.fillText('SCAN TO BOOK A', W / 2, Y(0.3));
+    fitText(g, 'FREE TRIAL', '"Lilita One", sans-serif', Y(0.16), (pw - 0.1) * s);
+    g.fillText('FREE TRIAL', W / 2, Y(0.48));
+    img(art.qr, px + 0.06, 0.56, pw - 0.12);
   }
   return tex(c);
 }
@@ -950,7 +996,7 @@ function ball() {
 }
 
 export class StorageContainer {
-  constructor(logo) {
+  constructor(art) {
     const { x0, x1, z0, z1, h } = DIM.container;
     const L = x1 - x0;
     const D = z1 - z0;
@@ -962,10 +1008,23 @@ export class StorageContainer {
     const face = (w, map, bump) => new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 2.5, roughness: 0.55, metalness: 0.25 });
     const inner = std('#cfd2d4', { roughness: 0.8, bumpMap: bumpL, bumpScale: 1.5 });
     const navy = std(COL.navy, { roughness: 0.5, metalness: 0.3 });
-    // long side facing the court (+z): big logo
-    const front = face(L, containerFace(L, h, logo, { logoW: 2.15, logoY: 0.62 }), bumpL);
-    const backM = face(L, containerFace(L, h, logo, { logoW: 0 }), bumpL);
-    const endM = face(D, containerFace(D, h, logo, { logoW: 0 }), bumpD);
+    // both wraps are built up front so the viewer can switch between them
+    const doorW = D / 2 - 0.05;
+    const doorH = h - 0.2;
+    this.wraps = {};
+    for (const [name, wrap] of Object.entries(WRAPS))
+      this.wraps[name] = {
+        side: face(L, containerFace(L, h - 0.1, wrap, art, 'side'), bumpL),
+        end: face(D, containerFace(D, h - 0.1, wrap, art, 'end'), bumpD),
+        doors: [
+          face(doorW, containerFace(doorW, doorH, wrap, art, 'doorLogo'), corrugation(doorW, doorH)),
+          face(doorW, containerFace(doorW, doorH, wrap, art, 'doorQr'), corrugation(doorW, doorH)),
+        ],
+        frame: std(wrap.base, { roughness: 0.5, metalness: 0.3 }),
+      };
+    const front = this.wraps.navy.side;
+    const backM = front;
+    const endM = this.wraps.navy.end;
     const wall = (w, mat) => new THREE.Mesh(new THREE.BoxGeometry(w, h - 0.1, t), [inner, inner, inner, inner, mat, inner]);
     const wf = wall(L, front);
     wf.position.set(0, h / 2, D / 2 - t / 2);
@@ -977,26 +1036,31 @@ export class StorageContainer {
     we.position.set(-L / 2 + t / 2, h / 2, 0);
     const roof = new THREE.Mesh(new THREE.BoxGeometry(L, 0.06, D), [navy, navy, navy, inner, navy, navy]);
     roof.position.y = h - 0.03;
+    roof.userData.keep = 3;
     const floor = new THREE.Mesh(new THREE.BoxGeometry(L, 0.12, D), [navy, navy, std('#8a6a48', { roughness: 0.9 }), navy, navy, navy]);
     floor.position.y = 0.06;
+    floor.userData.keep = 2;
     this.group.add(wf, wb, we, roof, floor);
+    this.faces = { side: [wf, wb], end: [we] };
+    this.frameMeshes = [roof, floor];
     // corner posts and rails
     const postG = new THREE.BoxGeometry(0.1, h, 0.1);
     for (const sx of [-1, 1])
       for (const sz of [-1, 1]) {
         const p = new THREE.Mesh(postG, navy);
         p.position.set(sx * (L / 2 - 0.05), h / 2, sz * (D / 2 - 0.05));
+        this.frameMeshes.push(p);
         this.group.add(p);
       }
     // doors on the outer short end (+x), hinged at the corners
     this.doors = [];
-    const doorW = D / 2 - 0.05;
-    const doorH = h - 0.2;
     for (const s of [-1, 1]) {
       const pivot = new THREE.Group();
       pivot.position.set(L / 2 - 0.02, 0.12, s * (D / 2 - 0.05));
-      const mat = face(doorW, containerFace(doorW, doorH, s > 0 ? logo : null, { logoW: s > 0 ? 0.85 : 0, logoY: 0.75 }), corrugation(doorW, doorH));
-      const leaf = new THREE.Mesh(new THREE.BoxGeometry(t, doorH, doorW), [mat, inner, inner, inner, inner, inner]);
+      // seen from outside, the QR leaf is on the left (+z side, towards the court)
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(t, doorH, doorW), [this.wraps.navy.doors[s > 0 ? 1 : 0], inner, inner, inner, inner, inner]);
+      leaf.userData.qr = s > 0;
+      pivot.userData.leaf = leaf;
       leaf.position.set(0, doorH / 2, -s * (doorW / 2));
       pivot.add(leaf);
       // locking bars
@@ -1009,78 +1073,57 @@ export class StorageContainer {
       this.doors.push(pivot);
       this.group.add(pivot);
     }
-    // ramp at the sill
-    const ramp = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.02, 1.0), std('#a9adb1', { metalness: 0.8, roughness: 0.4 }));
-    ramp.position.set(L / 2 + 0.29, 0.065, 0);
-    ramp.rotation.z = -Math.atan2(0.12, 0.6);
+    // ramp the full width of the doorway, so the hoops roll straight in and out
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.025, D - 0.12), std('#a9adb1', { metalness: 0.8, roughness: 0.4 }));
+    ramp.position.set(L / 2 + 0.34, 0.065, 0);
+    ramp.rotation.z = -Math.atan2(0.12, 0.7);
     this.ramp = ramp;
     this.group.add(ramp);
 
     // contents
     this.contents = new THREE.Group();
     this.group.add(this.contents);
-    const cart = new THREE.Group();
+    // two gold ball racks side by side at the back
     const goldM = std(COL.gold, { roughness: 0.45, metalness: 0.4 });
     const rail = (len, axis) => {
-      const g = axis === 'y' ? new THREE.CylinderGeometry(0.015, 0.015, len, 8) : new THREE.CylinderGeometry(0.015, 0.015, len, 8);
-      const m = new THREE.Mesh(g, goldM);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, len, 8), goldM);
       if (axis === 'x') m.rotation.z = Math.PI / 2;
       if (axis === 'z') m.rotation.x = Math.PI / 2;
       return m;
     };
     const cw = 0.5;
-    const cd = 1.0;
+    const cd = 0.92;
     const ch = 1.0;
-    for (const sx of [-1, 1])
-      for (const sz of [-1, 1]) {
-        const r = rail(ch, 'y');
-        r.position.set((sx * cw) / 2, ch / 2 + 0.1, (sz * cd) / 2);
-        cart.add(r);
-      }
-    for (const y of [0.15, 0.55, 1.1]) {
-      for (const sz of [-1, 1]) {
-        const r = rail(cw, 'x');
-        r.position.set(0, y, (sz * cd) / 2);
-        cart.add(r);
-      }
-      for (const sx of [-1, 1]) {
-        const r = rail(cd, 'z');
-        r.position.set((sx * cw) / 2, y, 0);
-        cart.add(r);
-      }
-    }
-    for (let i = 0; i < 2; i++)
-      for (let j = 0; j < 4; j++)
-        for (let k = 0; k < 2; k++) {
-          const b = ball();
-          b.position.set(-0.12 + i * 0.24, 0.29 + k * 0.4, -0.36 + j * 0.24);
-          b.rotation.set(i + j, k * 2, j);
-          cart.add(b);
+    for (const side of [-1, 1]) {
+      const cart = new THREE.Group();
+      for (const sx of [-1, 1])
+        for (const sz of [-1, 1]) {
+          const r = rail(ch, 'y');
+          r.position.set((sx * cw) / 2, ch / 2 + 0.1, (sz * cd) / 2);
+          cart.add(r);
         }
-    cart.position.set(-L / 2 + 0.38, 0.12, 0);
-    this.contents.add(cart);
-    // mesh ball bags on wall hooks
-    const bagMat = std('#111214', { alphaMap: NET_ALPHA ?? (NET_ALPHA = netTexture()), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 1 });
-    for (const [bx, bz] of [
-      [-0.1, -D / 2 + 0.2],
-      [0.45, -D / 2 + 0.2],
-      [-0.1, D / 2 - 0.2],
-    ]) {
-      const bag = new THREE.Group();
-      const hook = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.08), std('#9aa0a6', { metalness: 0.8 }));
-      hook.position.set(0, 1.75, 0);
-      bag.add(hook);
-      for (let i = 0; i < 4; i++) {
-        const b = ball();
-        b.position.set((i % 2) * 0.2 - 0.1, 1.2 + Math.floor(i / 2) * 0.22, (i % 3) * 0.04 - 0.04);
-        bag.add(b);
+      for (const y of [0.15, 0.55, 1.1]) {
+        for (const sz of [-1, 1]) {
+          const r = rail(cw, 'x');
+          r.position.set(0, y, (sz * cd) / 2);
+          cart.add(r);
+        }
+        for (const sx of [-1, 1]) {
+          const r = rail(cd, 'z');
+          r.position.set((sx * cw) / 2, y, 0);
+          cart.add(r);
+        }
       }
-      const net = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 12), bagMat);
-      net.scale.set(1, 1.5, 0.75);
-      net.position.set(0, 1.38, 0);
-      bag.add(net);
-      bag.position.set(bx, 0.12, bz);
-      this.contents.add(bag);
+      for (let i = 0; i < 2; i++)
+        for (let j = 0; j < 3; j++)
+          for (let k = 0; k < 2; k++) {
+            const b = ball();
+            b.position.set(-0.12 + i * 0.24, 0.29 + k * 0.4, -0.27 + j * 0.27);
+            b.rotation.set(i + j, k * 2 + side, j);
+            cart.add(b);
+          }
+      cart.position.set(-L / 2 + 0.33, 0.12, side * 0.5);
+      this.contents.add(cart);
     }
     this.stowed = new THREE.Group();
     this.contents.add(this.stowed);
@@ -1099,6 +1142,18 @@ export class StorageContainer {
       const x = L / 2 - 0.12 + (i === 0 ? rollOut : 0);
       hp.group.position.set(x, 0.12, z);
     });
+  }
+
+  setWrap(name) {
+    const w = this.wraps[name] ?? this.wraps.navy;
+    for (const m of this.faces.side) m.material[4] = w.side;
+    for (const m of this.faces.end) m.material[4] = w.end;
+    for (const d of this.doors) d.userData.leaf.material[0] = w.doors[d.userData.leaf.userData.qr ? 1 : 0];
+    // frame steel takes the wrap colour; the ceiling and floorboards (userData.keep) stay as they are
+    for (const m of this.frameMeshes) {
+      if (Array.isArray(m.material)) m.material = m.material.map((x, i) => (i === m.userData.keep ? x : w.frame));
+      else m.material = w.frame;
+    }
   }
 
   setDoors(open) {
@@ -1145,7 +1200,22 @@ function cloudDome() {
 // ---------------------------------------------------------------- scene
 
 export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = {}) {
-  const logo = await loadImage(logoUrl).catch(() => null);
+  const art = {};
+  const files = { logo: logoUrl, logoWhiteNavy: 'assets/logo-white-navy.png', roundNavy: 'assets/logo-round-navy.png', roundWhite: 'assets/logo-round-white.png', qr: 'assets/qr.png' };
+  await Promise.all(Object.entries(files).map(async ([k, url]) => (art[k] = await loadImage(url).catch(() => null))));
+  const logo = art.logo;
+  // brand fonts for the container lettering, from local files so they work offline
+  await Promise.all(
+    [
+      ['Lilita One', 'assets/fonts/LilitaOne-Regular.ttf'],
+      ['Montserrat', 'assets/fonts/Montserrat-Bold.ttf', { weight: '700' }],
+    ].map(([family, url, desc]) =>
+      new FontFace(family, `url(${url})`, desc)
+        .load()
+        .then((f) => document.fonts.add(f))
+        .catch(() => null),
+    ),
+  );
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog('#c9d3dc', 60, 260);
 
@@ -1189,7 +1259,7 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
   scene.add(buildSurroundings());
   scene.add(buildCourt(logo, renderer));
 
-  const megaSlam = new MegaSlam();
+  const megaSlam = new MegaSlam(art.roundNavy);
   scene.add(megaSlam.group);
   let padLogoTex = null;
   if (logo) {
@@ -1199,10 +1269,10 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
     padLogoTex = tex(c);
   }
 
-  const container = new StorageContainer(logo);
+  const container = new StorageContainer(art);
   scene.add(container.group);
 
-  const hoops = [new PortableHoop(), new PortableHoop()];
+  const hoops = [new PortableHoop(art.roundNavy), new PortableHoop(art.roundNavy)];
   const placeOut = () => {
     hoops.forEach((hp, i) => {
       const side = i ? 1 : -1; // left (-x) and right (+x); local +x always faces the court
@@ -1213,12 +1283,13 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
     });
   };
 
-  const state = { mini: true, rimFt: 10, padding: 'gold', doors: 0, rollOut: 0 };
+  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, rollOut: 0 };
   const apply = (next = {}) => {
     Object.assign(state, next);
     megaSlam.setHeight(state.rimFt * FT);
     megaSlam.setPadding(state.padding === 'navy' ? COL.navy : COL.gold, padLogoTex);
     container.setDoors(state.doors);
+    container.setWrap(state.wrap);
     if (state.mini) placeOut();
     else {
       hoops.forEach((h) => h.setFolded(true));
@@ -1242,6 +1313,7 @@ export const SHOTS = {
   6: { label: 'Hero', pos: [-3.6, 1.15, 12.6], target: [-0.3, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
   // detail stills for signing off the container and hoops
   c1: { label: 'Container billboard', pos: [9.6, 1.8, 2.6], target: [4.6, 1.1, -3.1], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
+  c3: { label: 'Container doors', pos: [10.2, 1.6, -1.4], target: [5.2, 1.15, -3.0], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
   c2: { label: 'Container open', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, state: { mini: false, rimFt: 10, doors: 1 } },
   h1: { label: 'Mega Slam detail', pos: [2.6, 1.7, -2.3], target: [0, 1.9, 0.4], fov: 45, state: { mini: false, rimFt: 10, doors: 0 } },
   h2: { label: 'Portable hoop', pos: [3.6, 1.8, 8.8], target: [7.3, 1.6, 5.0], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },

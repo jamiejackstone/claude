@@ -11,5 +11,16 @@ const page = src
   .replace(/<meta name="viewport"[^>]*>\s*/i, '');
 await mkdir(new URL('../dist/assets/', import.meta.url), { recursive: true });
 await writeFile(new URL('../dist/index.html', import.meta.url), page);
-for (const f of ['scene.js', 'flythrough.js', 'assets/logo.png']) await copyFile(new URL(`../${f}`, import.meta.url), new URL(`../dist/${f}`, import.meta.url));
+await mkdir(new URL('../dist/assets/fonts/', import.meta.url), { recursive: true });
+for (const f of [
+  'scene.js',
+  'flythrough.js',
+  'assets/logo.png',
+  'assets/logo-white-navy.png',
+  'assets/logo-round-navy.png',
+  'assets/logo-round-white.png',
+  'assets/qr.png',
+  'assets/fonts/LilitaOne-Regular.ttf',
+  'assets/fonts/Montserrat-Bold.ttf',
+]) await copyFile(new URL(`../${f}`, import.meta.url), new URL(`../dist/${f}`, import.meta.url));
 console.log('dist/ ready');
