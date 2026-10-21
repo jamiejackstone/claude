@@ -141,7 +141,7 @@ def build(media: Path, plan: Path, out: Path):
         "The Mega Slam is not used in mini sessions. Because the mini court now covers the whole surface, the v2 idea of a lowered Mega Slam as a separate shooting station is dropped; in the mini-game shot it stays at 10 ft, not in use.",
         "Clear space beyond each sideline increased to 2.0 m so the portable hoop bases sit on tarmac.",
         "Container is now a billboard in a navy wrap with a gold stripe: huge logo and tagline on both long sides, a QR code (Book a FREE Trial) and round logo on the doors. Full-width ramp; two ball racks inside, no hanging bags.",
-        "Hub in a box: a 10 ft container carries the whole kit - the floor, both portable hoops and the balls. The floor is now 40 large panels (1.85 x 2.0 m) instead of about 1,650 small tiles, so it goes down and comes up quickly.",
+        "Hub in a box: a 10 ft container carries the whole kit - the floor, both portable hoops and the balls. The floor is 60 large panels (1.23 x 2.0 m) instead of about 1,650 small tiles, stored flat on a wheeled trolley so they do not bend. New still (shot 7) shows the container as delivered.",
         "Mega Slam padding is navy. The round Hoop Heroes logo goes on all three backboards.",
         "Coordinates, key dimensions, plan drawing (Section 3), shot list and Section 11 rewritten to match.",
     ]:
@@ -158,7 +158,7 @@ def build(media: Path, plan: Path, out: Path):
 
     heading(doc, "2. What we want you to render")
     para(doc, "Hoop Hub Phase 1 is a concept for a small, open-air outdoor basketball court for Hoop Heroes, a UK basketball club for children aged 5 to 15. It sits on the tarmac of a generic UK school playground. The idea in one line: it arrives packed and unpacks onto court. A fixed Mega Slam hoop is the anchor for 3x3. Two wheeled, folding portable hoops come out of a small steel container for cross-court mini basketball, then fold away again.")
-    bullet(doc, "Floor", "40 large modular court panels, each 1.85 x 2.0 m, laid 8 across and 5 deep to make 14.8 m wide x 10.0 m deep, directly on the playground tarmac. Show the panel joints faintly.")
+    bullet(doc, "Floor", "60 large modular court panels, each 1.23 x 2.0 m, laid 12 across and 5 deep to make 14.8 m wide x 10.0 m deep, directly on the playground tarmac. Show the panel joints faintly.")
     bullet(doc, "Primary: 3x3 half court (white)", "a standard 3x3 half court using the whole tile area: one hoop, one key, the 2-point arc, sidelines and baseline. The baseline is the 14.8 m edge with the fixed Mega Slam centred on it; the sidelines are the 10 m edges.")
     bullet(doc, "Secondary: mini court (gold)", "a mini basketball court for younger children running across the 3x3 court, at 90 degrees to it. The 3x3 sidelines are its baselines, with a portable hoop at each. Its gold lines are a boundary just outside the white, and at each end a key, a free-throw semicircle and a small 3-point line.")
     bullet(doc, "Fixed hoop", "Mega Slam 72, in-ground: post set in the tarmac just behind the centre of the 14.8 m baseline, board overhanging the baseline. Used for 3x3 only.")
@@ -173,7 +173,7 @@ def build(media: Path, plan: Path, out: Path):
 
     heading(doc, "3.1 Key dimensions", size=13)
     table(doc, ["Item", "Value", "Source"], [
-        ["Floor (whole court)", "14.8 m wide x 10.0 m deep (148 m²): 40 panels of 1.85 x 2.0 m (8 across the baseline, 5 deep), about 15 to 20 mm thick, faint joints visible", "[DESIGN]"],
+        ["Floor (whole court)", "14.8 m wide x 10.0 m deep (148 m²): 60 panels of 1.233 x 2.0 m (12 across the baseline, 5 deep), about 15 to 20 mm thick, faint joints visible", "[DESIGN]"],
         ["Line widths", "White 3x3 lines 50 mm. Gold mini-court lines 40 mm", "[FIBA] / [DESIGN]"],
         ["3x3 court", "14.8 m baseline (FIBA 15 m) x 10.0 m deep (FIBA 11 m). The white boundary lines sit 0.10 m in from the tile edge, just inside the gold mini-court boundary. All dimensions below are measured from the tile edge", "[DESIGN]"],
         ["Basket centre", "1.575 m in from the baseline, centred across (7.4 m)", "[FIBA]"],
@@ -213,7 +213,7 @@ def build(media: Path, plan: Path, out: Path):
 
     heading(doc, "5. Materials and colours")
     table(doc, ["Element", "Material", "Colour / finish"], [
-        ["Court panels", "Large-format modular sports-surface panels, 1.85 x 2.0 m, perforated top, clipped together", "Mid grey (about #6e7276), matt; faint joints"],
+        ["Court panels", "Large-format modular sports-surface panels, 1.23 x 2.0 m, perforated top, clipped together", "Mid grey (about #6e7276), matt; faint joints"],
         ["Key", "As above", "Lighter grey (about #a7a9ac), matt"],
         ["White lines", "Painted on the tiles", "White #ffffff, matt"],
         ["Gold lines", "Painted on the tiles", "Gold #fba91a, matt"],
@@ -262,10 +262,10 @@ def build(media: Path, plan: Path, out: Path):
 
     heading(doc, "8. Storage container: 10 ft hub in a box and billboard")
     bullet(doc, "Size", "10 ft container, 2.99 m long x 2.44 m deep x 2.59 m high, double doors on one 2.44 m end.")
-    bullet(doc, "Delivery concept", "the Mega Slam is a separate, permanent install done first. The container is then dropped behind it with everything inside: roll the portable hoops out, lay the 40 floor panels, play. Removal is the same in reverse.")
+    bullet(doc, "Delivery concept", "the Mega Slam is a separate, permanent install done first. The container is then dropped behind it with everything inside. Roll the hoops out first, then wheel the panel trolley to the court corner and lay the panels off the top, row by row from the Mega Slam end. The empty trolley goes back in and stands on its end against the back wall. Removal is the same in reverse.")
     bullet(doc, "Position", "square to the court (not at an angle), long side parallel to the baseline, set back 2.0 m behind the back edge of the tiles and to the right of the main hoop seen from the open end, so it is clearly visible behind the hoop. Off the tiles, on the tarmac.")
     bullet(doc, "Billboard wrap", "full vinyl wrap: navy #14264e base with a gold #fba91a stripe low down. Both long sides: the landscape logo (gold icon, white wordmark) as large as fits, with 'SWAP SCREENTIME FOR GAMETIME' beneath in gold Lilita One. Doors: one leaf carries a white panel with 'SCAN TO BOOK A FREE TRIAL' and a navy QR code; the other carries the round white logo and 'HOOP HEROES' in gold. Keep both clear of the vertical locking bars. Far end: the round white logo, large. No contact details or school name.")
-    bullet(doc, "Inside (shot 5 only)", "the 40 floor panels stand on edge against the back wall, strapped, with the front panel showing its piece of the painted court; a gold ball rack down the side; both folded portable hoops in front, wheels towards the doors. A ramp the full width of the doorway, so the hoops roll straight in and out.")
+    bullet(doc, "Inside", "as delivered (shot 7): the 60 panels lie flat on a low wheeled trolley at the back (stack about 1.4 m high, gold pull handle), both folded hoops in front with the gold ball rack between them. In everyday use (shot 5): the empty trolley stands on its end against the back wall, handle folded, with the hoops and ball rack in front. A ramp the full width of the doorway in both cases.")
 
     heading(doc, "9. Setting, light and people")
     bullet(doc, "Location", "a generic UK school playground: weathered dark-grey tarmac with faded generic play markings, a green mesh or painted railing fence, a generic brick or render school block softly out of focus behind, a couple of mature trees, low-rise houses beyond. No signs, crests, names, banners or readable text anywhere except Hoop Heroes branding.")
@@ -282,7 +282,8 @@ def build(media: Path, plan: Path, out: Path):
     numbered(doc, 4, "Cross-court mini game set-up", "elevated three-quarter aerial (about 8 to 10 m high) from an open-end corner. Both portable hoops out, one at each end of the mini court, facing each other across the 14.8 m over the gold keys. Mega Slam at 10 ft and not in use (see Section 11).")
     numbered(doc, 5, "Storage container, doors open", "eye level, about 3 m out, square to the open doors, 24 to 28 mm lens. Shows the hub in a box: the panel stack at the back, the ball rack down the side, both folded hoops in front on the full-width ramp.")
     numbered(doc, 6, "Eye-level hero shot (cover image)", "child eye height (about 1.1 to 1.2 m), low and wide (24 mm), from the open end just behind the logo, looking towards the main hoop. The logo leads into the frame; the Mega Slam at 10 ft and the container billboard behind it. Warm late-afternoon light.")
-    para(doc, "Total: 8 stills (shot 3 is 3 frames).", bold=True, color=NAVY)
+    numbered(doc, 7, "As delivered", "elevated (about 3 m), looking square into the open doors, before the floor is laid: the Mega Slam already in on bare tarmac, the panel trolley at the back of the container with the hoops and ball rack in front.")
+    para(doc, "Total: 9 stills (shot 3 is 3 frames).", bold=True, color=NAVY)
 
     heading(doc, "11. The Mega Slam does not serve the mini court")
     para(doc, "The Mega Slam faces across the 10 m depth for 3x3; the mini court runs at 90 degrees to it, along the 14.8 m between the two portable hoops. The Mega Slam sits behind the middle of one of the mini court's sidelines, side-on to the mini game, so it cannot be one of its baskets.")
@@ -305,8 +306,9 @@ def build(media: Path, plan: Path, out: Path):
 
     heading(doc, "13. Deliverables")
     for t in [
-        '8 x 4K stills (3840 x 2160 px, 16:9) per the shot list, PNG or high-quality JPG, sRGB, each with the "CONCEPT" label.',
-        "The same 8 stills without the label.",
+        '9 x 4K stills (3840 x 2160 px, 16:9) per the shot list, PNG or high-quality JPG, sRGB, each with the "CONCEPT" label.',
+        "The same 9 stills without the label.",
+        "Two short videos: a fly-through of the finished hub, and an installation sequence (doors open, hoops out, trolley out, panels laid, trolley back in, hoops set up).",
         "A low-resolution clay (untextured) preview of shots 1 and 4 before final texturing, so we can check the layout.",
         "The source scene file (format to agree), built to the plan dimensions.",
         "A short note of any dimension you changed or assumed.",
@@ -319,7 +321,7 @@ def build(media: Path, plan: Path, out: Path):
         (None, "Portable hoop board overhang is not published; the plan assumes the rim is about 0.6 m inside the tile edge. Adjust if your reference model shows otherwise and tell us."),
         (None, "QR code: the renders use a placeholder pointing to hoopheroes.co.uk. Hoop Heroes will supply the final booking link."),
         (None, "Floor edge: show a slim bevelled edge strip around the floor unless it looks wrong at this scale."),
-        (None, "Floor panels: 1.85 x 2.0 m is a concept size. Hoop Heroes will confirm with the surface supplier what large-format panels or pre-assembled sections are available."),
+        (None, "Floor panels: 1.23 x 2.0 m is a concept size, chosen so the panel trolley and both hoops fit in a 10 ft container. Hoop Heroes will confirm with the surface supplier what large-format panels or pre-assembled sections are available."),
         (None, "Scale figures: empty court preferred. If you think one non-identifiable figure is needed for scale, ask first."),
         (None, "Optional extra: a dusk still with portable lighting only, if time allows."),
     ]:

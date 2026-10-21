@@ -15,6 +15,7 @@ await mkdir(new URL('../dist/assets/fonts/', import.meta.url), { recursive: true
 for (const f of [
   'scene.js',
   'flythrough.js',
+  'install.js',
   'assets/logo.png',
   'assets/logo-white-navy.png',
   'assets/logo-round-navy.png',

@@ -80,6 +80,7 @@
     <button id="wrap">Wrap: navy</button>
     <label class="slider">Rim <input id="rim" type="range" min="5" max="10" step="0.5" value="10"> <span id="rimv">10 ft</span></label>
     <button id="fly">Fly-through</button>
+    <button id="install">Installation</button>
   </div>
 </div>
 <div class="concept">CONCEPT - NOT A REAL INSTALL</div>
@@ -95,6 +96,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { createHoopHub, SHOTS } from './scene.js';
 import { FLY, SEGMENTS, sampleFly, sampleSegment } from './flythrough.js';
+import { INSTALL, sampleInstall } from './install.js';
 
 const params = new URLSearchParams(location.search);
 const renderMode = params.has('shot') || params.has('fly');
@@ -148,7 +150,8 @@ if (controls) {
 
 function setShot(id) {
   const s = SHOTS[id];
-  hub.apply({ rollOut: 0, ...s.state });
+  // every shot starts from the finished court, then applies its own state
+  hub.apply({ rollOut: 0, floor: hub.nPanels, kit: 'inuse', install: null, ...s.state });
   if (s.ortho) {
     const { cx, cz, height } = s.ortho;
     const aspect = W / H;
@@ -212,7 +215,22 @@ $('wrap').onclick = () => { hub.apply({ wrap: hub.state.wrap === 'gold' ? 'navy'
 $('rim').oninput = (e) => { hub.apply({ rimFt: +e.target.value }); syncUI(); };
 
 let flyT0 = null;
-function stopFly() { flyT0 = null; $('fly').classList.remove('on'); if (controls) controls.enabled = true; }
+let installT0 = null;
+function stopFly() {
+  flyT0 = null;
+  $('fly').classList.remove('on');
+  if (installT0 !== null) { installT0 = null; hub.apply({ install: null }); }
+  $('install').classList.remove('on');
+  if (controls) controls.enabled = true;
+}
+$('install').onclick = () => {
+  if (installT0 !== null) return stopFly();
+  stopFly();
+  installT0 = performance.now();
+  $('install').classList.add('on');
+  controls.enabled = false;
+  camera = persp;
+};
 $('fly').onclick = () => {
   if (flyT0 !== null) return stopFly();
   flyT0 = performance.now();
@@ -253,6 +271,22 @@ window.renderSeg = (i, t) => {
   render();
 };
 window.SEGMENTS = SEGMENTS.map((s) => ({ name: s.name, duration: s.duration }));
+window.INSTALL_DURATION = INSTALL.duration;
+function applyInstallCam(t) {
+  const f = sampleInstall(t);
+  hub.apply({ install: t });
+  persp.fov = f.fov;
+  persp.position.copy(f.pos);
+  persp.lookAt(f.target);
+  persp.updateProjectionMatrix();
+  return f;
+}
+window.renderInstall = (t) => {
+  camera = persp;
+  applyInstallCam(t);
+  if (bokeh) bokeh.enabled = false;
+  render();
+};
 window.FLY_DURATION = FLY.duration;
 
 if (renderMode) {
@@ -269,7 +303,11 @@ if (renderMode) {
   setShot('1');
   window.__ready = true;
   renderer.setAnimationLoop(() => {
-    if (flyT0 !== null) {
+    if (installT0 !== null) {
+      const t = (performance.now() - installT0) / 1000;
+      if (t > INSTALL.duration) { const f = applyInstallCam(INSTALL.duration); stopFly(); controls.target.copy(f.target); }
+      else applyInstallCam(t);
+    } else if (flyT0 !== null) {
       const t = (performance.now() - flyT0) / 1000;
       if (t > FLY.duration) { stopFly(); controls.target.copy(applyFly(FLY.duration).target); }
       else applyFly(t);

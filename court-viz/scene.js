@@ -46,8 +46,8 @@ export const DIM = {
   borderW: 0.09,
   // 10 ft container, 2.99 x 2.44 x 2.59 m: the whole hub ships in it
   container: { x0: 3.5, x1: 6.49, z0: -4.44, z1: -2.0, h: 2.59 },
-  // floor panels: 8 across the baseline x 5 deep, 40 in all
-  panel: { w: 1.85, d: 2.0 },
+  // floor: 60 panels, 12 across the baseline x 5 deep, stored flat on a trolley
+  panel: { w: 14.8 / 12, d: 2.0, cols: 12, rows: 5, pitch: 0.02 },
 };
 
 // Court markings as signed off by Hoop Heroes (21 Oct 2026): all keys light grey, and no
@@ -284,18 +284,35 @@ function bevelStrip(inner, outer, hIn, hOut, mat) {
 }
 
 function buildCourt(logo, renderer) {
+  // the court is laid as separate panels so the install can be shown panel by panel
   const grp = new THREE.Group();
   const { L, W, tileT } = DIM;
+  const { w: pw, d: pd, cols, rows } = DIM.panel;
   const map = tex(paintCourt(logo), { aniso: renderer.capabilities.getMaxAnisotropy() });
   const bump = tileBump();
   const top = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.2, roughness: 0.86 });
   const side = std(COL.border, { roughness: 0.9 });
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(W, tileT, L), [side, side, top, side, side, side]);
-  slab.position.set(0, tileT / 2, L / 2);
-  slab.receiveShadow = true;
-  grp.add(slab);
-  grp.add(bevelStrip([-W / 2, 0, W / 2, L], DIM.borderW, tileT, 0.002, side));
-  grp.userData.canvas = map.image;
+  const gap = 0.004;
+  grp.userData.panels = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const cx = -W / 2 + (c + 0.5) * pw;
+      const cz = (r + 0.5) * pd;
+      const geo = new THREE.BoxGeometry(pw - gap, tileT, pd - gap);
+      // map the top face onto this panel's piece of the court artwork
+      const pos = geo.attributes.position;
+      const uv = geo.attributes.uv;
+      for (let i = 8; i < 12; i++) uv.setXY(i, (cx + pos.getX(i) + W / 2) / W, 1 - (cz + pos.getZ(i)) / L);
+      const m = new THREE.Mesh(geo, [side, side, top, side, side, side]);
+      m.receiveShadow = true;
+      m.castShadow = true;
+      m.userData.home = new THREE.Vector3(cx, tileT / 2, cz);
+      m.position.copy(m.userData.home);
+      grp.add(m);
+      grp.userData.panels.push(m);
+    }
+  grp.userData.border = bevelStrip([-W / 2, 0, W / 2, L], DIM.borderW, tileT, 0.002, side);
+  grp.add(grp.userData.border);
   return grp;
 }
 
@@ -801,12 +818,18 @@ export class PortableHoop {
     cap.position.set(-1.12, 0.36, 0);
     this.out.add(cap);
     // upright near the front of the base, slightly raked, with a rear brace and two arms to the board
+    this.mast = new THREE.Group();
+    this.mast.position.set(-0.42, 0.35, 0);
+    const mastInner = new THREE.Group();
+    mastInner.position.set(0.42, -0.35, 0);
+    this.mast.add(mastInner);
+    this.out.add(this.mast);
     this.pole = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), grey);
     this.brace = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1, 0.07), grey);
-    this.out.add(this.pole, this.brace);
+    mastInner.add(this.pole, this.brace);
     this.armU = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 0.06), grey);
     this.armL = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 0.06), grey);
-    this.out.add(this.armU, this.armL);
+    mastInner.add(this.armU, this.armL);
     this.board = new THREE.Group();
     const bw = 1.32;
     const bh = 0.78;
@@ -843,7 +866,7 @@ export class PortableHoop {
     const rn = rimAndNet();
     rn.position.set(0.15 + 0.2286, 0, 0);
     this.board.add(rn);
-    this.out.add(this.board);
+    mastInner.add(this.board);
     // folded: pole tilted back along the base, board lying flat on top, long side along the base
     const fPole = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 0.12), grey);
     fPole.position.set(-0.7, 0.42, 0);
@@ -870,6 +893,11 @@ export class PortableHoop {
     shadowed(this.group);
     this.setHeight(2.6);
     this.setFolded(false);
+  }
+
+  // 1 = standing, 0 = mast laid back over the base
+  setUnfold(f) {
+    this.mast.rotation.z = (1 - f) * 1.35;
   }
 
   setFolded(f) {
@@ -1098,43 +1126,8 @@ export class StorageContainer {
     // contents
     this.contents = new THREE.Group();
     this.group.add(this.contents);
-    // hub in a box: the 40 floor panels stand on edge against the back wall, strapped,
-    // with a gold ball rack down the side; the folded hoops roll in at the front
     const wallIn = t + 0.02;
-    const stackN = 40;
-    const pitch = 0.024;
-    const { w: panelW, d: panelH } = DIM.panel;
-    const panels = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(0.02, panelH, panelW),
-      std(COL.court, { roughness: 0.85 }),
-      stackN,
-    );
-    const m4 = new THREE.Matrix4();
-    const shade = [new THREE.Color('#ffffff'), new THREE.Color('#c9ccd0')];
-    const jitter = mulberry(17);
-    for (let i = 0; i < stackN; i++) {
-      // slight offsets and alternating tone so the edges read as separate panels
-      m4.makeTranslation(-L / 2 + wallIn + 0.01 + i * pitch, 0.12 + panelH / 2 + (jitter() - 0.5) * 0.02, -D / 2 + wallIn + panelW / 2 + (jitter() - 0.5) * 0.03);
-      panels.setMatrixAt(i, m4);
-      panels.setColorAt(i, shade[i % 2]);
-    }
-    this.contents.add(panels);
-    const stackDepth = stackN * pitch;
-    // the front panel shows its own piece of the painted court (open-end row, third panel across)
-    if (art.courtCanvas) {
-      const c = canvas(740, 800);
-      c.getContext('2d').drawImage(art.courtCanvas, 2 * panelW * PX, 4 * panelH * PX, panelW * PX, panelH * PX, 0, 0, 740, 800);
-      const face = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), new THREE.MeshStandardMaterial({ map: tex(c), roughness: 0.85 }));
-      face.rotation.y = Math.PI / 2;
-      face.position.set(-L / 2 + wallIn + 0.01 + (stackN - 1) * pitch + 0.0115, 0.12 + panelH / 2, -D / 2 + wallIn + panelW / 2);
-      this.contents.add(face);
-    }
-    const strapM = std(COL.gold, { roughness: 0.6 });
-    for (const y of [0.6, 1.65]) {
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(stackDepth + 0.03, 0.05, panelW + 0.04), strapM);
-      strap.position.set(-L / 2 + wallIn + stackDepth / 2 + 0.005, 0.12 + y, -D / 2 + wallIn + panelW / 2);
-      this.contents.add(strap);
-    }
+    this.backX = -L / 2 + wallIn;
     const goldM = std(COL.gold, { roughness: 0.45, metalness: 0.4 });
     const rail = (len, axis) => {
       const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, len, 8), goldM);
@@ -1172,7 +1165,8 @@ export class StorageContainer {
         b.rotation.set(j, y * 3, j * 2);
         rack.add(b);
       }
-    rack.position.set(-L / 2 + wallIn + rw / 2, 0.12, D / 2 - wallIn - rd / 2);
+    // ball rack rides in the gap between the two folded hoops, by the doors
+    rack.position.set(L / 2 - 0.12 - 1.45 / 2, 0.12, 0);
     this.contents.add(rack);
     this.stowed = new THREE.Group();
     this.contents.add(this.stowed);
@@ -1187,7 +1181,7 @@ export class StorageContainer {
     hoops.forEach((hp, i) => {
       this.stowed.add(hp.group);
       hp.group.rotation.set(0, 0, 0);
-      const z = (i ? -1 : 1) * (D / 4 - 0.02);
+      const z = (i ? -1 : 1) * (D / 2 - 0.5);
       const x = L / 2 - 0.12 + (i === 0 ? rollOut : 0);
       hp.group.position.set(x, 0.12, z);
     });
@@ -1208,6 +1202,81 @@ export class StorageContainer {
   setDoors(open) {
     for (const d of this.doors) d.rotation.y = -d.userData.side * open * THREE.MathUtils.degToRad(100);
     this.ramp.visible = open > 0.5;
+  }
+}
+
+// ---------------------------------------------------------------- panel trolley
+
+export class Trolley {
+  // flat-bed trolley the floor panels travel on. Local origin is the bottom of its -x end,
+  // so it can tip up onto that end against the container's back wall when empty.
+  constructor() {
+    this.group = new THREE.Group();
+    const { w: pw, d: pd, pitch } = DIM.panel;
+    this.len = pw + 0.07;
+    this.wid = pd + 0.08;
+    const steel = std('#3a3d42', { roughness: 0.5, metalness: 0.6 });
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(this.len, 0.05, this.wid), steel);
+    deck.position.set(this.len / 2, 0.155, 0);
+    this.group.add(deck);
+    const tyre = std('#111214', { roughness: 0.9 });
+    const castor = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16);
+    for (const x of [0.12, this.len - 0.12])
+      for (const z of [-1, 1]) {
+        const w = new THREE.Mesh(castor, tyre);
+        w.rotation.x = Math.PI / 2;
+        w.position.set(x, 0.06, z * (this.wid / 2 - 0.12));
+        this.group.add(w);
+      }
+    // pull handle on the +x end, gold so it reads as ours
+    const goldM = std(COL.gold, { roughness: 0.45, metalness: 0.4 });
+    for (const z of [-0.35, 0.35]) {
+      const up = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.8, 10), goldM);
+      up.position.set(this.len - 0.02, 0.58, z);
+      this.group.add(up);
+    }
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.7, 10), goldM);
+    bar.rotation.x = Math.PI / 2;
+    bar.position.set(this.len - 0.02, 0.98, 0);
+    this.group.add(bar);
+    this.handleParts = this.group.children.slice(-3);
+    // the panel stack: one box whose height follows the panel count, with striped edges
+    const c = canvas(64, 256);
+    const g = c.getContext('2d');
+    for (let y = 0; y < 256; y += 16) {
+      g.fillStyle = '#6e7276';
+      g.fillRect(0, y, 64, 12);
+      g.fillStyle = '#4a4d51';
+      g.fillRect(0, y + 12, 64, 4);
+    }
+    this.edgeTex = tex(c, { repeat: [1, 1] });
+    this.edgeTex.wrapT = THREE.RepeatWrapping;
+    const edge = std('#ffffff', { map: this.edgeTex, roughness: 0.85 });
+    const topM = std(COL.court, { roughness: 0.85 });
+    this.stack = new THREE.Mesh(new THREE.BoxGeometry(pw, 1, pd), [edge, edge, topM, topM, edge, edge]);
+    this.group.add(this.stack);
+    this.pitch = pitch;
+    shadowed(this.group);
+    this.setCount(DIM.panel.cols * DIM.panel.rows);
+  }
+
+  // the handle folds flat when the empty trolley is stood on end
+  handle(up) {
+    for (const p of this.handleParts) p.visible = up;
+  }
+
+  setCount(n) {
+    const h = Math.max(n * this.pitch, 0.0001);
+    this.stack.visible = n > 0;
+    this.stack.scale.y = h;
+    this.stack.position.set(this.len / 2, 0.18 + h / 2, 0);
+    this.edgeTex.repeat.set(1, n / 16);
+    this.top = 0.18 + h;
+  }
+
+  // world-space centre of the stack top
+  topCentre(v = new THREE.Vector3()) {
+    return this.group.localToWorld(v.set(this.len / 2, this.top, 0));
   }
 }
 
@@ -1324,32 +1393,166 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
   scene.add(container.group);
 
   const hoops = [new PortableHoop(art.roundNavy), new PortableHoop(art.roundNavy)];
+  const trolley = new Trolley();
+  scene.add(trolley.group);
+  const panels = court.userData.panels;
+  const nPanels = panels.length;
+  const cw = container.group.position;
+  const { x0, x1, z0, z1 } = DIM.container;
+  const backX = cw.x + container.backX;
+  const ease = (u) => {
+    u = THREE.MathUtils.clamp(u, 0, 1);
+    return u * u * (3 - 2 * u);
+  };
+  // ground height at a point: container floor, the ramp, the court, or tarmac
+  const floorY = (x, z) => {
+    if (z > z0 && z < z1) {
+      if (x >= x0 && x <= x1) return 0.12;
+      if (x > x1 && x < x1 + 0.7) return 0.12 * (1 - (x - x1) / 0.7);
+    }
+    if (Math.abs(x) <= DIM.W / 2 && z >= 0 && z <= DIM.L) return DIM.tileT;
+    return 0;
+  };
+  const curve = (pts) => new THREE.CatmullRomCurve3(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
+  const tmp = new THREE.Vector3();
+
   const placeOut = () => {
     hoops.forEach((hp, i) => {
       const side = i ? 1 : -1; // left (-x) and right (+x); local +x always faces the court
       scene.add(hp.group);
       hp.setFolded(false);
+      hp.setUnfold(1);
       hp.group.position.set(side * (DIM.W / 2 - 0.6 + hp.rimLocal), 0, DIM.miniKeyZ);
       hp.group.rotation.set(0, side > 0 ? Math.PI : 0, 0);
     });
   };
+  const trolleyPacked = (count) => {
+    trolley.group.position.set(backX + 0.01, 0.12, cw.z);
+    trolley.group.rotation.set(0, 0, 0);
+    trolley.handle(true);
+    trolley.setCount(count);
+  };
+  const trolleyOnEnd = (v = 1) => {
+    // tips up onto its -x end against the back wall, handle folded
+    trolley.group.position.set(backX + 0.01 + 0.19 * v, 0.12, cw.z);
+    trolley.group.rotation.set(0, 0, (v * Math.PI) / 2);
+    trolley.handle(v === 0);
+    trolley.setCount(0);
+  };
+  const showFloor = (laid) => {
+    panels.forEach((m, k) => {
+      m.visible = k < laid;
+      m.position.copy(m.userData.home);
+    });
+    court.userData.border.visible = laid >= nPanels;
+  };
 
-  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, rollOut: 0 };
+  // installation timeline, in seconds: doors, hoops out, trolley out, panels down,
+  // trolley back in and tipped on end, hoops across to the court and unfolded, doors shut
+  const T = { doors: 0.5, hoopsOut: 2.8, trolleyOut: 6.6, panels: 10.6, panelSpan: 13.6, flight: 0.9, trolleyBack: 25.2, tilt: 28.8, hoopsIn: 29.2, doorsShut: 34.6, end: 36.5 };
+  // matches StorageContainer.stow(): front of the container, either side of the ball rack
+  const stowed = hoops.map((_, i) => new THREE.Vector3(x1 - 0.12, 0.12, cw.z + (i ? -1 : 1) * ((z1 - z0) / 2 - 0.5)));
+  const staging = [
+    [9.7, -5.4],
+    [9.7, -6.5],
+  ];
+  const hoopOutPath = hoops.map((_, i) => curve([[stowed[i].x, stowed[i].z], [x1 + 2.4, stowed[i].z], [9.4, (stowed[i].z + staging[i][1]) / 2], staging[i]]));
+  const finalX = hoops.map((hp, i) => (i ? 1 : -1) * (DIM.W / 2 - 0.6 + hp.rimLocal));
+  const hoopInPath = [
+    curve([staging[0], [9.4, -0.8], [6.5, 6.6], [-3.5, 6.6], [finalX[0], DIM.miniKeyZ]]),
+    curve([staging[1], [10.4, -0.5], [10.2, 3.2], [finalX[1] + 0.2, DIM.miniKeyZ]]),
+  ];
+  const trolleyStage = [7.9, 1.2];
+  const trolleyPath = curve([[backX + 0.01, cw.z], [x1 - 0.7, cw.z], [x1 + 1.1, cw.z], [8.6, -0.6], trolleyStage]);
+
+  const applyInstall = (t) => {
+    container.setDoors(ease((t - T.doors) / 2) * (1 - ease((t - T.doorsShut) / 1.6)));
+    // hoops: out of the container to a holding spot, later across the court and unfolded
+    hoops.forEach((hp, i) => {
+      scene.add(hp.group);
+      const startOut = T.hoopsOut + (i ? 0 : 0.8);
+      const startIn = T.hoopsIn + i * 0.9;
+      const arrive = startIn + 3.4;
+      let u;
+      let path;
+      let rot = 0;
+      if (t < startIn) {
+        path = hoopOutPath[i];
+        u = ease((t - startOut) / 3);
+      } else {
+        path = hoopInPath[i];
+        u = ease((t - startIn) / 3.4);
+        rot = i ? Math.PI * ease((u - 0.5) / 0.5) : 0;
+      }
+      path.getPoint(u, tmp);
+      const cx = tmp.x - Math.cos(rot) * 0.72;
+      hp.group.position.set(tmp.x, floorY(cx, tmp.z), tmp.z);
+      hp.group.rotation.set(0, rot, 0);
+      if (t >= arrive) {
+        hp.setFolded(false);
+        hp.setUnfold(ease((t - arrive) / 1.4));
+        hp.group.position.y = 0;
+      } else hp.setFolded(true);
+    });
+    // panels: each lifts off the trolley and is set into place, row by row from the Mega Slam end
+    let started = 0;
+    const from = new THREE.Vector3();
+    panels.forEach((m, k) => {
+      const ts = T.panels + (k * (T.panelSpan - T.flight)) / (nPanels - 1);
+      if (t < ts) {
+        m.visible = false;
+        return;
+      }
+      started++;
+      m.visible = true;
+      const u = (t - ts) / T.flight;
+      if (u >= 1) m.position.copy(m.userData.home);
+      else {
+        trolley.setCount(nPanels - started + 1);
+        trolley.topCentre(from);
+        const e = ease(u);
+        m.position.lerpVectors(from, m.userData.home, e);
+        m.position.y += Math.sin(Math.PI * e) * 0.8;
+      }
+    });
+    court.userData.border.visible = t >= T.panels + T.panelSpan;
+    // trolley: out to the court corner, back in once empty, then tipped on end
+    if (t < T.trolleyBack) {
+      trolleyPath.getPoint(ease((t - T.trolleyOut) / 3.6), tmp);
+      trolley.group.rotation.set(0, 0, 0);
+      trolley.handle(true);
+    } else trolleyPath.getPoint(1 - ease((t - T.trolleyBack) / 3.4), tmp);
+    if (t >= T.tilt) trolleyOnEnd(ease((t - T.tilt) / 1.1));
+    else {
+      trolley.group.position.set(tmp.x, floorY(tmp.x + trolley.len / 2, tmp.z), tmp.z);
+      trolley.setCount(nPanels - started);
+    }
+  };
+
+  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, rollOut: 0, floor: nPanels, kit: 'inuse', install: null };
   const apply = (next = {}) => {
     Object.assign(state, next);
     megaSlam.setHeight(state.rimFt * FT);
     megaSlam.setPadding(state.padding === 'navy' ? COL.navy : COL.gold, padLogoTex);
-    container.setDoors(state.doors);
     container.setWrap(state.wrap);
+    if (state.install !== null) return applyInstall(state.install);
+    container.setDoors(state.doors);
+    showFloor(state.floor);
+    if (state.kit === 'packed') trolleyPacked(nPanels - state.floor);
+    else trolleyOnEnd(1);
     if (state.mini) placeOut();
     else {
-      hoops.forEach((h) => h.setFolded(true));
+      hoops.forEach((h) => {
+        h.setFolded(true);
+        h.setUnfold(1);
+      });
       container.stow(hoops, state.rollOut);
     }
   };
   apply();
+  const INSTALL_DURATION = T.end;
 
-  return { scene, sun, megaSlam, container, hoops, state, apply, FT };
+  return { scene, sun, megaSlam, container, hoops, trolley, state, apply, FT, INSTALL_DURATION, nPanels };
 }
 
 // camera presets, named after the brief's shot list
@@ -1362,6 +1565,7 @@ export const SHOTS = {
   4: { label: 'Mini game', pos: [10.5, 7.2, 14.5], target: [-0.6, 0.4, 4.2], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
   5: { label: 'Container', pos: [10.6, 1.9, -2.5], target: [4.8, 1.0, -3.3], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
   6: { label: 'Hero', pos: [-3.6, 1.15, 12.6], target: [-0.3, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
+  7: { label: 'As delivered', pos: [10.9, 3.3, -1.9], target: [4.4, 0.7, -3.3], fov: 45.7, state: { mini: false, rimFt: 10, doors: 1, floor: 0, kit: 'packed' } },
   // detail stills for signing off the container and hoops
   c1: { label: 'Container billboard', pos: [10.6, 1.8, 2.8], target: [5.0, 1.25, -3.3], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
   c3: { label: 'Container doors', pos: [11.4, 1.6, -1.6], target: [6.0, 1.3, -3.2], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },

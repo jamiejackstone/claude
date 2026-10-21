@@ -56,15 +56,15 @@ def run(cmd):
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
 
-def main(frames: Path, out: Path):
+def main(frames: Path, out: Path, title: str, subtitle: str):
     parts = out.parent / "parts"
     parts.mkdir(parents=True, exist_ok=True)
     head = font("LilitaOne-Regular.ttf", 96)
     sub = font("Montserrat-Bold.ttf", 34)
     small = font("Montserrat-Bold.ttf", 24)
     card(parts / "intro.png", [
-        ("HOOP HUB", head, GOLD, 120),
-        ("PHASE 1: A 3X3 COURT AND MINI COURT FOR YOUR SCHOOL", sub, (255, 255, 255), 70),
+        (title, head, GOLD, 120),
+        (subtitle, sub, (255, 255, 255), 70),
         ("CONCEPT - NOT A REAL INSTALL", small, (255, 255, 255), 0),
     ])
     card(parts / "outro.png", [
@@ -110,5 +110,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--frames", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--title", default="HOOP HUB")
+    ap.add_argument("--subtitle", default="PHASE 1: A 3X3 COURT AND MINI COURT FOR YOUR SCHOOL")
     a = ap.parse_args()
-    main(a.frames, a.out)
+    main(a.frames, a.out, a.title, a.subtitle)
