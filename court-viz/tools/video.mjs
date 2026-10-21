@@ -1,5 +1,5 @@
 // Render fly-through frames per segment: node tools/video.mjs --w 1920 --h 1080 --fps 30 --out renders/video/frames
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { openPage } from './browser.mjs';
@@ -14,6 +14,7 @@ const { values } = parseArgs({
     // preview: render only this many evenly spaced frames per segment
     sample: { type: 'string', default: '0' },
     seq: { type: 'string', default: 'fly' }, // fly | install
+    resume: { type: 'boolean', default: false }, // keep frames already rendered
   },
 });
 const fps = +values.fps;
@@ -27,6 +28,8 @@ for (const [i, seg] of segments.entries()) {
   const sample = +values.sample;
   const frames = sample ? Array.from({ length: sample }, (_, k) => Math.round((k * (n - 1)) / (sample - 1))) : [...Array(n).keys()];
   for (const f of frames) {
+    const file = join(dir, `${String(f).padStart(5, '0')}.jpg`);
+    if (values.resume && (await stat(file).catch(() => null))?.size) continue;
     const data = await page.evaluate(
       ([i, t, seq]) => {
         if (seq === 'install') window.renderInstall(t);
@@ -35,7 +38,7 @@ for (const [i, seg] of segments.entries()) {
       },
       [i, f / fps, values.seq],
     );
-    await writeFile(join(dir, `${String(f).padStart(5, '0')}.jpg`), Buffer.from(data.split(',')[1], 'base64'));
+    await writeFile(file, Buffer.from(data.split(',')[1], 'base64'));
   }
   console.log(`${seg.name}: ${frames.length} frames, ${((Date.now() - t0) / 1000).toFixed(0)}s elapsed`);
 }
