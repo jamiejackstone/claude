@@ -39,6 +39,10 @@ export const DIM = {
   container: { x0: 2.5, x1: 4.94, z0: -4.2, z1: -2.0, h: 2.26 },
 };
 
+// Gold mini-court options still open with Hoop Heroes: where the halfway line starts,
+// and whether the hoop-side edge of the mini court gets its own gold line.
+export const MARKINGS = { halfwayStart: DIM.miniStart, edgeLine: false };
+
 const FT = 0.3048;
 const PX = 400; // court texture pixels per metre
 
@@ -93,7 +97,7 @@ function shadowed(obj) {
 
 // ---------------------------------------------------------------- court surface
 
-function paintCourt(logo) {
+export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart, edgeLine = MARKINGS.edgeLine } = {}) {
   const { L, W } = DIM;
   const c = canvas(Math.round(W * PX), Math.round(L * PX));
   const g = c.getContext('2d');
@@ -126,9 +130,14 @@ function paintCourt(logo) {
   // gold mini court (under the white)
   const gw = DIM.goldW;
   stroke(COL.gold, gw, () => {
-    g.moveTo(X(0), Z(DIM.miniStart));
+    g.moveTo(X(0), Z(halfwayStart));
     g.lineTo(X(0), Z(L));
   });
+  if (edgeLine)
+    stroke(COL.gold, gw, () => {
+      g.moveTo(X(-W / 2), Z(DIM.miniStart));
+      g.lineTo(X(W / 2), Z(DIM.miniStart));
+    });
   for (const s of [-1, 1]) {
     const edge = s * (W / 2 - DIM.lineW);
     const inner = s * (W / 2 - DIM.miniKeyD);
