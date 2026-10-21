@@ -93,8 +93,9 @@
   <div class="group" id="shots"></div>
   <div class="sep"></div>
   <div class="group">
+    <button id="hoops" class="on" aria-pressed="true">Mini hoops</button>
     <button id="install">Installation</button>
-    <label class="slider">Rim <input id="rim" type="range" min="5" max="10" step="0.5" value="10"> <span id="rimv">10 ft</span></label>
+    <label class="slider">Rim <input id="rim" type="range" min="6" max="10" step="1" value="10"> <span id="rimv">10 ft</span></label>
   </div>
   </div>
 </div>
@@ -218,12 +219,11 @@ function render() {
 }
 
 // ---------- UI
-// views on offer; the mini game view brings the portable hoops out
+// camera views; the Mini hoops button shows or puts away the portable hoops
 const VIEWS = [
   ['1', '3D'],
   ['2', 'Top-down'],
   ['3c', 'Mega Slam'],
-  ['4', 'Mini game'],
 ];
 const shotBar = document.getElementById('shots');
 let currentShot = '1';
@@ -232,12 +232,14 @@ for (const [id, label] of VIEWS) {
   b.textContent = label;
   b.dataset.shot = id;
   // in the viewer every view shows the finished hub with all three hoops up
-  b.onclick = () => { stopInstall(); setShot(id, { mini: true, rimFt: hub.state.rimFt }); };
+  b.onclick = () => { stopInstall(); setShot(id, { mini: hub.state.mini, rimFt: hub.state.rimFt }); };
   shotBar.appendChild(b);
 }
 const $ = (id) => document.getElementById(id);
 function syncUI() {
   for (const b of shotBar.children) b.classList.toggle('on', b.dataset.shot === currentShot && installT0 === null);
+  $('hoops').classList.toggle('on', hub.state.mini);
+  $('hoops').setAttribute('aria-pressed', String(hub.state.mini));
   $('rim').value = hub.state.rimFt;
   $('rimv').textContent = `${hub.state.rimFt} ft`;
 }
@@ -258,13 +260,37 @@ function stopInstall() {
   if (installT0 === null) return;
   installT0 = null;
   // land on the finished court with the mini hoops out, as the sequence ends
-  hub.apply({ install: null, mini: true, doors: 0 });
+  hub.apply({ install: null, mini: true, hoopsT: null, doors: 0 });
   $('install').classList.remove('on');
   if (controls) controls.enabled = true;
   syncUI();
 }
+// Mini hoops: roll out of the container and go up, or fold and roll back in
+const HOOPS_TIME = 5;
+let hoopsAnim = null;
+$('hoops').onclick = () => {
+  if (installT0 !== null) return;
+  const out = !hub.state.mini;
+  const from = hoopsAnim ? hoopsAnim.p() : out ? 0 : 1;
+  const t0 = performance.now();
+  hoopsAnim = { out, p: () => THREE.MathUtils.clamp(from + ((out ? 1 : -1) * (performance.now() - t0)) / 1000 / HOOPS_TIME, 0, 1) };
+  hub.apply({ mini: out });
+  syncUI();
+};
+function stepHoops() {
+  if (!hoopsAnim) return;
+  const p = hoopsAnim.p();
+  if ((hoopsAnim.out && p >= 1) || (!hoopsAnim.out && p <= 0)) {
+    hoopsAnim = null;
+    hub.apply({ hoopsT: null, doors: 0 });
+  } else hub.apply({ hoopsT: p });
+}
 $('install').onclick = () => {
   if (installT0 !== null) return stopInstall();
+  // the installation always runs with the Mega Slam at full height
+  hoopsAnim = null;
+  hub.apply({ hoopsT: null, rimFt: 10 });
+  syncUI();
   installT0 = performance.now();
   $('install').classList.add('on');
   controls.enabled = false;
@@ -340,7 +366,10 @@ if (renderMode) {
       const t = (performance.now() - installT0) / 1000;
       if (t > INSTALL.duration) { const f = applyInstallCam(INSTALL.duration); stopInstall(); controls.target.copy(f.target); }
       else applyInstallCam(t);
-    } else controls.update();
+    } else {
+      stepHoops();
+      controls.update();
+    }
     render();
   });
 }

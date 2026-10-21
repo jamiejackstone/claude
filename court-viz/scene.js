@@ -1545,7 +1545,32 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
     });
   };
 
-  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, floor: nPanels, kit: 'inuse', install: null };
+  // mini hoops toggle: p runs 0 (stowed by the doors) to 1 (out and up); played backwards to put them away
+  const frontStow = hoops.map((_, i) => [cw.x + container.stowX('front'), cw.z + container.stowZ(i)]);
+  const togglePath = [
+    curve([frontStow[0], [x1 + 2.2, frontStow[0][1]], [9.4, -0.8], [6.5, 6.6], [-3.5, 6.6], [finalX[0], DIM.miniKeyZ]]),
+    curve([frontStow[1], [x1 + 2.2, frontStow[1][1]], [10.6, -0.5], [10.3, 3.2], [finalX[1] + 0.2, DIM.miniKeyZ]]),
+  ];
+  const applyHoopsToggle = (p) => {
+    container.setDoors(ease(p / 0.12) * (1 - ease((p - 0.68) / 0.12)));
+    hoops.forEach((hp, i) => {
+      scene.add(hp.group);
+      const u = ease((p - 0.1 - i * 0.06) / 0.6);
+      const rot = i ? Math.PI * ease((u - 0.6) / 0.4) : 0;
+      togglePath[i].getPoint(u, tmp);
+      hp.group.position.set(tmp.x, floorY(tmp.x - Math.cos(rot) * 0.72, tmp.z), tmp.z);
+      hp.group.rotation.set(0, rot, 0);
+      const up = (p - 0.8) / 0.2;
+      if (up > 0) {
+        hp.setFolded(false);
+        hp.setHeight(portableRim());
+        hp.setUnfold(ease(up));
+        hp.group.position.y = 0;
+      } else hp.setFolded(true);
+    });
+  };
+
+  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, floor: nPanels, kit: 'inuse', install: null };
   const apply = (next = {}) => {
     Object.assign(state, next);
     megaSlam.setHeight(state.rimFt * FT);
@@ -1557,7 +1582,8 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
     showFloor(state.floor);
     if (state.kit === 'packed') trolleyPacked(nPanels - state.floor);
     else trolleyOnEnd(1);
-    if (state.mini) placeOut();
+    if (state.hoopsT !== null) applyHoopsToggle(state.hoopsT);
+    else if (state.mini) placeOut();
     else {
       hoops.forEach((h) => {
         h.setFolded(true);
