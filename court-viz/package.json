@@ -1,0 +1,13 @@
+{
+  "name": "hoop-hub-concept",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "stills": "node tools/render.mjs",
+    "video": "node tools/video.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56.0",
+    "three": "0.169.0"
+  }
+}
