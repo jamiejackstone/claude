@@ -195,7 +195,7 @@ function exitDoor(w, h) {
 
 class Unit {
   // a container along z, its court-facing side at x = face; side = -1 on the left row, +1 on the right
-  constructor({ z0, z1, side, color, glazed = false, hinges = [1, -1, 1, -1] }) {
+  constructor({ z0, z1, side, color, glazed = false, door = null }) {
     const { cw, ch } = HUB;
     this.group = new THREE.Group();
     const len = z1 - z0;
@@ -234,19 +234,23 @@ class Unit {
     }
     if (glazed) this.glaze(z0, z1, faceX, side);
     else {
-      // court side: a full-length side-opener, two pairs of leaves swinging out towards the court
+      // court side: ribbed steel with one double door at the corner end, swinging out towards the court
+      const [da, db] = door;
       const lh = ch - 0.32;
-      const leafLen = (len - 0.32) / 4;
+      const leafLen = (db - da) / 2;
+      const ribbed2 = (a, b) => b - a > 0.01 && g.add(box(0.04, ch - 0.12, b - a, std(color, { roughness: 0.6, metalness: 0.15, bumpMap: corrugation(b - a, ch), bumpScale: 2 }), faceX + side * 0.02, ch / 2 + 0.03, (a + b) / 2));
+      ribbed2(z0, da);
+      ribbed2(db, z1);
       const leaf = std(color, { roughness: 0.55, metalness: 0.15, bumpMap: corrugation(leafLen, lh), bumpScale: 2 });
       const bar = std('#9aa0a6', { roughness: 0.35, metalness: 0.8 });
       g.add(box(cw - 0.3, ch - 0.3, len - 0.3, std('#20232a', { roughness: 0.95, side: THREE.BackSide }), cx, ch / 2, cz));
       this.leaves = [];
-      for (let i = 0; i < 4; i++) {
-        const low = hinges[i] > 0; // hinge on the leaf's low-z edge
-        const hz = z0 + 0.16 + leafLen * (low ? i : i + 1);
+      for (const [hz, dir] of [
+        [da, 1],
+        [db, -1],
+      ]) {
         const pivot = new THREE.Group();
         pivot.position.set(faceX - side * 0.02, ch / 2, hz);
-        const dir = low ? 1 : -1;
         pivot.add(box(0.035, lh, leafLen - 0.015, leaf, 0, 0, (dir * leafLen) / 2));
         for (const o of [0.3, 0.7]) pivot.add(box(0.03, lh - 0.1, 0.03, bar, -side * 0.03, 0, dir * leafLen * o));
         pivot.userData.sign = -side * dir;
@@ -446,9 +450,9 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, side-opening onto the court
   const units = {
     reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true }),
-    // the leaves next to the join hinge away from it, so they swing clear of the right portable hoop
-    hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, hinges: [1, -1, 1, 1] }),
-    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, hinges: [-1, -1, 1, -1] }),
+    // containers 2 and 3: one double door each at the corner end, well clear of the right portable hoop
+    hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, door: [HUB.hhStore.z0 + 0.16, HUB.hhStore.z0 + 2.46] }),
+    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, door: [HUB.schoolStore.z1 - 2.46, HUB.schoolStore.z1 - 0.16] }),
   };
   for (const un of Object.values(units)) scene.add(un.group);
 
