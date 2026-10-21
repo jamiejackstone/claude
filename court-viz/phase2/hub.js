@@ -234,35 +234,50 @@ class Unit {
     }
     if (glazed) this.glaze(z0, z1, faceX, side);
     else {
-      // court side: ribbed steel with one double door at the corner end, swinging out towards the court
+      // court side: ribbed steel with one roller shutter at the corner end, rolling up inside
       const [da, db] = door;
-      const lh = ch - 0.32;
-      const leafLen = (db - da) / 2;
-      const ribbed2 = (a, b) => b - a > 0.01 && g.add(box(0.04, ch - 0.12, b - a, std(color, { roughness: 0.6, metalness: 0.15, bumpMap: corrugation(b - a, ch), bumpScale: 2 }), faceX + side * 0.02, ch / 2 + 0.03, (a + b) / 2));
-      ribbed2(z0, da);
-      ribbed2(db, z1);
-      const leaf = std(color, { roughness: 0.55, metalness: 0.15, bumpMap: corrugation(leafLen, lh), bumpScale: 2 });
-      const bar = std('#9aa0a6', { roughness: 0.35, metalness: 0.8 });
+      const sw = db - da;
+      const sy0 = 0.14;
+      const sh = 2.1;
+      const rib = (a, b, y0, y1) =>
+        g.add(box(0.04, y1 - y0, b - a, std(color, { roughness: 0.6, metalness: 0.15, bumpMap: corrugation(b - a, y1 - y0), bumpScale: 2 }), faceX + side * 0.02, (y0 + y1) / 2, (a + b) / 2));
+      if (da - z0 > 0.01) rib(z0, da, 0.12, ch - 0.12);
+      if (z1 - db > 0.01) rib(db, z1, 0.12, ch - 0.12);
+      rib(da, db, sy0 + sh, ch - 0.12);
       g.add(box(cw - 0.3, ch - 0.3, len - 0.3, std('#20232a', { roughness: 0.95, side: THREE.BackSide }), cx, ch / 2, cz));
-      this.leaves = [];
-      for (const [hz, dir] of [
-        [da, 1],
-        [db, -1],
-      ]) {
-        const pivot = new THREE.Group();
-        pivot.position.set(faceX - side * 0.02, ch / 2, hz);
-        pivot.add(box(0.035, lh, leafLen - 0.015, leaf, 0, 0, (dir * leafLen) / 2));
-        for (const o of [0.3, 0.7]) pivot.add(box(0.03, lh - 0.1, 0.03, bar, -side * 0.03, 0, dir * leafLen * o));
-        pivot.userData.sign = -side * dir;
-        g.add(pivot);
-        this.leaves.push(pivot);
+      const trim = std('#5f6670', { roughness: 0.5, metalness: 0.5 });
+      for (const z of [da, db]) g.add(box(0.07, sh, 0.08, trim, faceX - side * 0.01, sy0 + sh / 2, z));
+      g.add(box(0.07, 0.08, sw + 0.08, trim, faceX - side * 0.01, sy0 + sh, (da + db) / 2));
+      const c = canvas(64, 256);
+      const cg = c.getContext('2d');
+      cg.fillStyle = '#c3c7cc';
+      cg.fillRect(0, 0, 64, 256);
+      for (let y = 0; y < 256; y += 16) {
+        cg.fillStyle = '#9da2a8';
+        cg.fillRect(0, y, 64, 3);
+        cg.fillStyle = '#d8dbdf';
+        cg.fillRect(0, y + 3, 64, 2);
       }
+      this.slats = tex(c, { repeat: [1, sh / 1.1] });
+      this.curtain = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), std('#ffffff', { map: this.slats, roughness: 0.5, metalness: 0.35, side: THREE.DoubleSide }));
+      this.curtain.rotation.y = (-side * Math.PI) / 2;
+      this.curtain.position.set(faceX + side * 0.01, sy0 + sh / 2, (da + db) / 2);
+      this.curtain.receiveShadow = true;
+      g.add(this.curtain);
+      this.shutter = { y0: sy0, h: sh };
     }
   }
   setDoors(open) {
-    // 0 shut, 1 open square to the container, into the run-off
-    for (const p of this.leaves ?? []) p.rotation.y = p.userData.sign * open * (Math.PI / 2);
+    // roller shutter: 0 down, 1 rolled right up
+    if (!this.curtain) return;
+    const { y0, h } = this.shutter;
+    const vis = Math.max(0.001, h * (1 - open));
+    this.curtain.scale.y = vis / h;
+    this.curtain.position.y = y0 + h - vis / 2;
+    this.slats.repeat.y = vis / 1.1;
+    this.curtain.visible = open < 0.999;
   }
+
   glaze(z0, z1, faceX, side) {
     // reception: glazed court side in aluminium frames, with a glazed door
     const g = this.group;
@@ -450,7 +465,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, side-opening onto the court
   const units = {
     reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true }),
-    // containers 2 and 3: one double door each at the corner end, well clear of the right portable hoop
+    // containers 2 and 3: a 2.3 m roller shutter each at the corner end, well clear of the right portable hoop
     hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, door: [HUB.hhStore.z0 + 0.16, HUB.hhStore.z0 + 2.46] }),
     schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, door: [HUB.schoolStore.z1 - 2.46, HUB.schoolStore.z1 - 0.16] }),
   };
@@ -568,6 +583,6 @@ export const SHOTS = {
   1: { label: 'Outside', pos: [12.5, 3.6, 28.5], target: [0.4, 3.0, 5.5], fov: 42, state: { roller: 1 } },
   2: { label: 'Inside', pos: [4.6, 1.8, 10.7], target: [-2.2, 2.0, 0.8], fov: 54, state: { roller: 1 } },
   3: { label: 'Top-down', ortho: { cx: 0, cz: 5, height: 16.6 }, state: { roller: 1, cutaway: true } },
-  // detail for signing off the side-opening storage
+  // detail for signing off the storage shutters
   s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: { roller: 1, storeDoors: 1 } },
 };
