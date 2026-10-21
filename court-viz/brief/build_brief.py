@@ -137,7 +137,7 @@ def build(media: Path, plan: Path, out: Path):
     for t in [
         "Court turned 90 degrees. The 3x3 baseline is now the 14.8 m side of the tiles, with the Mega Slam centred on it, and the court runs 10 m deep to the open end. It is wider than it is long, like a standard FIBA 3x3 court (15 x 11 m).",
         "Mini court runs across the 3x3 court. The 3x3 sidelines become the mini court's baselines, with a portable hoop at each. It is 14.8 m long between the hoops and 10 m wide, using the white 3x3 boundary lines as its edges.",
-        "Gold markings are now a halfway line running the full 10 m from the 3x3 baseline to the end line, straight through the middle of the 3x3 key, plus a small key at each end. Nothing else.",
+        "Gold mini-court markings: a gold boundary just outside the white 3x3 boundary; a halfway line running the full 10 m through the middle of the 3x3 key, with a small centre circle; and at each end a solid gold key, a free-throw semicircle and a small 3-point line. The white 3x3 lines sit on top wherever they cross.",
         "The Mega Slam is not used in mini sessions. Because the mini court now covers the whole surface, the v2 idea of a lowered Mega Slam as a separate shooting station is dropped; in the mini-game shot it stays at 10 ft, not in use.",
         "Clear space beyond each sideline increased to 2.0 m so the portable hoop bases sit on tarmac.",
         "Coordinates, key dimensions, plan drawing (Section 3), shot list and Section 11 rewritten to match.",
@@ -147,10 +147,10 @@ def build(media: Path, plan: Path, out: Path):
 
     heading(doc, "1. Orientation reference (start here)")
     para(doc, "This screenshot from a 3D court-designer tool shows the look and camera direction we want. Use it for layout, colours and viewpoint. It is not to scale and does not show the extra items (mini court, portable hoops, container): add those from the plan in Section 3.", italic=True, size=9)
-    image(doc, media / "image2.png", 11, "Orientation reference: 3x3 half court in grey, wider than it is deep, lighter grey key, white lines and arc, Hoop Heroes logo in the front-left corner. Viewed from the open end, looking towards the main hoop.")
+    image(doc, media / "image2.png", 11, "Orientation reference: 3x3 half court in grey, wider than it is deep, lighter grey key, white lines and arc, Hoop Heroes logo at the open end. Viewed from the open end, looking towards the main hoop. (v3 moves the logo to the open end, left of centre; see Section 3.)")
     bullet(doc, "3x3 half court first and foremost", "the white 3x3 markings must read as the main court in every shot.")
     bullet(doc, "Surface", "mid-grey court tiles, a lighter grey key, white lines including the 2-point arc, and a slim lighter border around the tile edge, as in the reference.")
-    bullet(doc, "Logo", "Hoop Heroes logo (gold hand-and-ball icon, white wordmark) painted in the front-left corner at the open end, reading the right way up for someone standing at the open end.")
+    bullet(doc, "Logo", "Hoop Heroes logo (gold hand-and-ball icon, white wordmark) painted at the open end, left of the halfway line, reading the right way up for someone standing at the open end.")
     bullet(doc, "Main camera direction", "from the open end of the court, looking towards the main hoop.")
 
     heading(doc, "2. What we want you to render")
@@ -172,19 +172,22 @@ def build(media: Path, plan: Path, out: Path):
     table(doc, ["Item", "Value", "Source"], [
         ["Tile area (whole court)", "14.8 m wide x 10.0 m deep (148 m²), tiles 300 x 300 mm, 15 mm thick", "[DESIGN] / [SUPPLIER]"],
         ["Line widths", "White 3x3 lines 50 mm. Gold mini-court lines 40 mm", "[FIBA] / [DESIGN]"],
-        ["3x3 court", "14.8 m baseline (FIBA 15 m) x 10.0 m deep (FIBA 11 m). Baseline = tile edge at the Mega Slam end; end line = tile edge at the open end; sidelines = the two 10 m tile edges", "[DESIGN]"],
+        ["3x3 court", "14.8 m baseline (FIBA 15 m) x 10.0 m deep (FIBA 11 m). The white boundary lines sit 0.10 m in from the tile edge, just inside the gold mini-court boundary. All dimensions below are measured from the tile edge", "[DESIGN]"],
         ["Basket centre", "1.575 m in from the baseline, centred across (7.4 m)", "[FIBA]"],
         ["Backboard face", "1.20 m in from the baseline (board overhangs the baseline)", "[FIBA]"],
         ["Key (restricted area)", "5.80 m deep x 4.90 m wide, lighter grey fill, white outline", "[FIBA] size / [DESIGN] colour"],
         ["Free-throw line and semicircle", "Line 5.80 m from the baseline, 3.60 m long; semicircle radius 1.80 m", "[FIBA]"],
-        ["2-point arc", "Radius 6.75 m from basket centre; straight corner lines 0.90 m in from each sideline, meeting the arc 3.40 m from the baseline; top of arc 8.33 m from the baseline", "[FIBA]"],
+        ["2-point arc", "Radius 6.75 m from basket centre; straight corner lines 0.90 m inside each white sideline (1.0 m from the tile edge), meeting the arc 3.72 m from the baseline; top of arc 8.33 m from the baseline", "[FIBA] radius / [DESIGN] corners"],
         ["No-charge semicircle", "Radius 1.25 m under the basket", "[FIBA]"],
-        ["Mini court area", "The whole tile area, run across: 14.8 m long between the two 10 m sidelines (its baselines) x 10.0 m wide (the 3x3 baseline and end line are its sidelines). No separate outline", "[DESIGN]"],
-        ["Mini court halfway line", "Gold, 7.4 m across, running the full 10 m from the 3x3 baseline to the end line, through the middle of the 3x3 key and under the Mega Slam", "[DESIGN]"],
-        ["Mini keys (one each end)", "Gold outline only, no fill: 2.75 m deep in from each 10 m sideline x 2.50 m wide, centred 5.0 m from the baseline, with a free-throw semicircle of radius 1.25 m", "[DESIGN]"],
+        ["Mini court area", "The whole tile area, run across: 14.8 m long between the two 10 m sidelines (its baselines) x 10.0 m wide (its sidelines run along the 3x3 baseline and end line), outlined by the gold boundary", "[DESIGN]"],
+        ["Mini court boundary", "Gold, 40 mm, on the tile edge all round; the white 3x3 boundary runs 60 mm inside it", "[DESIGN]"],
+        ["Mini court halfway line", "Gold, 7.4 m across, running the full 10 m from the baseline to the end line, through the middle of the 3x3 key and under the Mega Slam", "[DESIGN]"],
+        ["Mini centre circle", "Gold outline, radius 0.60 m, on the halfway line 5.0 m from the baseline (inside the 3x3 key)", "[DESIGN]"],
+        ["Mini keys (one each end)", "Solid gold fill: 2.75 m deep in from each 10 m tile edge x 2.50 m wide, centred 5.0 m from the baseline, with a gold free-throw semicircle (outline) of radius 1.25 m. The white 3x3 arc and corner line stay visible over the gold", "[DESIGN]"],
+        ["Mini 3-point lines (one each end)", "Gold. Radius 4.0 m from the mini basket centre (0.6 m in from the tile edge, 5.0 m from the baseline); straight corner lines 1.2 m in from the 14.8 m edges, meeting the arc 1.85 m in from the end; top of arc 4.6 m in", "[DESIGN]"],
         ["Portable hoop bases", "1.45 x 0.77 m, on the tarmac just outside each 10 m sideline, centred 5.0 m from the baseline, facing each other across the 14.8 m", "[SUPPLIER] base / [DESIGN] position"],
         ["Portable hoop rim position", "About 0.6 m inside the tile edge", "[ASSUMED]"],
-        ["Court logo", "Hoop Heroes landscape logo, about 3.0 m wide, front-left corner at the open end (about 0.4 m in from the left sideline and the end line). Clear of the arc and the left mini key", "[DESIGN]"],
+        ["Court logo", "Hoop Heroes landscape logo, about 3.0 m wide (artwork incl. margin), at the open end, left of the halfway line, between the white arc and the end line: roughly 4.4 m to 1.4 m left of centre, about 0.35 m clear of every line", "[DESIGN]"],
         ["Mega Slam post", "On the tarmac just behind the baseline, centred across (7.4 m)", "[DESIGN]"],
         ["Storage container", "8 ft: 2.44 m long x 2.20 m deep x 2.26 m high. Square to the court, long side parallel to the baseline, set back 2.0 m behind the tiles, to the right of the hoop seen from the open end (roughly 10.9 m to 13.3 m across). Doors on the outer short end", "[SUPPLIER] size / [DESIGN] position"],
         ["Clear space on the tarmac", "2.0 m behind the baseline, 2.0 m beyond each sideline (room for the portable hoop bases), 1.0 m beyond the open end", "[DESIGN]"],
@@ -193,8 +196,8 @@ def build(media: Path, plan: Path, out: Path):
     heading(doc, "3.2 What differs from a full FIBA 3x3 court", size=13)
     for t in [
         "The court is 14.8 m x 10.0 m against FIBA's 15.0 m x 11.0 m, set by the tile area. The orientation is the same: wider than it is deep.",
-        "The key, free-throw line, arc, no-charge semicircle and basket position are full FIBA size. Because the court is 0.2 m narrower, the corner lines meet the arc 3.40 m from the baseline (FIBA 2.99 m).",
-        "The gold mini-court lines overlap the white ones: the halfway line runs through the 3x3 key, and the white arc crosses each gold key. This is expected; white sits on top where they meet.",
+        "The key, free-throw line, arc radius, no-charge semicircle and basket position are full FIBA size, measured from the tile edge. FIBA measures from the inner edge of the baseline, which here is 0.15 m in, so the hoop sits about 0.15 m closer to the white baseline than FIBA; this keeps the Mega Slam post off the tiles.",
+        "The gold mini-court lines overlap the white ones: the halfway line and centre circle sit in the 3x3 key, and the white arc crosses each gold key and gold 3-point line. This is expected; white sits on top where they meet.",
         "The clear space around the court is tarmac, not tiles. Show the tiles ending with a slim bevelled edge.",
         "This is a community court, not an official competition court.",
     ]:
@@ -203,8 +206,8 @@ def build(media: Path, plan: Path, out: Path):
     heading(doc, "4. Markings")
     table(doc, ["Markings", "Lines", "Fill", "Notes"], [
         ["Primary: 3x3 half court (Mega Slam on the 14.8 m baseline, 10 m deep)", "Solid white, 50 mm", "Court mid grey; key lighter grey (match the orientation reference)", "Must read as the main court from every angle"],
-        ["Secondary: mini court (runs across, between the portable hoops on the 10 m sidelines)", "Gold #fba91a, 40 mm. Halfway line (full 10 m) plus one key at each end ONLY", "No fill", "No separate outline, no centre circle, no 3-point line. Where gold meets white, white sits on top"],
-        ["Logo", "-", "Hoop Heroes logo painted in the front-left corner", "Gold icon, white wordmark. Only logo on the court surface"],
+        ["Secondary: mini court (runs across, between the portable hoops on the 10 m sidelines)", "Gold #fba91a, 40 mm: boundary just outside the white, halfway line, small centre circle, and at each end a key, free-throw semicircle and 3-point line", "Keys solid gold", "No other gold. Where gold meets white, white sits on top"],
+        ["Logo", "-", "Hoop Heroes logo painted at the open end, left of the halfway line", "Gold icon, white wordmark. Only logo on the court surface"],
     ], [4.4, 4.0, 4.0, 5.0])
 
     heading(doc, "5. Materials and colours")
@@ -271,12 +274,12 @@ def build(media: Path, plan: Path, out: Path):
 
     heading(doc, "10. Shot list")
     para(doc, "All stills 3840 x 2160 px (4K), 16:9. Camera heights and lenses are starting points.", italic=True, size=9)
-    numbered(doc, 1, "Orientation view (match the reference)", "elevated three-quarter view (about 5 to 6 m high) from the open end, looking across the depth of the court to the main hoop, framed like the reference screenshot. Grey half court, lighter key, white arc, logo in the front-left corner. Gold mini markings visible but secondary. Portable hoops folded away; container billboard visible behind and to one side of the hoop.")
+    numbered(doc, 1, "Orientation view (match the reference)", "elevated three-quarter view (about 5 to 6 m high) from the open end, looking across the depth of the court to the main hoop, framed like the reference screenshot. Grey half court, lighter key, white arc, logo at the open end. Gold mini markings visible but secondary. Portable hoops folded away; container billboard visible behind and to one side of the hoop.")
     numbered(doc, 2, "Bird's-eye top-down", "orthographic or near-orthographic view straight down, framing the tiles, both portable hoops (out) and the container. Must show both line systems clearly (white 3x3, gold halfway line and keys) and the corner logo. Use it to cross-check against the plan.")
     numbered(doc, 3, "Mega Slam at three heights (3 stills, same camera)", "camera at the free-throw line extended, about 1.2 m high, about 30 degrees off the court axis, 28 to 35 mm lens. Rim at (a) 7 ft / 2.13 m, (b) 8.5 ft / 2.59 m, (c) 10 ft / 3.05 m. Show the post in the tarmac behind the tiles, the board overhanging the baseline, the crank handle and the overhang growing as the rim lowers.")
     numbered(doc, 4, "Cross-court mini game set-up", "elevated three-quarter aerial (about 8 to 10 m high) from an open-end corner. Both portable hoops out, one at each end of the mini court, facing each other across the 14.8 m over the gold keys. Mega Slam at 10 ft and not in use (see Section 11).")
     numbered(doc, 5, "Storage container, doors open", "eye level, about 3 m from the open doors, 24 to 28 mm lens, court visible beside. Folded hoops, ball cart and ball bags inside; the wrapped billboard side partly visible. Optional: one portable hoop half rolled out down the ramp.")
-    numbered(doc, 6, "Eye-level hero shot (cover image)", "child eye height (about 1.1 to 1.2 m), low and wide (24 mm), from the open end near the front-left corner logo, looking towards the main hoop. The logo leads into the frame; the Mega Slam at 10 ft and the container billboard behind it. Warm late-afternoon light.")
+    numbered(doc, 6, "Eye-level hero shot (cover image)", "child eye height (about 1.1 to 1.2 m), low and wide (24 mm), from the open end just behind the logo, looking towards the main hoop. The logo leads into the frame; the Mega Slam at 10 ft and the container billboard behind it. Warm late-afternoon light.")
     para(doc, "Total: 8 stills (shot 3 is 3 frames).", bold=True, color=NAVY)
 
     heading(doc, "11. The Mega Slam does not serve the mini court")
@@ -288,7 +291,7 @@ def build(media: Path, plan: Path, out: Path):
         "Do not name, show or hint at any real school: no crests, signs, uniforms, banners, recognisable buildings or postcodes.",
         "Do not show identifiable children: no faces, names or numbers on kit. Ideally no people at all.",
         "Do not add a canopy, roof, floodlights, toilet block or building. Phase 1 is open air.",
-        "Do not add a gold outline, centre circle or 3-point line to the mini court, or any QR code or text to the container.",
+        "Do not add gold markings beyond those listed in Sections 3.1 and 4, or any QR code or text to the container.",
         "Do not use the Mega Slam as a basket for the mini court.",
         "Do not use other sports brands' logos (keep the portable hoop boards plain).",
         "Do not recolour or redraw the Hoop Heroes logo; use the supplied files.",

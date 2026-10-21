@@ -29,13 +29,20 @@ export const DIM = {
   keyW: 4.9,
   ftR: 1.8,
   arcR: 6.75,
-  cornerIn: 0.9,
+  cornerIn: 1.0, // from the tile edge: 0.9 m in from the white sideline
   noChargeR: 1.25,
+  whiteInset: 0.1, // gold mini-court boundary on the tile edge, white 3x3 boundary just inside it
   miniStart: 0,
   miniKeyZ: 5,
   miniKeyW: 2.5,
   miniKeyD: 2.75,
   miniFtR: 1.25,
+  miniRimIn: 0.6,
+  mini3R: 4.0,
+  mini3CornerIn: 1.2,
+  miniCircleR: 0.6,
+  // logo image box (the PNG carries its own margin): open end, left of the halfway line
+  logo: { x: -4.38, z: 8.27, w: 2.98 },
   borderW: 0.09,
   container: { x0: 3.5, x1: 5.94, z0: -4.2, z1: -2.0, h: 2.26 },
 };
@@ -116,8 +123,9 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) 
     }
   }
   // key fill
+  const inset = DIM.whiteInset;
   g.fillStyle = COL.key;
-  g.fillRect(X(-DIM.keyW / 2), Z(0), DIM.keyW * PX, DIM.keyD * PX);
+  g.fillRect(X(-DIM.keyW / 2), Z(inset), DIM.keyW * PX, (DIM.keyD - inset) * PX);
 
   const stroke = (color, w, draw) => {
     g.strokeStyle = color;
@@ -128,38 +136,48 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) 
     g.stroke();
   };
 
-  // gold mini court (under the white)
+  // gold mini court, under the white: boundary on the tile edge, halfway line and centre circle,
+  // and at each end a solid key, free-throw semicircle and a small three-point line
   const gw = DIM.goldW;
+  const gh = gw / 2;
+  stroke(COL.gold, gw, () => g.rect(X(-W / 2 + gh), Z(gh), (W - gw) * PX, (L - gw) * PX));
   stroke(COL.gold, gw, () => {
     g.moveTo(X(0), Z(halfwayStart));
     g.lineTo(X(0), Z(L));
   });
+  stroke(COL.gold, gw, () => g.arc(X(0), Z(DIM.miniKeyZ), DIM.miniCircleR * PX, 0, Math.PI * 2));
   for (const s of [-1, 1]) {
-    const edge = s * (W / 2 - DIM.lineW);
+    const edge = s * (W / 2);
     const inner = s * (W / 2 - DIM.miniKeyD);
     const z0 = DIM.miniKeyZ - DIM.miniKeyW / 2;
-    const z1 = DIM.miniKeyZ + DIM.miniKeyW / 2;
+    g.fillStyle = COL.gold;
+    g.fillRect(X(Math.min(edge, inner)), Z(z0), DIM.miniKeyD * PX, DIM.miniKeyW * PX);
+    const a0 = s < 0 ? -Math.PI / 2 : Math.PI / 2;
+    stroke(COL.gold, gw, () => g.arc(X(inner), Z(DIM.miniKeyZ), DIM.miniFtR * PX, a0, a0 + Math.PI));
+    // three-point line: straight corner lines parallel to the 14.8 m sides, then the arc
+    const rimX = s * (W / 2 - DIM.miniRimIn);
+    const dz = L / 2 - DIM.mini3CornerIn;
+    const dx = Math.sqrt(DIM.mini3R ** 2 - dz ** 2);
+    const ang = Math.atan2(dz, dx);
     stroke(COL.gold, gw, () => {
-      g.moveTo(X(edge), Z(z0));
-      g.lineTo(X(inner), Z(z0));
-      g.lineTo(X(inner), Z(z1));
-      g.lineTo(X(edge), Z(z1));
-    });
-    stroke(COL.gold, gw, () => {
-      const a0 = s < 0 ? -Math.PI / 2 : Math.PI / 2;
-      g.arc(X(inner), Z(DIM.miniKeyZ), DIM.miniFtR * PX, a0, a0 + Math.PI);
+      g.moveTo(X(edge), Z(DIM.miniKeyZ - dz));
+      g.lineTo(X(rimX - s * dx), Z(DIM.miniKeyZ - dz));
+      if (s < 0) g.arc(X(rimX), Z(DIM.miniKeyZ), DIM.mini3R * PX, -ang, ang);
+      else g.arc(X(rimX), Z(DIM.miniKeyZ), DIM.mini3R * PX, Math.PI + ang, Math.PI - ang, true);
+      g.lineTo(X(edge), Z(DIM.miniKeyZ + dz));
     });
   }
 
-  // white 3x3 half court
+  // white 3x3 half court, its boundary set just inside the gold
   const lw = DIM.lineW;
   const h = lw / 2;
-  stroke(COL.white, lw, () => g.rect(X(-W / 2 + h), Z(h), (W - lw) * PX, (L - lw) * PX));
+  const b = inset + h; // centre of the white boundary lines
+  stroke(COL.white, lw, () => g.rect(X(-W / 2 + b), Z(b), (W - 2 * b) * PX, (L - 2 * b) * PX));
   stroke(COL.white, lw, () => {
-    g.moveTo(X(-DIM.keyW / 2 + h), Z(0));
+    g.moveTo(X(-DIM.keyW / 2 + h), Z(inset));
     g.lineTo(X(-DIM.keyW / 2 + h), Z(DIM.keyD - h));
     g.lineTo(X(DIM.keyW / 2 - h), Z(DIM.keyD - h));
-    g.lineTo(X(DIM.keyW / 2 - h), Z(0));
+    g.lineTo(X(DIM.keyW / 2 - h), Z(inset));
   });
   stroke(COL.white, lw, () => g.arc(X(0), Z(DIM.keyD - h), DIM.ftR * PX, 0, Math.PI));
   // two-point arc with straight corner lines
@@ -167,10 +185,10 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) 
   const meet = DIM.basketZ + Math.sqrt(DIM.arcR ** 2 - cx ** 2);
   const ang = Math.atan2(meet - DIM.basketZ, cx);
   stroke(COL.white, lw, () => {
-    g.moveTo(X(-cx), Z(0));
+    g.moveTo(X(-cx), Z(inset));
     g.lineTo(X(-cx), Z(meet));
     g.arc(X(0), Z(DIM.basketZ), DIM.arcR * PX, Math.PI - ang, ang, true);
-    g.lineTo(X(cx), Z(0));
+    g.lineTo(X(cx), Z(inset));
   });
   // no-charge semicircle with its short straight ends to the board line
   stroke(COL.white, lw, () => {
@@ -181,12 +199,11 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) 
     g.lineTo(X(r), Z(DIM.boardZ10));
   });
 
-  // logo, front-left corner at the open end, upright for someone standing at the open end
+  // logo at the open end, upright for someone standing there
   if (logo) {
-    const lwM = 3.0;
-    const lhM = (lwM * logo.height) / logo.width;
+    const { x, z, w } = DIM.logo;
     g.globalAlpha = 0.97;
-    g.drawImage(logo, X(-W / 2 + 0.4), Z(L - 0.4 - lhM), lwM * PX, lhM * PX);
+    g.drawImage(logo, X(x), Z(z), w * PX, ((w * logo.height) / logo.width) * PX);
     g.globalAlpha = 1;
   }
   return c;
@@ -1211,5 +1228,5 @@ export const SHOTS = {
   '3c': { label: 'Mega Slam 10 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 10, doors: 0 } },
   4: { label: 'Mini game', pos: [14.5, 9.5, 17.5], target: [0, 0.3, 3.8], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
   5: { label: 'Container', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
-  6: { label: 'Hero', pos: [-6.6, 1.15, 12.8], target: [-0.6, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
+  6: { label: 'Hero', pos: [-3.6, 1.15, 12.6], target: [-0.3, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
 };
