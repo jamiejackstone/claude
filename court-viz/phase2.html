@@ -45,7 +45,8 @@
     border-radius: 999px; padding: 6px 11px; cursor: pointer; white-space: nowrap;
   }
   .collapse { background: var(--gold); color: var(--navy); border-color: var(--gold); }
-  button:hover { border-color: var(--gold); }
+  button:hover, a.link:hover { border-color: var(--gold); }
+  a.link { text-decoration: none; display: inline-block; }
   button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   button.on { background: var(--gold); color: var(--navy); border-color: var(--gold); }
   label.slider { display: flex; align-items: center; gap: 6px; font: 700 11px Montserrat, sans-serif; text-transform: uppercase; }
@@ -93,13 +94,18 @@
   <div class="group" id="shots"></div>
   <div class="sep"></div>
   <div class="group">
-    <button id="door" class="on" aria-pressed="true">Door up</button>
+    <button id="door" class="on" aria-pressed="true">Door</button>
+    <button id="store" class="on" aria-pressed="true">Storage</button>
+    <button id="canopy" class="on" aria-pressed="true">Canopy</button>
+    <button id="night" aria-pressed="false">Night</button>
     <label class="slider">Rim <input id="rim" type="range" min="6" max="10" step="1" value="10"> <span id="rimv">10 ft</span></label>
   </div>
+  <div class="sep"></div>
+  <a class="toggle link" href="https://claude.ai/artifact/D1vmKFN3KrENpuyqoQzSWe" target="_blank" rel="noopener">Phase 1 ↗</a>
   </div>
 </div>
 <div class="concept">CONCEPT - HOOP HUB</div>
-<div class="hint">Drag to orbit · scroll to zoom</div>
+<div class="hint">Drag to orbit · scroll or pinch to zoom in through the door</div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -109,7 +115,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
-import { createPhase2, SHOTS } from './phase2/hub.js';
+import { createPhase2, SHOTS, HUB, archY } from './phase2/hub.js';
 
 const params = new URLSearchParams(location.search);
 const renderMode = params.has('shot');
@@ -169,7 +175,7 @@ const controls = renderMode ? null : new OrbitControls(persp, renderer.domElemen
 if (controls) {
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI / 2 - 0.03;
-  controls.minDistance = 1;
+  controls.minDistance = 0.3; // zoom straight through the front wall and in
   controls.maxDistance = 90;
 }
 
@@ -177,7 +183,7 @@ let currentShot = '1';
 function setShot(id, extra = {}) {
   currentShot = id;
   const s = SHOTS[id];
-  hub.apply({ cutaway: false, ...s.state, ...extra });
+  hub.apply({ mini: true, roller: 1, cutaway: false, storeDoors: 1, night: false, ...s.state, ...extra });
   if (s.ortho) {
     const { cx, cz, height } = s.ortho;
     const aspect = W / H;
@@ -216,9 +222,11 @@ function render() {
 }
 
 // ---------- UI
+// views fly the camera between presets; going inside or out routes through the roller door
 const VIEWS = [
   ['1', 'Outside'],
   ['2', 'Inside'],
+  ['4', 'Reception'],
   ['3', 'Top-down'],
 ];
 const shotBar = document.getElementById('shots');
@@ -226,14 +234,20 @@ for (const [id, label] of VIEWS) {
   const b = document.createElement('button');
   b.textContent = label;
   b.dataset.shot = id;
-  b.onclick = () => setShot(id, { roller: hub.state.roller, rimFt: hub.state.rimFt });
+  b.onclick = () => flyTo(id);
   shotBar.appendChild(b);
 }
 const $ = (id) => document.getElementById(id);
+const flag = (id, on) => {
+  $(id).classList.toggle('on', on);
+  $(id).setAttribute('aria-pressed', String(on));
+};
 function syncUI() {
   for (const b of shotBar.children) b.classList.toggle('on', b.dataset.shot === currentShot);
-  $('door').classList.toggle('on', hub.state.roller > 0.5);
-  $('door').setAttribute('aria-pressed', String(hub.state.roller > 0.5));
+  flag('door', anims.roller ? anims.roller.to > 0.5 : hub.state.roller > 0.5);
+  flag('store', anims.storeDoors ? anims.storeDoors.to > 0.5 : hub.state.storeDoors > 0.5);
+  flag('canopy', !hub.state.cutaway);
+  flag('night', hub.state.night);
   $('rim').value = hub.state.rimFt;
   $('rimv').textContent = `${hub.state.rimFt} ft`;
 }
@@ -248,25 +262,86 @@ try { startCollapsed = localStorage.getItem('hh-controls-collapsed') === '1'; } 
 setCollapsed(startCollapsed);
 $('collapse').onclick = () => setCollapsed(!$('bar').classList.contains('collapsed'));
 $('rim').oninput = (e) => { hub.apply({ rimFt: +e.target.value }); syncUI(); };
-// roller door: rolls up or down over a few seconds
-const DOOR_TIME = 4;
-let doorAnim = null;
-$('door').onclick = () => {
-  const up = hub.state.roller < 0.5;
-  const from = hub.state.roller;
+
+// roller door and storage shutters roll up or down over a couple of seconds
+const anims = {};
+function animate(key, to, secs = 2.5) {
+  const from = hub.state[key];
+  if (Math.abs(from - to) < 1e-3) return;
   const t0 = performance.now();
-  doorAnim = { up, p: () => THREE.MathUtils.clamp(from + ((up ? 1 : -1) * (performance.now() - t0)) / 1000 / DOOR_TIME, 0, 1) };
-  $('door').classList.toggle('on', up);
-};
-function stepDoor() {
-  if (!doorAnim) return;
-  const p = doorAnim.p();
-  hub.apply({ roller: p });
-  if ((doorAnim.up && p >= 1) || (!doorAnim.up && p <= 0)) {
-    doorAnim = null;
-    syncUI();
+  const dur = secs * Math.abs(to - from);
+  anims[key] = { to, p: () => THREE.MathUtils.lerp(from, to, Math.min(1, (performance.now() - t0) / 1000 / dur)) };
+}
+function stepAnims() {
+  for (const [key, a] of Object.entries(anims)) {
+    const v = a.p();
+    hub.apply({ [key]: v });
+    if (v === a.to) {
+      delete anims[key];
+      syncUI();
+    }
   }
 }
+$('door').onclick = () => { animate('roller', hub.state.roller > 0.5 ? 0 : 1); syncUI(); };
+$('store').onclick = () => { animate('storeDoors', hub.state.storeDoors > 0.5 ? 0 : 1, 2); syncUI(); };
+$('canopy').onclick = () => { hub.apply({ cutaway: !hub.state.cutaway }); syncUI(); };
+$('night').onclick = () => { hub.apply({ night: !hub.state.night }); syncUI(); };
+
+// camera flights
+const ease = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+const inside = (p) => Math.abs(p.x) < HUB.x1 + HUB.cw && p.z > HUB.z0 && p.z < HUB.z1 && p.y < archY(Math.min(Math.abs(p.x), HUB.x1));
+let fly = null;
+function flyTo(id) {
+  const s = SHOTS[id];
+  currentShot = id;
+  if (s.ortho) {
+    // top-down: the canopy comes off and the camera snaps to the plan
+    fly = null;
+    setShot(id, { ...keep(), cutaway: true });
+    return;
+  }
+  if (camera === ortho) {
+    // leaving the plan: start from high above it
+    camera = persp;
+    persp.position.set(0, 26, HUB.z1 + 2);
+    controls.target.set(0, 0, 5);
+  }
+  hub.apply({ cutaway: false });
+  const p0 = persp.position.clone();
+  const t0 = controls.target.clone();
+  const p1 = new THREE.Vector3(...s.pos);
+  const t1 = new THREE.Vector3(...s.target);
+  const pts = [p0];
+  if (inside(p0) !== inside(p1)) {
+    // through the doorway, raising the door first if it is down
+    if (hub.state.roller < 0.99) animate('roller', 1, 1.6);
+    const out = inside(p0) ? p1 : p0;
+    const near = new THREE.Vector3(THREE.MathUtils.clamp(out.x * 0.15, -1.5, 1.5), 2.3, HUB.z1 + 3.5);
+    const inner = new THREE.Vector3(0, 2.1, HUB.z1 - 2.5);
+    pts.push(...(inside(p0) ? [inner, near] : [near, inner]));
+  }
+  pts.push(p1);
+  const path = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+  const fov0 = persp.userData.fov ?? persp.fov;
+  const dur = pts.length > 2 ? 3.4 : 1.8;
+  const delay = pts.length > 2 && hub.state.roller < 0.99 ? 0.9 : 0;
+  const start = performance.now();
+  controls.enabled = false;
+  fly = (now) => {
+    const u = ease(THREE.MathUtils.clamp((now - start) / 1000 - delay, 0, dur) / dur);
+    persp.position.copy(path.getPoint(u));
+    controls.target.lerpVectors(t0, t1, u);
+    setFov(THREE.MathUtils.lerp(fov0, s.fov, u));
+    persp.lookAt(controls.target);
+    if (u >= 1) {
+      fly = null;
+      controls.enabled = true;
+    }
+  };
+  syncUI();
+}
+// the viewer keeps the visitor's own toggles when changing view
+const keep = () => ({ roller: hub.state.roller, storeDoors: hub.state.storeDoors, night: hub.state.night, rimFt: hub.state.rimFt });
 
 addEventListener('resize', () => {
   if (renderMode) return;
@@ -288,9 +363,10 @@ if (renderMode) {
 } else {
   setShot('1');
   window.__ready = true;
-  renderer.setAnimationLoop(() => {
-    stepDoor();
-    controls.update();
+  renderer.setAnimationLoop((now) => {
+    stepAnims();
+    if (fly) fly(performance.now());
+    else controls.update();
     render();
   });
 }

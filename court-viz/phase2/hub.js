@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { COL, DIM, FT, canvas, tex, std, shadowed, buildCourt, buildSurroundings, cloudDome, corrugation, loadImage, MegaSlam, PortableHoop, ballRack } from './scene.js';
+import { COL, DIM, FT, canvas, tex, std, shadowed, buildCourt, buildSurroundings, cloudDome, corrugation, loadImage, fitText, MegaSlam, PortableHoop, ballRack } from './scene.js';
 
 export const HUB = {
   x0: -9,
@@ -33,14 +33,6 @@ export const HUB = {
     [8.6, 10.4],
   ],
   ribs: 7,
-  // ball racks along the end walls, clear of the side-opening storage and the exits
-  racks: [
-    [-6.2, -0.55, 0],
-    [-3.4, -0.55, 0],
-    [3.4, -0.55, 0],
-    [-6.2, 10.55, 0],
-    [6.2, 10.55, 0],
-  ],
 };
 const RISE = HUB.crown - HUB.ch;
 const HALF = (HUB.x1 - HUB.x0) / 2;
@@ -54,6 +46,82 @@ const box = (w, h, d, mat, x, y, z) => {
   m.castShadow = m.receiveShadow = true;
   return m;
 };
+
+// ---------------------------------------------------------------- branding
+
+// draw an image centred at (cx, cy) metres from the panel's bottom-left, w metres wide
+function drawImg(g, s, H, im, cx, cy, w) {
+  if (!im) return;
+  const h = (w * im.height) / im.width;
+  g.drawImage(im, (cx - w / 2) * s, (H - cy - h / 2) * s, w * s, h * s);
+}
+function drawText(g, s, H, text, cx, cy, size, color, maxW) {
+  g.fillStyle = color;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  fitText(g, text, '"Lilita One", sans-serif', size * s, maxW * s);
+  g.fillText(text, cx * s, (H - cy) * s);
+}
+function stripe(g, s, W, H, color) {
+  // the brand stripe low down, at the same height on every wall and container
+  g.fillStyle = color;
+  g.fillRect(0, (H - 0.67) * s, W * s, 0.25 * s);
+}
+// a painted panel laid over a face; normal is '+x' | '-x' | '+z' | '-z'
+function facePanel(w, h, base, draw, { ribs = true, s = 200 } = {}) {
+  const c = canvas(Math.round(w * s), Math.round(h * s));
+  const g = c.getContext('2d');
+  if (base) {
+    g.fillStyle = base;
+    g.fillRect(0, 0, c.width, c.height);
+  }
+  draw(g, s, w, h);
+  const mat = std('#ffffff', { map: tex(c), roughness: 0.6, metalness: 0.15, transparent: !base, ...(ribs ? { bumpMap: corrugation(w, h), bumpScale: 2 } : {}) });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  m.receiveShadow = true;
+  return m;
+}
+const FACING = { '+x': Math.PI / 2, '-x': -Math.PI / 2, '+z': 0, '-z': Math.PI };
+function place(m, normal, x, y, z) {
+  m.rotation.y = FACING[normal];
+  m.position.set(x, y, z);
+  return m;
+}
+
+function exitSignTexture() {
+  // green running-man sign with an arrow, as the brief's elevations
+  const c = canvas(360, 160);
+  const g = c.getContext('2d');
+  g.fillStyle = '#009a44';
+  g.fillRect(0, 0, 360, 160);
+  g.strokeStyle = '#ffffff';
+  g.fillStyle = '#ffffff';
+  g.lineCap = 'round';
+  g.lineWidth = 14;
+  // running man
+  g.beginPath();
+  g.arc(118, 34, 13, 0, Math.PI * 2);
+  g.fill();
+  const seg = (pts) => {
+    g.beginPath();
+    g.moveTo(...pts[0]);
+    for (const p of pts.slice(1)) g.lineTo(...p);
+    g.stroke();
+  };
+  seg([[108, 56], [92, 98]]);
+  seg([[92, 98], [118, 112], [112, 140]]);
+  seg([[92, 98], [70, 116], [52, 112]]);
+  seg([[104, 62], [130, 76], [146, 66]]);
+  seg([[104, 62], [80, 70], [70, 86]]);
+  // door
+  g.lineWidth = 8;
+  g.strokeRect(168, 22, 52, 118);
+  // arrow
+  g.lineWidth = 16;
+  seg([[250, 80], [330, 80]]);
+  seg([[300, 50], [330, 80], [300, 110]]);
+  return tex(c);
+}
 
 function runoffTexture() {
   // navy-grey interlocking tiles around the court, on the same panel grid as the court
@@ -124,20 +192,45 @@ function endWallShape(notches, flip) {
   return geo;
 }
 
-function endWallTexture(kind) {
-  // navy up to about 6 m with a gold stripe low down, white fabric above
-  const s = 80;
-  const c = canvas(18 * s, Math.round(HUB.crown * s));
+function endWallTexture(kind, art) {
+  // navy up to about 6 m with the gold stripe low down, white fabric above; artwork in the wall's own
+  // left-to-right as seen from that side. Returns the map and a mask of the fabric that glows at night.
+  const s = 110;
+  const W = 2 * HALF;
+  const H = HUB.crown;
+  const c = canvas(Math.round(W * s), Math.round(H * s));
   const g = c.getContext('2d');
-  const Y = (m) => c.height - m * s;
+  const X = (x) => x + HALF; // wall x (-9..9) to panel metres
   g.fillStyle = '#f4f5f6';
   g.fillRect(0, 0, c.width, c.height);
   g.fillStyle = COL.navy;
-  g.fillRect(0, Y(HUB.navyTo), c.width, HUB.navyTo * s);
-  g.fillStyle = COL.gold;
-  g.fillRect(0, Y(0.67), c.width, 0.25 * s);
-  void kind;
-  return tex(c);
+  g.fillRect(0, (H - HUB.navyTo) * s, c.width, HUB.navyTo * s);
+  stripe(g, s, W, H, COL.gold);
+  if (kind === 'entrance-out') {
+    // HOOP HUB above the door, a logo either side
+    drawText(g, s, H, 'HOOP HUB', X(0), 5.5, 1.05, COL.gold, 6.4);
+    drawImg(g, s, H, art.logo, X(-6.0), 3.3, 3.0);
+    drawImg(g, s, H, art.logo, X(6.0), 3.3, 3.0);
+  } else if (kind === 'entrance-in') {
+    drawImg(g, s, H, art.logo, X(0), 5.25, 2.7);
+    drawImg(g, s, H, art.roundWhite, X(-6.1), 3.1, 1.6);
+    drawImg(g, s, H, art.roundWhite, X(6.1), 3.1, 1.6);
+  } else if (kind === 'slam-in') {
+    // big logo above the Mega Slam board, round badges either side
+    drawImg(g, s, H, art.logo, X(0), 5.0, 3.9);
+    drawImg(g, s, H, art.roundWhite, X(-6.4), 3.3, 1.7);
+    drawImg(g, s, H, art.roundWhite, X(6.6), 3.6, 1.5);
+    drawText(g, s, H, 'HOOP HUB', X(-6.4), 1.55, 0.5, COL.gold, 3);
+  } else if (kind === 'slam-out') {
+    drawImg(g, s, H, art.logo, X(0), 3.7, 4.6);
+  }
+  const m = canvas(64, Math.round(H * 8));
+  const mg = m.getContext('2d');
+  mg.fillStyle = '#000';
+  mg.fillRect(0, 0, 64, m.height);
+  mg.fillStyle = '#fff';
+  mg.fillRect(0, 0, 64, (H - HUB.navyTo) * 8);
+  return { map: tex(c, { aniso: 16 }), glow: tex(m) };
 }
 
 class RollerDoor {
@@ -195,7 +288,7 @@ function exitDoor(w, h) {
 
 class Unit {
   // a container along z, its court-facing side at x = face; side = -1 on the left row, +1 on the right
-  constructor({ z0, z1, side, color, glazed = false, door = null }) {
+  constructor({ z0, z1, side, color, glazed = false, door = null, brand = {} }) {
     const { cw, ch } = HUB;
     this.group = new THREE.Group();
     const len = z1 - z0;
@@ -232,7 +325,7 @@ class Unit {
       g.add(box(0.16, 0.16, len, frame, x, ch - 0.08, cz));
       g.add(box(0.16, 0.16, len, frame, x, 0.08, cz));
     }
-    if (glazed) this.glaze(z0, z1, faceX, side);
+    if (glazed) this.glaze(z0, z1, faceX, side, brand.art ?? {});
     else {
       // court side: ribbed steel with one roller shutter at the corner end, rolling up inside
       const [da, db] = door;
@@ -244,7 +337,19 @@ class Unit {
       if (da - z0 > 0.01) rib(z0, da, 0.12, ch - 0.12);
       if (z1 - db > 0.01) rib(db, z1, 0.12, ch - 0.12);
       rib(da, db, sy0 + sh, ch - 0.12);
-      g.add(box(cw - 0.3, ch - 0.3, len - 0.3, std('#20232a', { roughness: 0.95, side: THREE.BackSide }), cx, ch / 2, cz));
+      // painted steel lining, lit, with ball racks against the back wall where they show through the shutter
+      g.add(box(cw - 0.3, ch - 0.3, len - 0.3, std('#9ba1a8', { roughness: 0.9, side: THREE.BackSide }), cx, ch / 2, cz));
+      g.add(box(cw - 0.32, 0.02, len - 0.32, std('#8a7458', { roughness: 0.85 }), cx, 0.13, cz));
+      for (const k of [0.27, 0.73]) {
+        const r = ballRack();
+        r.rotation.y = Math.PI / 2;
+        r.position.set(outerX - side * 0.42, 0.14, da + sw * k);
+        g.add(r);
+      }
+      const lamp = new THREE.PointLight('#fff4e0', 2.2, 5, 1.5);
+      lamp.position.set(cx, ch - 0.35, (da + db) / 2);
+      g.add(lamp);
+      this.lamp = lamp;
       const trim = std('#5f6670', { roughness: 0.5, metalness: 0.5 });
       for (const z of [da, db]) g.add(box(0.07, sh, 0.08, trim, faceX - side * 0.01, sy0 + sh / 2, z));
       g.add(box(0.07, 0.08, sw + 0.08, trim, faceX - side * 0.01, sy0 + sh, (da + db) / 2));
@@ -266,6 +371,28 @@ class Unit {
       g.add(this.curtain);
       this.shutter = { y0: sy0, h: sh };
     }
+    if (brand.base) this.brandFaces({ z0, z1, side, door }, brand);
+  }
+  brandFaces({ z0, z1, side, door }, brand) {
+    // painted wraps laid just proud of each face
+    const { cw, ch } = HUB;
+    const len = z1 - z0;
+    const cx = side * (HALF + cw / 2);
+    const outerX = side * (HALF + cw);
+    const faceX = side * HALF;
+    const out = side > 0 ? '+x' : '-x';
+    const inn = side > 0 ? '-x' : '+x';
+    const add = (m) => this.group.add(m);
+    const base = brand.base;
+    if (brand.outer) add(place(facePanel(len - 0.32, ch - 0.32, base, brand.outer), out, outerX + side * 0.004, ch / 2, (z0 + z1) / 2));
+    if (brand.endBack) add(place(facePanel(cw - 0.32, ch - 0.32, base, brand.endBack), '-z', cx, ch / 2, z0 - 0.004));
+    if (brand.endFront) add(place(facePanel(cw - 0.32, ch - 0.32, base, brand.endFront), '+z', cx, ch / 2, z1 + 0.004));
+    if (brand.court && door) {
+      // the solid stretch of the court side, away from the shutter
+      const [da, db] = door;
+      const [a, b] = da - z0 > z1 - db ? [z0 + 0.16, da - 0.06] : [db + 0.06, z1 - 0.16];
+      add(place(facePanel(b - a, ch - 0.32, base, brand.court), inn, faceX - side * 0.004, ch / 2, (a + b) / 2));
+    }
   }
   setDoors(open) {
     // roller shutter: 0 down, 1 rolled right up
@@ -278,7 +405,7 @@ class Unit {
     this.curtain.visible = open < 0.999;
   }
 
-  glaze(z0, z1, faceX, side) {
+  glaze(z0, z1, faceX, side, art) {
     // reception: glazed court side in aluminium frames, with a glazed door
     const g = this.group;
     const { ch } = HUB;
@@ -341,6 +468,33 @@ class Unit {
       g.add(box(0.4, 0.44, 0.04, std('#2a2d31', { metalness: 0.6 }), outerX - side * 0.4, 0.34, z));
     }
     g.add(box(0.22, 0.62, 0.6, std('#f6f6f6', { roughness: 0.4 }), faceX + side * 0.45, 0.47, 10.6));
+    // signs: RECEPTION on a fascia over the glazed door, WC on the cubicle, safety manifestation on the glass
+    const court = side > 0 ? '-x' : '+x';
+    const fascia = facePanel(2.6, 0.46, COL.navy, (cg, s, w, h) => {
+      cg.fillStyle = COL.gold;
+      cg.fillRect(0, (h - 0.05) * s, w * s, 0.05 * s);
+      drawText(cg, s, h, 'RECEPTION', w / 2, 0.26, 0.3, '#ffffff', w - 0.3);
+    }, { ribs: false });
+    g.add(place(fascia, court, faceX - side * 0.06, ch + 0.26, (d0 + d1) / 2));
+    const wcSign = facePanel(0.3, 0.3, '#ffffff', (cg, s, w, h) => drawText(cg, s, h, 'WC', w / 2, h / 2, 0.16, COL.navy, 0.26), { ribs: false });
+    g.add(place(wcSign, court, wcX1 - side * 0.05, 1.55, 0));
+    const band = facePanel(z1 - z0 - 0.4, 0.7, null, (cg, s, w, h) => {
+      cg.fillStyle = 'rgba(255, 255, 255, 0.72)';
+      cg.fillRect(0, (h - 0.12) * s, w * s, 0.06 * s);
+      cg.fillRect(0, (h - 0.64) * s, w * s, 0.06 * s);
+      for (let x = 0.9; x < w; x += 1.5) drawImg(cg, s, h, art.roundNavy, x, 0.35, 0.36);
+    }, { ribs: false, s: 120 });
+    g.add(place(band, court, faceX - side * 0.012, 1.0, (z0 + z1) / 2));
+    // ceiling lights inside the reception
+    for (const z of [1.2, 5.0, 9.0]) {
+      const l = new THREE.PointLight('#fff1dc', 2.4, 6, 1.5);
+      l.position.set(cx, ch - 0.3, z);
+      g.add(l);
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#fff4e3', emissiveIntensity: 1.2 }));
+      panel.rotation.x = Math.PI / 2;
+      panel.position.set(cx, ch - 0.075, z);
+      g.add(panel);
+    }
   }
 }
 
@@ -405,7 +559,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 24), THREE.MathUtils.degToRad(58));
   u.sunPosition.value.copy(sunDir);
   scene.add(sky);
-  scene.add(cloudDome());
+  const clouds = cloudDome();
+  scene.add(clouds);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
   envScene.add(sky.clone());
@@ -462,12 +617,45 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     hp.group.rotation.set(0, i ? Math.PI : 0, 0);
   });
 
+  // container wraps: navy with a gold stripe, or gold with a navy stripe, as Phase 1. Big logo and HOOP HUB
+  // on the outsides, logos facing the court, round badges on the ends, the free-trial QR on container 3
+  const bigSide = (logo, ink) => (g, s, w, h) => {
+    stripe(g, s, w, h + 0.16, ink === COL.gold ? COL.gold : COL.navy);
+    drawImg(g, s, h, logo, w * 0.27, 1.32, Math.min(3.6, w * 0.4));
+    drawText(g, s, h, 'HOOP HUB', w * 0.7, 1.32, 1.1, ink, w * 0.45);
+  };
+  const badge = (round, ink) => (g, s, w, h) => {
+    stripe(g, s, w, h + 0.16, ink);
+    drawImg(g, s, h, round, w / 2, 1.45, 1.3);
+  };
+  const courtLogo = (logo, ink) => (g, s, w, h) => {
+    stripe(g, s, w, h + 0.16, ink);
+    drawImg(g, s, h, logo, w / 2, 1.42, Math.min(2.9, w - 0.4));
+  };
+  const qrSide = (g, s, w, h) => {
+    stripe(g, s, w, h + 0.16, COL.navy);
+    drawImg(g, s, h, art.logoWhiteNavy, w * 0.33, 1.32, 3.3);
+    const pw = 1.25;
+    const px = w * 0.78 - pw / 2;
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.roundRect(px * s, 0.2 * s, pw * s, 1.85 * s, 0.08 * s);
+    g.fill();
+    drawText(g, s, h, 'SCAN TO BOOK A', px + pw / 2, h - 0.38, 0.15, COL.navy, pw - 0.15);
+    drawText(g, s, h, 'FREE TRIAL', px + pw / 2, h - 0.6, 0.24, COL.navy, pw - 0.15);
+    drawImg(g, s, h, art.qr, px + pw / 2, h - 1.35, pw - 0.3);
+  };
+  const brand = {
+    reception: { base: COL.navy, art, outer: bigSide(art.logo, COL.gold), endBack: badge(art.roundWhite, COL.gold), endFront: badge(art.roundWhite, COL.gold) },
+    c2: { base: COL.navy, outer: bigSide(art.logo, COL.gold), endBack: badge(art.roundWhite, COL.gold), court: courtLogo(art.logo, COL.gold) },
+    c3: { base: COL.gold, outer: qrSide, endFront: badge(art.roundNavy, COL.navy), court: courtLogo(art.logoWhiteNavy, COL.navy) },
+  };
   // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, side-opening onto the court
   const units = {
-    reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true }),
+    reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true, brand: brand.reception }),
     // containers 2 and 3: a 2.3 m roller shutter each at the corner end, well clear of the right portable hoop
-    hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, door: [HUB.hhStore.z0 + 0.16, HUB.hhStore.z0 + 2.46] }),
-    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, door: [HUB.schoolStore.z1 - 2.46, HUB.schoolStore.z1 - 0.16] }),
+    hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, door: [HUB.hhStore.z0 + 0.16, HUB.hhStore.z0 + 2.46], brand: brand.c2 }),
+    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, door: [HUB.schoolStore.z1 - 2.46, HUB.schoolStore.z1 - 0.16], brand: brand.c3 }),
   };
   for (const un of Object.values(units)) scene.add(un.group);
 
@@ -498,8 +686,11 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
 
   // end walls: fabric, each with an outside and an inside face
   const walls = new THREE.Group();
-  const wallFace = (z, outward, notches, map) => {
-    const m = new THREE.Mesh(endWallShape(notches, outward < 0), std('#ffffff', { map, roughness: 0.85 }));
+  const wallMats = [];
+  const wallFace = (z, outward, notches, { map, glow }) => {
+    const mat = std('#ffffff', { map, roughness: 0.85, emissive: '#fff0d6', emissiveMap: glow, emissiveIntensity: 0 });
+    wallMats.push(mat);
+    const m = new THREE.Mesh(endWallShape(notches, outward < 0), mat);
     if (outward < 0) m.rotation.y = Math.PI;
     m.position.z = z;
     m.castShadow = m.receiveShadow = true;
@@ -508,10 +699,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
   const { w: rw, h: rh } = HUB.roller;
   const rollerNotch = [-rw / 2, rw / 2, rh];
-  const tEntranceOut = endWallTexture('entrance-out');
-  const tEntranceIn = endWallTexture('entrance-in');
-  const tSlamIn = endWallTexture('slam-in');
-  const tSlamOut = endWallTexture('slam-out');
+  const tEntranceOut = endWallTexture('entrance-out', art);
+  const tEntranceIn = endWallTexture('entrance-in', art);
+  const tSlamIn = endWallTexture('slam-in', art);
+  const tSlamOut = endWallTexture('slam-out', art);
   wallFace(HUB.z1 + 0.005, 1, [rollerNotch], tEntranceOut);
   wallFace(HUB.z1 - 0.005, -1, [rollerNotch], tEntranceIn);
   const fe1Notch = [HUB.fe1.x0, HUB.fe1.x1, HUB.fe1.h];
@@ -528,12 +719,16 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   fe1.rotation.y = Math.PI; // opens outward, away from the court
   enclosure.add(fe1);
 
-  // ball racks
-  for (const [x, z, ry] of HUB.racks) {
-    const r = ballRack();
-    r.position.set(x, 0.015, z);
-    r.rotation.y = ry;
-    enclosure.add(r);
+  // illuminated green exit signs over the fire exit, inside and out
+  const exitTex = exitSignTexture();
+  for (const [z, ry] of [
+    [HUB.z0 + 0.02, 0],
+    [HUB.z0 - 0.02, Math.PI],
+  ]) {
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.2), new THREE.MeshStandardMaterial({ map: exitTex, emissive: '#ffffff', emissiveMap: exitTex, emissiveIntensity: 0.6 }));
+    sign.position.set((HUB.fe1.x0 + HUB.fe1.x1) / 2, HUB.fe1.h + 0.28, z);
+    sign.rotation.y = ry;
+    enclosure.add(sign);
   }
 
   // parents' benches along the reception glazing
@@ -549,9 +744,51 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       const l = new HighBay(x, z);
       lamps.push(l);
       enclosure.add(l.group);
+      // each high-bay throws a wide cone onto the floor (on at night)
+      const spot = new THREE.SpotLight('#fff1dc', 0, 16, Math.PI / 3, 0.75, 1.3);
+      spot.position.copy(l.group.position);
+      spot.target.position.set(l.group.position.x, 0, l.group.position.z);
+      l.spot = spot;
+      enclosure.add(spot, spot.target);
     }
 
-  const state = { mini: true, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 0 };
+  // two floodlights on the door hood wash the HOOP HUB sign at night
+  const signLights = [-1.6, 1.6].map((x) => {
+    const l = new THREE.SpotLight('#fff1dc', 0, 7, 0.55, 0.6, 1.2);
+    l.position.set(x, HUB.roller.h + 0.6, HUB.z1 + 0.7);
+    l.target.position.set(x * 1.4, 5.5, HUB.z1);
+    enclosure.add(l, l.target);
+    return l;
+  });
+
+  // day and night
+  const DAY = { bg: null, fog: '#c9d3dc', env: 0.55, hemi: ['#dfe8f2', '#4b4a46', 0.55], sun: ['#ffe2bd', 3.0], glow: ['#f3f6fa', 0.9], fabric: 0, lens: 0.6, spot: 0 };
+  const NIGHT = { bg: '#0a1122', fog: '#0a1122', env: 0.05, hemi: ['#41557d', '#151515', 0.14], sun: ['#9fb4dc', 0.25], glow: ['#ffe9c4', 0.55], fabric: 0.42, lens: 4, spot: 14 };
+  const setNight = (on) => {
+    const m = on ? NIGHT : DAY;
+    sky.visible = clouds.visible = !on;
+    scene.background = m.bg ? new THREE.Color(m.bg) : null;
+    scene.fog.color.set(m.fog);
+    scene.environmentIntensity = m.env;
+    hemi.color.set(m.hemi[0]);
+    hemi.groundColor.set(m.hemi[1]);
+    hemi.intensity = m.hemi[2];
+    sun.color.set(m.sun[0]);
+    sun.intensity = m.sun[1];
+    glow.color.set(m.glow[0]);
+    glow.intensity = m.glow[1];
+    // the translucent fabric glows from the lights inside
+    fabric.emissive.set('#fff1d6');
+    fabric.emissiveIntensity = m.fabric;
+    for (const w of wallMats) w.emissiveIntensity = m.fabric;
+    for (const l of signLights) l.intensity = on ? 18 : 0;
+    for (const l of lamps) {
+      l.lens.material.emissiveIntensity = m.lens;
+      l.spot.intensity = m.spot;
+    }
+  };
+
+  const state = { mini: true, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false };
   const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
   const apply = (next = {}) => {
     Object.assign(state, next);
@@ -573,16 +810,21 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     roller.group.visible = !state.cutaway;
     units.reception.roof.visible = units.reception.ceil.visible = !state.cutaway;
     sun.castShadow = !state.cutaway; // a clean plan, without the canopy's missing shadow or the trees'
+    setNight(state.night);
+    for (const l of lamps) l.spot.visible = !state.cutaway;
   };
   apply();
   return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT };
 }
 
-// camera presets for the six Phase 2 shots in the brief
+// camera presets for the six Phase 2 shots in the brief; every shot starts from the default state
 export const SHOTS = {
-  1: { label: 'Outside', pos: [12.5, 3.6, 28.5], target: [0.4, 3.0, 5.5], fov: 42, state: { roller: 1 } },
-  2: { label: 'Inside', pos: [4.6, 1.8, 10.7], target: [-2.2, 2.0, 0.8], fov: 54, state: { roller: 1 } },
-  3: { label: 'Top-down', ortho: { cx: 0, cz: 5, height: 16.6 }, state: { roller: 1, cutaway: true } },
+  1: { label: 'Outside', pos: [12.5, 3.6, 28.5], target: [0, 2.6, 6.0], fov: 42, state: {} },
+  2: { label: 'Inside', pos: [4.6, 1.8, 10.7], target: [-2.2, 2.0, 0.8], fov: 54, state: {} },
+  3: { label: 'Top-down', ortho: { cx: 0, cz: 5, height: 16.6 }, state: { cutaway: true } },
+  4: { label: 'Reception', pos: [2.2, 1.65, 6.4], target: [-9.6, 1.3, 4.6], fov: 46, state: { mini: false } },
+  5: { label: 'Night', pos: [9.0, 2.4, 25.5], target: [0.2, 3.3, 5.5], fov: 42, state: { night: true } },
+  6: { label: 'Billboard', pos: [17.5, 1.8, 20.5], target: [3.2, 2.5, 6.0], fov: 40, state: { roller: 0 } },
   // detail for signing off the storage shutters
-  s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: { roller: 1, storeDoors: 1 } },
+  s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: {} },
 };
