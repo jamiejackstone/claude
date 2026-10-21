@@ -36,7 +36,7 @@ export const SEGMENTS = [
     pos: [[19, 6, 6], [15, 10, 18], [0, 14, 21], [-15, 12, 15]],
     target: [[0, 0.5, 5], [0, 0.4, 4.5], [0, 0.3, 4], [0, 0.3, 4]],
     fov: [42, 42],
-    state: () => ({ mini: true, rimFt: 7, doors: 0 }),
+    state: () => ({ mini: true, rimFt: 10, doors: 0 }),
   },
   {
     name: 'finale',

@@ -1,7 +1,7 @@
-"""Lay out the flat court artwork as sign-off sheets.
+"""Lay out the flat court artwork as a to-scale plan sheet.
 
 Usage: python3 tools/plan_sheet.py PLAN_DIR --out DIR
-Reads court-*.png from tools/plan.mjs (400 px per metre, hoop end at the top).
+Reads court.png from tools/plan.mjs (400 px per metre, hoop end at the top).
 """
 import argparse
 from pathlib import Path
@@ -95,7 +95,7 @@ def main_sheet(court_png: Path, out: Path):
     draw_hoops(d, ox, oy, s)
 
     d.text((60, 50), "HOOP HUB PHASE 1", font=heading(64), fill=NAVY)
-    d.text((60, 128), "COURT MARKINGS FOR SIGN-OFF", font=heading(40), fill=GOLD)
+    d.text((60, 128), "COURT MARKINGS PLAN", font=heading(40), fill=GOLD)
     d.text((60, 190), "Bird's-eye plan, to scale. 14.8 m baseline, 10 m deep; mini court runs across between the portable hoops.", font=body(22), fill=INK)
 
     f = body(20)
@@ -106,7 +106,7 @@ def main_sheet(court_png: Path, out: Path):
     for text, y in (("MEGA SLAM END", oy - 150), ("OPEN END", oy + ch + 60)):
         tb = heading(30).getbbox(text)
         d.text((ox + cw / 2 - (tb[2] - tb[0]) / 2, y), text, font=heading(30), fill=NAVY)
-    for x in (ox - 147, ox + cw + 10):
+    for x in (ox - 147, ox + cw + 40):
         y = oy + 5.0 * s + 52
         d.text((x, y), "PORTABLE", font=body(18), fill=INK)
         d.text((x, y + 24), "HOOP", font=body(18), fill=INK)
@@ -130,40 +130,10 @@ def main_sheet(court_png: Path, out: Path):
     return out
 
 
-def options_sheet(files: dict, out: Path):
-    s = 52
-    cw, ch = int(W * s), int(L * s)
-    gap, top = 150, 260
-    sheet = Image.new("RGB", (gap + 3 * (cw + gap), top + ch + 260), BG)
-    d = ImageDraw.Draw(sheet)
-    d.text((60, 50), "HALFWAY LINE OPTIONS", font=heading(56), fill=NAVY)
-    d.text((60, 125), "The gold halfway line runs through the middle of the 3x3 half court. Pick how much of it to paint.", font=body(22), fill=INK)
-    captions = {
-        "A-full-depth": ("A  FULL DEPTH", "Gold line from baseline to end line,", "through the 3x3 key."),
-        "B-from-ft-line": ("B  RECOMMENDED", "Gold line starts at the free-throw line,", "so the 3x3 key stays clean."),
-        "C-past-arc": ("C  PAST THE ARC", "Gold line only beyond the arc. Cleanest,", "but the shortest halfway mark."),
-    }
-    for i, key in enumerate(("A-full-depth", "B-from-ft-line", "C-past-arc")):
-        ox = gap + i * (cw + gap)
-        oy = top
-        d.rectangle((ox - 18, oy - 22, ox + cw + 18, oy + ch + 18), fill=(92, 95, 99))
-        sheet.paste(Image.open(files[key]).convert("RGB").resize((cw, ch), Image.LANCZOS), (ox, oy))
-        draw_hoops(d, ox, oy, s, line=3, bases=False)
-        t, l1, l2 = captions[key]
-        d.text((ox, oy + ch + 40), t, font=heading(34), fill=GOLD if i == 1 else NAVY)
-        d.text((ox, oy + ch + 92), l1, font=body(18), fill=INK)
-        d.text((ox, oy + ch + 118), l2, font=body(18), fill=INK)
-    concept_label(d, sheet.height, 60)
-    sheet.save(out)
-    return out
-
-
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("plan_dir", type=Path)
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
-    files = {p.stem.removeprefix("court-"): p for p in a.plan_dir.glob("court-*.png")}
-    print(main_sheet(files["B-from-ft-line"], a.out / "court-markings-plan.png"))
-    print(options_sheet(files, a.out / "halfway-line-options.png"))
+    print(main_sheet(a.plan_dir / "court.png", a.out / "court-markings-plan.png"))

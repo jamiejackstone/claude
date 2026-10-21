@@ -40,9 +40,9 @@ export const DIM = {
   container: { x0: 3.5, x1: 5.94, z0: -4.2, z1: -2.0, h: 2.26 },
 };
 
-// Gold mini-court option still open with Hoop Heroes: where the halfway line starts
-// (0 = full depth through the 3x3 key, 5.8 = from the free-throw line, 8.4 = past the arc).
-export const MARKINGS = { halfwayStart: DIM.keyD };
+// Where the gold mini-court halfway line starts: 0 = full depth, baseline to end line,
+// straight through the 3x3 key (signed off by Hoop Heroes, 21 Oct 2026).
+export const MARKINGS = { halfwayStart: 0 };
 
 const FT = 0.3048;
 const PX = 400; // court texture pixels per metre
@@ -1209,7 +1209,7 @@ export const SHOTS = {
   '3a': { label: 'Mega Slam 7 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 7, doors: 0 } },
   '3b': { label: 'Mega Slam 8.5 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 8.5, doors: 0 } },
   '3c': { label: 'Mega Slam 10 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 10, doors: 0 } },
-  4: { label: 'Mini game', pos: [14.5, 9.5, 17.5], target: [0, 0.3, 3.8], fov: 42, state: { mini: true, rimFt: 7, doors: 0 } },
+  4: { label: 'Mini game', pos: [14.5, 9.5, 17.5], target: [0, 0.3, 3.8], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
   5: { label: 'Container', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
   6: { label: 'Hero', pos: [-6.6, 1.15, 12.8], target: [-0.6, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
 };
