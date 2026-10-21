@@ -23,22 +23,28 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: Montserrat, system-ui, sans-serif; color: var(--white); }
   #view { position: fixed; inset: 0; }
   canvas { display: block; width: 100%; height: 100%; }
+  /* Desktop: a panel across the top. Phone: one slim swipeable row along the bottom. Both can collapse. */
   .bar {
     position: fixed; top: calc(16px + env(safe-area-inset-top, 0px));
     left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    display: flex; align-items: center; gap: 8px;
     padding: 10px 12px; border-radius: 1.5rem; background: var(--panel);
     box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
   }
-  .bar h1 { font-family: 'Lilita One', sans-serif; font-weight: 400; text-transform: uppercase; font-size: 18px; letter-spacing: 0.5px; margin: 0 8px 0 4px; white-space: nowrap; }
+  .bar h1 { font-family: 'Lilita One', sans-serif; font-weight: 400; text-transform: uppercase; font-size: 18px; letter-spacing: 0.5px; margin: 0 8px 0 0; white-space: nowrap; }
   .bar h1 span { color: var(--gold); }
+  .strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
   .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .sep { width: 1px; height: 24px; background: rgba(255, 255, 255, 0.2); margin: 0 4px; }
+  .collapse { flex: none; }
+  .bar.collapsed { right: auto; padding: 6px; }
+  .bar.collapsed h1, .bar.collapsed .strip { display: none; }
   button, .toggle {
     font: 700 11px Montserrat, sans-serif; text-transform: uppercase; letter-spacing: 0.4px;
     color: var(--white); background: transparent; border: 2px solid rgba(255, 255, 255, 0.35);
-    border-radius: 999px; padding: 6px 11px; cursor: pointer;
+    border-radius: 999px; padding: 6px 11px; cursor: pointer; white-space: nowrap;
   }
+  .collapse { background: var(--gold); color: var(--navy); border-color: var(--gold); }
   button:hover { border-color: var(--gold); }
   button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   button.on { background: var(--gold); color: var(--navy); border-color: var(--gold); }
@@ -51,12 +57,23 @@
   .hint { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font: 600 11px Montserrat, sans-serif; color: var(--white); opacity: 0.85; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
   .loading { position: fixed; inset: 0; display: grid; place-items: center; font: 700 14px Montserrat, sans-serif; color: var(--navy); }
   body.render .bar, body.render .concept, body.render .hint { display: none; }
-  @media (max-width: 720px) {
-    .bar { padding: 8px; gap: 6px; }
-    button, .toggle { padding: 5px 9px; font-size: 10px; }
-    .bar h1 { font-size: 15px; width: 100%; }
-    .sep { display: none; }
-    .hint { display: none; }
+  @media (max-width: 720px), (max-height: 500px) {
+    .bar {
+      top: auto; bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
+      padding: 6px; gap: 6px; border-radius: 999px;
+    }
+    .bar h1, .sep, .hint { display: none; }
+    .strip, .group { flex-wrap: nowrap; }
+    .strip {
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; gap: 6px;
+      mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+    }
+    .strip::-webkit-scrollbar { display: none; }
+    button, .toggle { padding: 6px 10px; font-size: 10px; }
+    label.slider { font-size: 10px; white-space: nowrap; }
+    input[type=range] { width: 80px; }
+    .concept { top: calc(10px + env(safe-area-inset-top, 0px)); bottom: auto; left: max(10px, env(safe-area-inset-left, 0px)); padding: 4px 8px; font-size: 10px; }
   }
 </style>
 <script type="importmap">
@@ -69,8 +86,10 @@
 <body>
 <div id="view"></div>
 <div class="loading" id="loading">Building the court…</div>
-<div class="bar">
+<div class="bar" id="bar">
+  <button id="collapse" class="collapse" aria-expanded="true" aria-controls="strip">Hide</button>
   <h1>Hoop Hub <span>Phase 1</span></h1>
+  <div class="strip" id="strip">
   <div class="group" id="shots"></div>
   <div class="sep"></div>
   <div class="group">
@@ -81,6 +100,7 @@
     <label class="slider">Rim <input id="rim" type="range" min="5" max="10" step="0.5" value="10"> <span id="rimv">10 ft</span></label>
     <button id="fly">Fly-through</button>
     <button id="install">Installation</button>
+  </div>
   </div>
 </div>
 <div class="concept">CONCEPT - NOT A REAL INSTALL</div>
@@ -118,6 +138,18 @@ const { scene } = hub;
 document.getElementById('loading').remove();
 
 const persp = new THREE.PerspectiveCamera(40, W / H, 0.1, 3000);
+// shots are framed for 16:9; on narrower screens widen the view so the same width of scene fits
+function setFov(designFov) {
+  persp.userData.fov = designFov;
+  const aspect = persp.aspect;
+  const design = 16 / 9;
+  if (aspect >= design) persp.fov = designFov;
+  else {
+    const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(designFov / 2)) * design);
+    persp.fov = Math.min(100, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(half) / aspect)));
+  }
+  persp.updateProjectionMatrix();
+}
 const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
 let camera = persp;
 
@@ -165,7 +197,7 @@ function setShot(id) {
     ortho.updateProjectionMatrix();
     camera = ortho;
   } else {
-    persp.fov = s.fov;
+    setFov(s.fov);
     persp.position.set(...s.pos);
     persp.updateProjectionMatrix();
     camera = persp;
@@ -208,6 +240,16 @@ function syncUI() {
   $('rim').value = hub.state.rimFt;
   $('rimv').textContent = `${hub.state.rimFt} ft`;
 }
+function setCollapsed(c) {
+  $('bar').classList.toggle('collapsed', c);
+  $('collapse').textContent = c ? 'Controls' : 'Hide';
+  $('collapse').setAttribute('aria-expanded', String(!c));
+  try { localStorage.setItem('hh-controls-collapsed', c ? '1' : '0'); } catch {}
+}
+let startCollapsed = false;
+try { startCollapsed = localStorage.getItem('hh-controls-collapsed') === '1'; } catch {}
+setCollapsed(startCollapsed);
+$('collapse').onclick = () => setCollapsed(!$('bar').classList.contains('collapsed'));
 $('mini').onclick = () => { hub.apply({ mini: !hub.state.mini, rollOut: 0 }); syncUI(); };
 $('doors').onclick = () => { hub.apply({ doors: hub.state.doors > 0.5 ? 0 : 1 }); syncUI(); };
 $('pad').onclick = () => { hub.apply({ padding: hub.state.padding === 'gold' ? 'navy' : 'gold' }); syncUI(); };
@@ -241,7 +283,7 @@ $('fly').onclick = () => {
 function applyFly(t) {
   const f = sampleFly(t);
   hub.apply(f.state);
-  persp.fov = f.fov;
+  setFov(f.fov);
   persp.position.copy(f.pos);
   persp.lookAt(f.target);
   persp.updateProjectionMatrix();
@@ -252,7 +294,7 @@ addEventListener('resize', () => {
   if (renderMode) return;
   renderer.setSize(innerWidth, innerHeight);
   persp.aspect = innerWidth / innerHeight;
-  persp.updateProjectionMatrix();
+  setFov(persp.userData.fov ?? persp.fov);
 });
 
 // ---------- render-mode hooks for the still and video exporter
@@ -263,7 +305,7 @@ window.renderSeg = (i, t) => {
   camera = persp;
   const f = sampleSegment(i, t);
   hub.apply(f.state);
-  persp.fov = f.fov;
+  setFov(f.fov);
   persp.position.copy(f.pos);
   persp.lookAt(f.target);
   persp.updateProjectionMatrix();
@@ -275,7 +317,7 @@ window.INSTALL_DURATION = INSTALL.duration;
 function applyInstallCam(t) {
   const f = sampleInstall(t);
   hub.apply({ install: t });
-  persp.fov = f.fov;
+  setFov(f.fov);
   persp.position.copy(f.pos);
   persp.lookAt(f.target);
   persp.updateProjectionMatrix();
