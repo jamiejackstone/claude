@@ -966,8 +966,9 @@ function containerFace(w, h, wrap, art, kind) {
   if (kind === 'side') {
     img(art[wrap.logo], 0.04, 0.04, w - 0.08);
     g.fillStyle = wrap.ink;
-    fitText(g, 'SWAP SCREENTIME FOR GAMETIME', '"Lilita One", sans-serif', Y(0.2), W - Y(0.4));
-    g.fillText('SWAP SCREENTIME FOR GAMETIME', W / 2, Y(1.55));
+    // the hub's name, big, between the logo and the stripe
+    fitText(g, 'HOOP HUB', '"Lilita One", sans-serif', Y(0.5), W - Y(0.3));
+    g.fillText('HOOP HUB', W / 2, Y(h - 0.64));
   } else if (kind === 'end') {
     img(art[wrap.round], (w - 1.3) / 2, 0.2, 1.3);
   } else if (kind === 'doorLogo') {
