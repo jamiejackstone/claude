@@ -8,13 +8,7 @@ import { openPage } from './browser.mjs';
 const { values } = parseArgs({ options: { out: { type: 'string', default: 'renders/plan' } } });
 await mkdir(values.out, { recursive: true });
 const { page, close } = await openPage({ w: 320, h: 180, query: 'shot=2&ao=0' });
-// each variant: court artwork options, plus which logo file to paint
-const variants = {
-  court: {},
-  'logo-a-landscape': {},
-  'logo-b-round-centre': { logo: 'assets/logo-round-white.png', logoBox: { x: -0.6, z: 4.4, w: 1.2 } },
-  'logo-c-round-large': { logo: 'assets/logo-round-white.png', logoBox: { x: -1.0, z: 3.1, w: 2.0 } },
-};
+const variants = { court: {} };
 for (const [name, opts] of Object.entries(variants)) {
   const data = await page.evaluate(async ({ logo: src = 'assets/logo.png', ...opts }) => {
     const { paintCourt } = await import('/scene.js');

@@ -130,28 +130,6 @@ def main_sheet(court_png: Path, out: Path):
     return out
 
 
-def variants_sheet(files, captions, title, subtitle, out: Path, pick=None):
-    """Side-by-side comparison of court artwork variants."""
-    s = 64
-    cw, ch = int(W * s), int(L * s)
-    gap, top = 150, 260
-    sheet = Image.new("RGB", (gap + len(files) * (cw + gap), top + ch + 260), BG)
-    d = ImageDraw.Draw(sheet)
-    d.text((60, 50), title, font=heading(56), fill=NAVY)
-    d.text((60, 125), subtitle, font=body(22), fill=INK)
-    for i, (f, (t, l1, l2)) in enumerate(zip(files, captions)):
-        ox, oy = gap + i * (cw + gap), top
-        d.rectangle((ox - 18, oy - 22, ox + cw + 18, oy + ch + 18), fill=(92, 95, 99))
-        sheet.paste(Image.open(f).convert("RGB").resize((cw, ch), Image.LANCZOS), (ox, oy))
-        draw_hoops(d, ox, oy, s, line=3, bases=False)
-        d.text((ox, oy + ch + 40), t, font=heading(34), fill=GOLD if i == pick else NAVY)
-        d.text((ox, oy + ch + 92), l1, font=body(18), fill=INK)
-        d.text((ox, oy + ch + 118), l2, font=body(18), fill=INK)
-    concept_label(d, sheet.height, 60)
-    sheet.save(out)
-    return out
-
-
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("plan_dir", type=Path)
@@ -159,10 +137,3 @@ if __name__ == "__main__":
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     print(main_sheet(a.plan_dir / "court.png", a.out / "court-markings-plan.png"))
-    logos = sorted(a.plan_dir.glob("logo-*.png"))
-    if logos:
-        print(variants_sheet(logos, [
-            ("A  CURRENT", "Main landscape logo at the open end,", "left of centre, about 3 m wide."),
-            ("B  ROUND LOGO, KEY CENTRE", "White round logo, 1.2 m across, where", "the centre circle was (inside the key)."),
-            ("C  ROUND LOGO, LARGER", "White round logo, 2.0 m across,", "centred in the key, clear of the rim."),
-        ], "COURT LOGO OPTIONS", "Same markings, three ways to brand the surface.", a.out / "logo-options.png"))

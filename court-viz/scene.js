@@ -776,11 +776,16 @@ export class PortableHoop {
     };
     makeBase(this.out);
     makeBase(this.folded);
-    // upright pole, raked forward
-    this.pole = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.4, 0.1), grey);
-    this.out.add(this.pole);
-    this.armU = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 0.05), grey);
-    this.armL = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 0.05), grey);
+    // ballast filler cap on the base top
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 20), grey);
+    cap.position.set(-1.12, 0.36, 0);
+    this.out.add(cap);
+    // upright near the front of the base, slightly raked, with a rear brace and two arms to the board
+    this.pole = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), grey);
+    this.brace = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1, 0.07), grey);
+    this.out.add(this.pole, this.brace);
+    this.armU = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 0.06), grey);
+    this.armL = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 0.06), grey);
     this.out.add(this.armU, this.armL);
     this.board = new THREE.Group();
     const bw = 1.32;
@@ -819,18 +824,16 @@ export class PortableHoop {
     rn.position.set(0.15 + 0.2286, 0, 0);
     this.board.add(rn);
     this.out.add(this.board);
-    // folded: pole tilted back over the base, board lying flat on top
-    const fPole = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.1, 0.1), grey);
+    // folded: pole tilted back along the base, board lying flat on top, long side along the base
+    const fPole = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 0.12), grey);
     fPole.position.set(-0.7, 0.42, 0);
-    // board folded flat over the base: translucent panel in a slim frame, rim tucked alongside
     const fBoard = new THREE.Group();
-    const fPanel = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.02, 1.32), pc.material);
-    fBoard.add(fPanel);
+    fBoard.add(new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.02, 0.78), pc.material));
     for (const [w, d, x, z] of [
-      [0.82, 0.03, 0, 0.675],
-      [0.82, 0.03, 0, -0.675],
-      [0.03, 1.32, 0.405, 0],
-      [0.03, 1.32, -0.405, 0],
+      [1.36, 0.03, 0, 0.405],
+      [1.36, 0.03, 0, -0.405],
+      [0.03, 0.78, 0.675, 0],
+      [0.03, 0.78, -0.675, 0],
     ]) {
       const e = new THREE.Mesh(new THREE.BoxGeometry(w, 0.035, d), frameMat);
       e.position.set(x, 0, z);
@@ -838,7 +841,7 @@ export class PortableHoop {
     }
     const fRim = rimAndNet();
     fRim.children[1].visible = false;
-    fRim.position.set(0.05, 0.03, 0);
+    fRim.position.set(0.3, 0.03, 0);
     fBoard.add(fRim);
     fBoard.position.set(-0.72, 0.62, 0);
     const fBack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.6), frameMat);
@@ -857,19 +860,22 @@ export class PortableHoop {
   setHeight(rim) {
     const faceX = this.faceX;
     this.board.position.set(faceX, rim, 0);
-    const poleBaseX = -0.95;
-    const poleTopY = rim + 0.05;
-    const poleTopX = -0.45;
-    const len = Math.hypot(poleTopX - poleBaseX, poleTopY - 0.35);
-    this.pole.scale.y = len / 2.4;
-    this.pole.position.set((poleBaseX + poleTopX) / 2, (0.35 + poleTopY) / 2, 0);
-    this.pole.rotation.z = -Math.atan2(poleTopX - poleBaseX, poleTopY - 0.35);
+    const beam = (mesh, x0, y0, x1, y1) => {
+      mesh.scale.y = Math.hypot(x1 - x0, y1 - y0);
+      mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
+      mesh.rotation.z = -Math.atan2(x1 - x0, y1 - y0);
+    };
+    const poleBase = [-0.42, 0.35];
+    const poleTop = [-0.3, rim + 0.35];
+    beam(this.pole, ...poleBase, ...poleTop);
+    const at = (y) => poleBase[0] + ((poleTop[0] - poleBase[0]) * (y - poleBase[1])) / (poleTop[1] - poleBase[1]);
+    beam(this.brace, -1.2, 0.36, at(1.5), 1.5);
     for (const [arm, dy] of [
-      [this.armU, 0.25],
-      [this.armL, -0.05],
+      [this.armU, 0.28],
+      [this.armL, -0.02],
     ]) {
-      const x0 = poleTopX - 0.02 + (dy < 0 ? 0.04 : 0);
-      const x1 = faceX - 0.08;
+      const x0 = at(rim + dy);
+      const x1 = faceX - 0.06;
       arm.scale.x = x1 - x0;
       arm.position.set((x0 + x1) / 2, rim + dy, 0);
     }
@@ -1231,7 +1237,12 @@ export const SHOTS = {
   '3a': { label: 'Mega Slam 7 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 7, doors: 0 } },
   '3b': { label: 'Mega Slam 8.5 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 8.5, doors: 0 } },
   '3c': { label: 'Mega Slam 10 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 10, doors: 0 } },
-  4: { label: 'Mini game', pos: [14.5, 9.5, 17.5], target: [0, 0.3, 3.8], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
+  4: { label: 'Mini game', pos: [10.5, 7.2, 14.5], target: [-0.6, 0.4, 4.2], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
   5: { label: 'Container', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
   6: { label: 'Hero', pos: [-3.6, 1.15, 12.6], target: [-0.3, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
+  // detail stills for signing off the container and hoops
+  c1: { label: 'Container billboard', pos: [9.6, 1.8, 2.6], target: [4.6, 1.1, -3.1], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
+  c2: { label: 'Container open', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, state: { mini: false, rimFt: 10, doors: 1 } },
+  h1: { label: 'Mega Slam detail', pos: [2.6, 1.7, -2.3], target: [0, 1.9, 0.4], fov: 45, state: { mini: false, rimFt: 10, doors: 0 } },
+  h2: { label: 'Portable hoop', pos: [3.6, 1.8, 8.8], target: [7.3, 1.6, 5.0], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
 };
