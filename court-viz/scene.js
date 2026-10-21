@@ -105,7 +105,7 @@ function shadowed(obj) {
 
 // ---------------------------------------------------------------- court surface
 
-export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge } = {}) {
+export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, logoBox = DIM.logo } = {}) {
   const { L, W } = DIM;
   const c = canvas(Math.round(W * PX), Math.round(L * PX));
   const g = c.getContext('2d');
@@ -206,7 +206,7 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
 
   // logo at the open end, upright for someone standing there
   if (logo) {
-    const { x, z, w } = DIM.logo;
+    const { x, z, w } = logoBox;
     g.globalAlpha = 0.97;
     g.drawImage(logo, X(x), Z(z), w * PX, ((w * logo.height) / logo.width) * PX);
     g.globalAlpha = 1;
