@@ -116,7 +116,7 @@ def main_sheet(court_png: Path, out: Path):
     items = [
         ((255, 255, 255), "White 50 mm: 3x3 half court (FIBA key, arc, free-throw line and semicircle)"),
         (GOLD, "Gold 40 mm: mini court boundary just outside the white; key outline, free-throw semicircle and 3-point line at each portable hoop"),
-        ((110, 114, 118), "Court tiles, mid grey #6e7276"),
+        ((110, 114, 118), "Floor: 40 panels, 1.85 x 2.0 m, mid grey #6e7276"),
         ((167, 169, 172), "All three keys, lighter grey #a7a9ac"),
         (HOOP, "Hoop positions, for reference only (not painted)"),
     ]

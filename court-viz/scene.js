@@ -44,7 +44,10 @@ export const DIM = {
   // logo image box (the PNG carries its own margin): open end, left of the halfway line
   logo: { x: -4.38, z: 8.27, w: 2.98 },
   borderW: 0.09,
-  container: { x0: 3.5, x1: 5.94, z0: -4.2, z1: -2.0, h: 2.26 },
+  // 10 ft container, 2.99 x 2.44 x 2.59 m: the whole hub ships in it
+  container: { x0: 3.5, x1: 6.49, z0: -4.44, z1: -2.0, h: 2.59 },
+  // floor panels: 8 across the baseline x 5 deep, 40 in all
+  panel: { w: 1.85, d: 2.0 },
 };
 
 // Court markings as signed off by Hoop Heroes (21 Oct 2026): all keys light grey, and no
@@ -113,13 +116,14 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
   const Z = (z) => z * PX;
   const rnd = mulberry(7);
 
-  // tiles with a little per-tile tone variation
-  const tile = 0.3 * PX;
-  for (let ty = 0; ty < c.height; ty += tile) {
-    for (let tx = 0; tx < c.width; tx += tile) {
-      const v = 110 + Math.round((rnd() - 0.5) * 5);
+  // large floor panels, each with a slightly different tone
+  const pw = DIM.panel.w * PX;
+  const pd = DIM.panel.d * PX;
+  for (let ty = 0; ty < c.height; ty += pd) {
+    for (let tx = 0; tx < c.width; tx += pw) {
+      const v = 110 + Math.round((rnd() - 0.5) * 4);
       g.fillStyle = `rgb(${v},${v + 4},${v + 8})`;
-      g.fillRect(tx, ty, tile + 1, tile + 1);
+      g.fillRect(tx, ty, pw + 1, pd + 1);
     }
   }
   // key fill
@@ -204,6 +208,20 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
     g.lineTo(X(r), Z(DIM.boardZ10));
   });
 
+  // panel joints, faint, over everything
+  g.strokeStyle = 'rgba(40,42,46,0.55)';
+  g.lineWidth = 0.012 * PX;
+  g.beginPath();
+  for (let x = pw; x < c.width - 1; x += pw) {
+    g.moveTo(x, 0);
+    g.lineTo(x, c.height);
+  }
+  for (let y = pd; y < c.height - 1; y += pd) {
+    g.moveTo(0, y);
+    g.lineTo(c.width, y);
+  }
+  g.stroke();
+
   // logo at the open end, upright for someone standing there
   if (logo) {
     const { x, z, w } = logoBox;
@@ -229,10 +247,6 @@ function tileBump() {
       g.arc(x, y, step * 0.26, 0, Math.PI * 2);
       g.fill();
     }
-  // seam
-  g.strokeStyle = '#1e1e1e';
-  g.lineWidth = 3;
-  g.strokeRect(0, 0, n, n);
   return tex(c, { srgb: false, repeat: [DIM.W / 0.3, DIM.L / 0.3] });
 }
 
@@ -281,6 +295,7 @@ function buildCourt(logo, renderer) {
   slab.receiveShadow = true;
   grp.add(slab);
   grp.add(bevelStrip([-W / 2, 0, W / 2, L], DIM.borderW, tileT, 0.002, side));
+  grp.userData.canvas = map.image;
   return grp;
 }
 
@@ -1083,7 +1098,43 @@ export class StorageContainer {
     // contents
     this.contents = new THREE.Group();
     this.group.add(this.contents);
-    // two gold ball racks side by side at the back
+    // hub in a box: the 40 floor panels stand on edge against the back wall, strapped,
+    // with a gold ball rack down the side; the folded hoops roll in at the front
+    const wallIn = t + 0.02;
+    const stackN = 40;
+    const pitch = 0.024;
+    const { w: panelW, d: panelH } = DIM.panel;
+    const panels = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.02, panelH, panelW),
+      std(COL.court, { roughness: 0.85 }),
+      stackN,
+    );
+    const m4 = new THREE.Matrix4();
+    const shade = [new THREE.Color('#ffffff'), new THREE.Color('#c9ccd0')];
+    const jitter = mulberry(17);
+    for (let i = 0; i < stackN; i++) {
+      // slight offsets and alternating tone so the edges read as separate panels
+      m4.makeTranslation(-L / 2 + wallIn + 0.01 + i * pitch, 0.12 + panelH / 2 + (jitter() - 0.5) * 0.02, -D / 2 + wallIn + panelW / 2 + (jitter() - 0.5) * 0.03);
+      panels.setMatrixAt(i, m4);
+      panels.setColorAt(i, shade[i % 2]);
+    }
+    this.contents.add(panels);
+    const stackDepth = stackN * pitch;
+    // the front panel shows its own piece of the painted court (open-end row, third panel across)
+    if (art.courtCanvas) {
+      const c = canvas(740, 800);
+      c.getContext('2d').drawImage(art.courtCanvas, 2 * panelW * PX, 4 * panelH * PX, panelW * PX, panelH * PX, 0, 0, 740, 800);
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), new THREE.MeshStandardMaterial({ map: tex(c), roughness: 0.85 }));
+      face.rotation.y = Math.PI / 2;
+      face.position.set(-L / 2 + wallIn + 0.01 + (stackN - 1) * pitch + 0.0115, 0.12 + panelH / 2, -D / 2 + wallIn + panelW / 2);
+      this.contents.add(face);
+    }
+    const strapM = std(COL.gold, { roughness: 0.6 });
+    for (const y of [0.6, 1.65]) {
+      const strap = new THREE.Mesh(new THREE.BoxGeometry(stackDepth + 0.03, 0.05, panelW + 0.04), strapM);
+      strap.position.set(-L / 2 + wallIn + stackDepth / 2 + 0.005, 0.12 + y, -D / 2 + wallIn + panelW / 2);
+      this.contents.add(strap);
+    }
     const goldM = std(COL.gold, { roughness: 0.45, metalness: 0.4 });
     const rail = (len, axis) => {
       const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, len, 8), goldM);
@@ -1091,40 +1142,38 @@ export class StorageContainer {
       if (axis === 'z') m.rotation.x = Math.PI / 2;
       return m;
     };
-    const cw = 0.5;
-    const cd = 0.92;
-    const ch = 1.0;
-    for (const side of [-1, 1]) {
-      const cart = new THREE.Group();
-      for (const sx of [-1, 1])
-        for (const sz of [-1, 1]) {
-          const r = rail(ch, 'y');
-          r.position.set((sx * cw) / 2, ch / 2 + 0.1, (sz * cd) / 2);
-          cart.add(r);
-        }
-      for (const y of [0.15, 0.55, 1.1]) {
-        for (const sz of [-1, 1]) {
-          const r = rail(cw, 'x');
-          r.position.set(0, y, (sz * cd) / 2);
-          cart.add(r);
-        }
-        for (const sx of [-1, 1]) {
-          const r = rail(cd, 'z');
-          r.position.set((sx * cw) / 2, y, 0);
-          cart.add(r);
-        }
+    const rack = new THREE.Group();
+    const rw = 0.95; // along the container
+    const rd = 0.4; // across
+    const rh = 1.5;
+    for (const sx of [-1, 1])
+      for (const sz of [-1, 1]) {
+        const r = rail(rh, 'y');
+        r.position.set((sx * rw) / 2, rh / 2 + 0.05, (sz * rd) / 2);
+        rack.add(r);
       }
-      for (let i = 0; i < 2; i++)
-        for (let j = 0; j < 3; j++)
-          for (let k = 0; k < 2; k++) {
-            const b = ball();
-            b.position.set(-0.12 + i * 0.24, 0.29 + k * 0.4, -0.27 + j * 0.27);
-            b.rotation.set(i + j, k * 2 + side, j);
-            cart.add(b);
-          }
-      cart.position.set(-L / 2 + 0.33, 0.12, side * 0.5);
-      this.contents.add(cart);
+    const shelves = [0.1, 0.45, 0.8, 1.15];
+    for (const y of [...shelves, 1.5]) {
+      for (const sz of [-1, 1]) {
+        const r = rail(rw, 'x');
+        r.position.set(0, y, (sz * rd) / 2);
+        rack.add(r);
+      }
+      for (const sx of [-1, 1]) {
+        const r = rail(rd, 'z');
+        r.position.set((sx * rw) / 2, y, 0);
+        rack.add(r);
+      }
     }
+    for (const y of shelves)
+      for (let j = 0; j < 4; j++) {
+        const b = ball();
+        b.position.set(-0.36 + j * 0.24, y + 0.13, 0);
+        b.rotation.set(j, y * 3, j * 2);
+        rack.add(b);
+      }
+    rack.position.set(-L / 2 + wallIn + rw / 2, 0.12, D / 2 - wallIn - rd / 2);
+    this.contents.add(rack);
     this.stowed = new THREE.Group();
     this.contents.add(this.stowed);
     shadowed(this.group);
@@ -1257,7 +1306,9 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
   scene.add(sun, sun.target);
 
   scene.add(buildSurroundings());
-  scene.add(buildCourt(logo, renderer));
+  const court = buildCourt(logo, renderer);
+  scene.add(court);
+  art.courtCanvas = court.userData.canvas;
 
   const megaSlam = new MegaSlam(art.roundNavy);
   scene.add(megaSlam.group);
@@ -1309,12 +1360,12 @@ export const SHOTS = {
   '3b': { label: 'Mega Slam 8.5 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 8.5, doors: 0 } },
   '3c': { label: 'Mega Slam 10 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 10, doors: 0 } },
   4: { label: 'Mini game', pos: [10.5, 7.2, 14.5], target: [-0.6, 0.4, 4.2], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
-  5: { label: 'Container', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
+  5: { label: 'Container', pos: [10.6, 1.9, -2.5], target: [4.8, 1.0, -3.3], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
   6: { label: 'Hero', pos: [-3.6, 1.15, 12.6], target: [-0.3, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
   // detail stills for signing off the container and hoops
-  c1: { label: 'Container billboard', pos: [9.6, 1.8, 2.6], target: [4.6, 1.1, -3.1], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
-  c3: { label: 'Container doors', pos: [10.2, 1.6, -1.4], target: [5.2, 1.15, -3.0], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
-  c2: { label: 'Container open', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, state: { mini: false, rimFt: 10, doors: 1 } },
+  c1: { label: 'Container billboard', pos: [10.6, 1.8, 2.8], target: [5.0, 1.25, -3.3], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
+  c3: { label: 'Container doors', pos: [11.4, 1.6, -1.6], target: [6.0, 1.3, -3.2], fov: 40, state: { mini: false, rimFt: 10, doors: 0 } },
+  c2: { label: 'Container open', pos: [10.6, 1.9, -2.5], target: [4.8, 1.0, -3.3], fov: 45.7, state: { mini: false, rimFt: 10, doors: 1 } },
   h1: { label: 'Mega Slam detail', pos: [2.6, 1.7, -2.3], target: [0, 1.9, 0.4], fov: 45, state: { mini: false, rimFt: 10, doors: 0 } },
   h2: { label: 'Portable hoop', pos: [3.6, 1.8, 8.8], target: [7.3, 1.6, 5.0], fov: 42, state: { mini: true, rimFt: 10, doors: 0 } },
 };
