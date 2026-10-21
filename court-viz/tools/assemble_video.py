@@ -43,7 +43,7 @@ def label(path):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     f = font("Montserrat-Bold.ttf", 20)
-    t = "CONCEPT - NOT A REAL INSTALL"
+    t = "CONCEPT - HOOP HUB"
     b = f.getbbox(t)
     x0, y1 = 32, H - 32
     y0 = y1 - (b[3] - b[1]) - 20
@@ -65,7 +65,7 @@ def main(frames: Path, out: Path, title: str, subtitle: str):
     card(parts / "intro.png", [
         (title, head, GOLD, 120),
         (subtitle, sub, (255, 255, 255), 70),
-        ("CONCEPT - NOT A REAL INSTALL", small, (255, 255, 255), 0),
+        ("CONCEPT - HOOP HUB", small, (255, 255, 255), 0),
     ])
     card(parts / "outro.png", [
         ("SWAP SCREENTIME FOR GAMETIME", head, GOLD, 130),

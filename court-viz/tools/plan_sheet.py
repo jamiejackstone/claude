@@ -32,7 +32,7 @@ def body(size):
 
 def concept_label(d, h, x=40):
     f = body(22)
-    t = "CONCEPT - NOT A REAL INSTALL"
+    t = "CONCEPT - HOOP HUB"
     b = f.getbbox(t)
     y1 = h - 36
     y0 = y1 - (b[3] - b[1]) - 20
@@ -130,6 +130,27 @@ def main_sheet(court_png: Path, out: Path):
     return out
 
 
+def variants_sheet(files, captions, title, subtitle, out: Path):
+    """Side-by-side comparison of court artwork variants."""
+    s = 64
+    cw, ch = int(W * s), int(L * s)
+    gap, top = 150, 260
+    sheet = Image.new("RGB", (gap + len(files) * (cw + gap), top + ch + 220), BG)
+    d = ImageDraw.Draw(sheet)
+    d.text((60, 50), title, font=heading(56), fill=NAVY)
+    d.text((60, 125), subtitle, font=body(22), fill=INK)
+    for i, (f, (t, l1)) in enumerate(zip(files, captions)):
+        ox, oy = gap + i * (cw + gap), top
+        d.rectangle((ox - 18, oy - 22, ox + cw + 18, oy + ch + 18), fill=(92, 95, 99))
+        sheet.paste(Image.open(f).convert("RGB").resize((cw, ch), Image.LANCZOS), (ox, oy))
+        draw_hoops(d, ox, oy, s, line=3, bases=False)
+        d.text((ox, oy + ch + 40), t, font=heading(34), fill=NAVY)
+        d.text((ox, oy + ch + 92), l1, font=body(18), fill=INK)
+    concept_label(d, sheet.height, 60)
+    sheet.save(out)
+    return out
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("plan_dir", type=Path)
@@ -137,3 +158,9 @@ if __name__ == "__main__":
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     print(main_sheet(a.plan_dir / "court.png", a.out / "court-markings-plan.png"))
+    lines = sorted(a.plan_dir.glob("lines-*.png"))
+    if lines:
+        print(variants_sheet(lines, [
+            ("A  CURRENT: WHITE + GOLD", "White 3x3 court, gold mini court with its own boundary."),
+            ("B  ALL WHITE", "Every line white; one shared boundary on the floor edge."),
+        ], "LINE COLOUR OPTIONS", "Same court, two ways to mark it.", a.out / "line-colour-options.png"))

@@ -8,7 +8,7 @@ import { openPage } from './browser.mjs';
 const { values } = parseArgs({ options: { out: { type: 'string', default: 'renders/plan' } } });
 await mkdir(values.out, { recursive: true });
 const { page, close } = await openPage({ w: 320, h: 180, query: 'shot=2&ao=0' });
-const variants = { court: {} };
+const variants = { court: {}, 'lines-a-two-tone': {}, 'lines-b-white': { lines: 'white' } };
 for (const [name, opts] of Object.entries(variants)) {
   const data = await page.evaluate(async ({ logo: src = 'assets/logo.png', ...opts }) => {
     const { paintCourt } = await import('/scene.js');

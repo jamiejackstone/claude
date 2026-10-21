@@ -13,12 +13,13 @@ const { values } = parseArgs({
     ao: { type: 'string', default: '1' },
     state: { type: 'string', default: '' },
     suffix: { type: 'string', default: '' },
+    query: { type: 'string', default: '' }, // extra page options, e.g. lines=white
   },
 });
 const w = +values.w;
 const h = +values.h;
 await mkdir(values.out, { recursive: true });
-const { page, grab, close } = await openPage({ w, h, query: `shot=1&ao=${values.ao}` });
+const { page, grab, close } = await openPage({ w, h, query: `shot=1&ao=${values.ao}${values.query ? `&${values.query}` : ''}` });
 for (const id of values.shots.split(',')) {
   const t0 = Date.now();
   await page.evaluate(([id, extra]) => window.renderShot(id, extra ? JSON.parse(extra) : null), [id, values.state]);

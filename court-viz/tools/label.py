@@ -8,7 +8,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 FONT = Path(__file__).resolve().parent.parent / "assets/fonts/Montserrat-Bold.ttf"
-TEXT = "CONCEPT - NOT A REAL INSTALL"
+TEXT = "CONCEPT - HOOP HUB"
 
 
 def stamp(src: Path, out_dir: Path) -> Path:

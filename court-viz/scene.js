@@ -52,7 +52,9 @@ export const DIM = {
 
 // Court markings as signed off by Hoop Heroes (21 Oct 2026): all keys light grey, and no
 // no-charge semicircle, mini halfway line or centre circle, to keep the surface clean.
-export const MARKINGS = { keyFill: COL.key, miniKeyFill: COL.key, halfway: false, noCharge: false };
+// lines: 'two-tone' = white 3x3 with a gold mini court and its own gold boundary;
+// 'white' = every line white, one shared boundary on the edge of the floor
+export const MARKINGS = { keyFill: COL.key, miniKeyFill: COL.key, halfway: false, noCharge: false, lines: 'two-tone' };
 
 const FT = 0.3048;
 const PX = 400; // court texture pixels per metre
@@ -108,7 +110,9 @@ function shadowed(obj) {
 
 // ---------------------------------------------------------------- court surface
 
-export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, logoBox = DIM.logo } = {}) {
+export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, lines = MARKINGS.lines, logoBox = DIM.logo } = {}) {
+  const allWhite = lines === 'white';
+  const miniCol = allWhite ? COL.white : COL.gold;
   const { L, W } = DIM;
   const c = canvas(Math.round(W * PX), Math.round(L * PX));
   const g = c.getContext('2d');
@@ -127,7 +131,7 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
     }
   }
   // key fill
-  const inset = DIM.whiteInset;
+  const inset = allWhite ? 0 : DIM.whiteInset;
   g.fillStyle = keyFill;
   g.fillRect(X(-DIM.keyW / 2), Z(inset), DIM.keyW * PX, (DIM.keyD - inset) * PX);
 
@@ -142,15 +146,15 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
 
   // gold mini court, under the white: boundary on the tile edge (optional halfway line and centre
   // circle), and at each end a key, free-throw semicircle and a small three-point line
-  const gw = DIM.goldW;
+  const gw = allWhite ? DIM.lineW : DIM.goldW;
   const gh = gw / 2;
-  stroke(COL.gold, gw, () => g.rect(X(-W / 2 + gh), Z(gh), (W - gw) * PX, (L - gw) * PX));
+  if (!allWhite) stroke(COL.gold, gw, () => g.rect(X(-W / 2 + gh), Z(gh), (W - gw) * PX, (L - gw) * PX));
   if (halfway) {
-    stroke(COL.gold, gw, () => {
+    stroke(miniCol, gw, () => {
       g.moveTo(X(0), Z(0));
       g.lineTo(X(0), Z(L));
     });
-    stroke(COL.gold, gw, () => g.arc(X(0), Z(DIM.miniKeyZ), DIM.miniCircleR * PX, 0, Math.PI * 2));
+    stroke(miniCol, gw, () => g.arc(X(0), Z(DIM.miniKeyZ), DIM.miniCircleR * PX, 0, Math.PI * 2));
   }
   for (const s of [-1, 1]) {
     const edge = s * (W / 2);
@@ -158,16 +162,16 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
     const z0 = DIM.miniKeyZ - DIM.miniKeyW / 2;
     g.fillStyle = miniKeyFill;
     g.fillRect(X(Math.min(edge, inner)), Z(z0), DIM.miniKeyD * PX, DIM.miniKeyW * PX);
-    if (miniKeyFill !== COL.gold)
-      stroke(COL.gold, gw, () => g.rect(X(Math.min(edge, inner)) + (s < 0 ? 0 : gh * PX), Z(z0 + gh), (DIM.miniKeyD - gh) * PX, (DIM.miniKeyW - gw) * PX));
+    if (miniKeyFill !== miniCol)
+      stroke(miniCol, gw, () => g.rect(X(Math.min(edge, inner)) + (s < 0 ? 0 : gh * PX), Z(z0 + gh), (DIM.miniKeyD - gh) * PX, (DIM.miniKeyW - gw) * PX));
     const a0 = s < 0 ? -Math.PI / 2 : Math.PI / 2;
-    stroke(COL.gold, gw, () => g.arc(X(inner), Z(DIM.miniKeyZ), DIM.miniFtR * PX, a0, a0 + Math.PI));
+    stroke(miniCol, gw, () => g.arc(X(inner), Z(DIM.miniKeyZ), DIM.miniFtR * PX, a0, a0 + Math.PI));
     // three-point line: straight corner lines parallel to the 14.8 m sides, then the arc
     const rimX = s * (W / 2 - DIM.miniRimIn);
     const dz = L / 2 - DIM.mini3CornerIn;
     const dx = Math.sqrt(DIM.mini3R ** 2 - dz ** 2);
     const ang = Math.atan2(dz, dx);
-    stroke(COL.gold, gw, () => {
+    stroke(miniCol, gw, () => {
       g.moveTo(X(edge), Z(DIM.miniKeyZ - dz));
       g.lineTo(X(rimX - s * dx), Z(DIM.miniKeyZ - dz));
       if (s < 0) g.arc(X(rimX), Z(DIM.miniKeyZ), DIM.mini3R * PX, -ang, ang);
@@ -283,12 +287,12 @@ function bevelStrip(inner, outer, hIn, hOut, mat) {
   return m;
 }
 
-function buildCourt(logo, renderer) {
+function buildCourt(logo, renderer, markings = {}) {
   // the court is laid as separate panels so the install can be shown panel by panel
   const grp = new THREE.Group();
   const { L, W, tileT } = DIM;
   const { w: pw, d: pd, cols, rows } = DIM.panel;
-  const map = tex(paintCourt(logo), { aniso: renderer.capabilities.getMaxAnisotropy() });
+  const map = tex(paintCourt(logo, markings), { aniso: renderer.capabilities.getMaxAnisotropy() });
   const bump = tileBump();
   const top = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.2, roughness: 0.86 });
   const side = std(COL.border, { roughness: 0.9 });
@@ -1324,7 +1328,7 @@ function cloudDome() {
 
 // ---------------------------------------------------------------- scene
 
-export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = {}) {
+export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png', markings = {} } = {}) {
   const art = {};
   const files = { logo: logoUrl, logoWhiteNavy: 'assets/logo-white-navy.png', roundNavy: 'assets/logo-round-navy.png', roundWhite: 'assets/logo-round-white.png', qr: 'assets/qr.png' };
   await Promise.all(Object.entries(files).map(async ([k, url]) => (art[k] = await loadImage(url).catch(() => null))));
@@ -1382,7 +1386,7 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
   scene.add(sun, sun.target);
 
   scene.add(buildSurroundings());
-  const court = buildCourt(logo, renderer);
+  const court = buildCourt(logo, renderer, markings);
   scene.add(court);
   art.courtCanvas = court.userData.canvas;
 

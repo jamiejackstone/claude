@@ -99,7 +99,7 @@
   </div>
   </div>
 </div>
-<div class="concept">CONCEPT - NOT A REAL INSTALL</div>
+<div class="concept">CONCEPT - HOOP HUB</div>
 <div class="hint">Drag to orbit · scroll to zoom</div>
 
 <script type="module">
@@ -129,7 +129,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('view').appendChild(renderer.domElement);
 
-const hub = await createHoopHub(renderer, { logoUrl: 'assets/logo.png' });
+// ?lines=white previews the all-white markings
+const hub = await createHoopHub(renderer, { logoUrl: 'assets/logo.png', markings: params.get('lines') ? { lines: params.get('lines') } : {} });
 const { scene } = hub;
 document.getElementById('loading').remove();
 
