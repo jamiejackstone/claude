@@ -15,7 +15,7 @@ INK = (51, 65, 85)
 BG = (248, 250, 252)
 HOOP = (40, 42, 46)
 SRC_PX = 400
-L, W = 14.8, 10.0
+L, W = 10.0, 14.8  # depth from the Mega Slam baseline, baseline length
 
 
 def font(name, size):
@@ -47,11 +47,11 @@ def draw_hoops(d, ox, oy, s, line=4, bases=True):
     cx, cy = ox + W / 2 * s, oy + 1.575 * s
     d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(224, 83, 31), width=max(2, line - 1))
     d.rectangle((cx - 0.08 * s, oy - 0.22 * s, cx + 0.08 * s, oy - 0.02 * s), fill=HOOP)
-    # portable hoops: rim 0.6 m inside each side line at 10.8 m, board 1.32 m wide, base outside the tiles
+    # portable hoops: rim 0.6 m inside each 10 m side line, centred at 5.0 m, board 1.32 m wide, base outside the tiles
     for side in (-1, 1):
         rx = ox + (W / 2 + side * (W / 2 - 0.6)) * s
         bx = rx + side * 0.38 * s
-        cz = oy + 10.8 * s
+        cz = oy + 5.0 * s
         d.line((bx, cz - 0.66 * s, bx, cz + 0.66 * s), fill=HOOP, width=line)
         d.ellipse((rx - r, cz - r, rx + r, cz + r), outline=(224, 83, 31), width=max(2, line - 1))
         if not bases:
@@ -84,7 +84,7 @@ def dim_arrow(d, a, b, text, f, vertical=False):
 def main_sheet(court_png: Path, out: Path):
     s = 100  # px per metre on the sheet
     cw, ch = int(W * s), int(L * s)
-    left, right, top, bottom = 300, 300, 440, 480
+    left, right, top, bottom = 330, 300, 440, 480
     sheet = Image.new("RGB", (left + cw + right, top + ch + bottom), BG)
     d = ImageDraw.Draw(sheet)
     court = Image.open(court_png).convert("RGB").resize((cw, ch), Image.LANCZOS)
@@ -96,27 +96,26 @@ def main_sheet(court_png: Path, out: Path):
 
     d.text((60, 50), "HOOP HUB PHASE 1", font=heading(64), fill=NAVY)
     d.text((60, 128), "COURT MARKINGS FOR SIGN-OFF", font=heading(40), fill=GOLD)
-    d.text((60, 190), "Bird's-eye plan, to scale. As brief v2.", font=body(22), fill=INK)
+    d.text((60, 190), "Bird's-eye plan, to scale. 14.8 m baseline, 10 m deep; mini court runs across between the portable hoops.", font=body(22), fill=INK)
 
     f = body(20)
-    dim_arrow(d, (ox, oy - 90), (ox + cw, oy - 90), "10.0 m", f)
-    lbl = dim_arrow(d, (ox - 90, oy), (ox - 90, oy + ch), "14.8 m", f, vertical=True)
+    dim_arrow(d, (ox, oy - 90), (ox + cw, oy - 90), "14.8 m baseline", f)
+    lbl = dim_arrow(d, (ox - 240, oy), (ox - 240, oy + ch), "10.0 m", f, vertical=True)
     sheet.paste(lbl[0], lbl[1])
     d = ImageDraw.Draw(sheet)
     for text, y in (("MEGA SLAM END", oy - 150), ("OPEN END", oy + ch + 60)):
         tb = heading(30).getbbox(text)
         d.text((ox + cw / 2 - (tb[2] - tb[0]) / 2, y), text, font=heading(30), fill=NAVY)
-    for side, x in ((-1, ox - 270), (1, ox + cw + 175)):
-        y = oy + 10.8 * s
-        d.text((x, y - 46), "PORTABLE", font=body(18), fill=INK)
-        d.text((x, y - 22), "HOOP", font=body(18), fill=INK)
-        d.text((x, y + 6), "at 10.8 m", font=body(16), fill=INK)
+    for x in (ox - 147, ox + cw + 10):
+        y = oy + 5.0 * s + 52
+        d.text((x, y), "PORTABLE", font=body(18), fill=INK)
+        d.text((x, y + 24), "HOOP", font=body(18), fill=INK)
 
     # legend
     ly = oy + ch + 130
     items = [
         ((255, 255, 255), "White 50 mm: 3x3 half court (FIBA key, arc, free-throw line, no-charge)"),
-        (GOLD, "Gold 40 mm: cross-court mini court (halfway line + a key each side)"),
+        (GOLD, "Gold 40 mm: mini court across the full 14.8 x 10 m (halfway line + a key at each portable hoop)"),
         ((110, 114, 118), "Court tiles, mid grey #6e7276"),
         ((167, 169, 172), "Key, lighter grey #a7a9ac"),
         (HOOP, "Hoop positions, for reference only (not painted)"),
@@ -132,26 +131,26 @@ def main_sheet(court_png: Path, out: Path):
 
 
 def options_sheet(files: dict, out: Path):
-    s = 64
+    s = 52
     cw, ch = int(W * s), int(L * s)
     gap, top = 150, 260
     sheet = Image.new("RGB", (gap + 3 * (cw + gap), top + ch + 260), BG)
     d = ImageDraw.Draw(sheet)
     d.text((60, 50), "HALFWAY LINE OPTIONS", font=heading(56), fill=NAVY)
-    d.text((60, 125), "The gold halfway line meets the white free-throw semicircle and arc. Pick one.", font=body(22), fill=INK)
+    d.text((60, 125), "The gold halfway line runs through the middle of the 3x3 half court. Pick how much of it to paint.", font=body(22), fill=INK)
     captions = {
-        "A-from-8.4m": ("A  RECOMMENDED", "Gold line starts at 8.4 m, just past", "the arc. Cones mark the 6.8 m edge."),
-        "B-as-brief": ("B  AS BRIEF", "Gold line from 6.8 m, through the", "free-throw semicircle and arc."),
-        "C-edge-line": ("C  ADD EDGE LINE", "As B, plus a gold line across", "the court at 6.8 m."),
+        "A-full-depth": ("A  FULL DEPTH", "Gold line from baseline to end line,", "through the 3x3 key."),
+        "B-from-ft-line": ("B  RECOMMENDED", "Gold line starts at the free-throw line,", "so the 3x3 key stays clean."),
+        "C-past-arc": ("C  PAST THE ARC", "Gold line only beyond the arc. Cleanest,", "but the shortest halfway mark."),
     }
-    for i, key in enumerate(("A-from-8.4m", "B-as-brief", "C-edge-line")):
+    for i, key in enumerate(("A-full-depth", "B-from-ft-line", "C-past-arc")):
         ox = gap + i * (cw + gap)
         oy = top
         d.rectangle((ox - 18, oy - 22, ox + cw + 18, oy + ch + 18), fill=(92, 95, 99))
         sheet.paste(Image.open(files[key]).convert("RGB").resize((cw, ch), Image.LANCZOS), (ox, oy))
         draw_hoops(d, ox, oy, s, line=3, bases=False)
         t, l1, l2 = captions[key]
-        d.text((ox, oy + ch + 40), t, font=heading(34), fill=GOLD if i == 0 else NAVY)
+        d.text((ox, oy + ch + 40), t, font=heading(34), fill=GOLD if i == 1 else NAVY)
         d.text((ox, oy + ch + 92), l1, font=body(18), fill=INK)
         d.text((ox, oy + ch + 118), l2, font=body(18), fill=INK)
     concept_label(d, sheet.height, 60)
@@ -166,5 +165,5 @@ if __name__ == "__main__":
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     files = {p.stem.removeprefix("court-"): p for p in a.plan_dir.glob("court-*.png")}
-    print(main_sheet(files["B-as-brief"], a.out / "court-markings-plan.png"))
+    print(main_sheet(files["B-from-ft-line"], a.out / "court-markings-plan.png"))
     print(options_sheet(files, a.out / "halfway-line-options.png"))

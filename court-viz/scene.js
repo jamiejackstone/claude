@@ -1,6 +1,7 @@
 // Hoop Hub Phase 1 concept scene, built to the v2 brief (21 Oct 2026).
-// World axes: x runs across the 10 m width (-5 left .. +5 right, seen from the open end),
-// z runs along the 14.8 m length (0 = Mega Slam baseline, 14.8 = open end), y is up. Metres.
+// World axes: x runs along the 14.8 m baseline (-7.4 left .. +7.4 right, seen from the open end),
+// z runs 10 m from the Mega Slam baseline (0) to the open end line (10), y is up. Metres.
+// The cross-court mini court runs along x, between portable hoops on the two 10 m sidelines.
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -17,8 +18,8 @@ export const COL = {
 };
 
 export const DIM = {
-  L: 14.8,
-  W: 10,
+  L: 10,
+  W: 14.8,
   tileT: 0.015,
   lineW: 0.05,
   goldW: 0.04,
@@ -30,18 +31,18 @@ export const DIM = {
   arcR: 6.75,
   cornerIn: 0.9,
   noChargeR: 1.25,
-  miniStart: 6.8,
-  miniKeyZ: 10.8,
+  miniStart: 0,
+  miniKeyZ: 5,
   miniKeyW: 2.5,
   miniKeyD: 2.75,
   miniFtR: 1.25,
   borderW: 0.09,
-  container: { x0: 2.5, x1: 4.94, z0: -4.2, z1: -2.0, h: 2.26 },
+  container: { x0: 3.5, x1: 5.94, z0: -4.2, z1: -2.0, h: 2.26 },
 };
 
-// Gold mini-court options still open with Hoop Heroes: where the halfway line starts,
-// and whether the hoop-side edge of the mini court gets its own gold line.
-export const MARKINGS = { halfwayStart: DIM.miniStart, edgeLine: false };
+// Gold mini-court option still open with Hoop Heroes: where the halfway line starts
+// (0 = full depth through the 3x3 key, 5.8 = from the free-throw line, 8.4 = past the arc).
+export const MARKINGS = { halfwayStart: DIM.keyD };
 
 const FT = 0.3048;
 const PX = 400; // court texture pixels per metre
@@ -97,7 +98,7 @@ function shadowed(obj) {
 
 // ---------------------------------------------------------------- court surface
 
-export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart, edgeLine = MARKINGS.edgeLine } = {}) {
+export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart } = {}) {
   const { L, W } = DIM;
   const c = canvas(Math.round(W * PX), Math.round(L * PX));
   const g = c.getContext('2d');
@@ -133,11 +134,6 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart, edgeLin
     g.moveTo(X(0), Z(halfwayStart));
     g.lineTo(X(0), Z(L));
   });
-  if (edgeLine)
-    stroke(COL.gold, gw, () => {
-      g.moveTo(X(-W / 2), Z(DIM.miniStart));
-      g.lineTo(X(W / 2), Z(DIM.miniStart));
-    });
   for (const s of [-1, 1]) {
     const edge = s * (W / 2 - DIM.lineW);
     const inner = s * (W / 2 - DIM.miniKeyD);
@@ -503,7 +499,7 @@ function buildSurroundings() {
     std('#ffffff', { map: tex(playMarkings()), transparent: true, roughness: 0.95, depthWrite: false }),
   );
   pm.rotation.x = -Math.PI / 2;
-  pm.position.set(-13, 0.004, 7);
+  pm.position.set(-14.5, 0.004, 5);
   pm.receiveShadow = true;
   grp.add(pm);
 
@@ -1208,12 +1204,12 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
 
 // camera presets, named after the brief's shot list
 export const SHOTS = {
-  1: { label: 'Orientation', pos: [-1.2, 5.6, 23.5], target: [0, 0.6, 5.2], fov: 38, state: { mini: false, rimFt: 10, doors: 0 } },
-  2: { label: 'Top-down', ortho: { cx: 0, cz: 5.6, height: 22 }, state: { mini: true, rimFt: 10, doors: 0 } },
+  1: { label: 'Orientation', pos: [-1.0, 6.2, 20.5], target: [0, 0.4, 3.4], fov: 42, state: { mini: false, rimFt: 10, doors: 0 } },
+  2: { label: 'Top-down', ortho: { cx: 0, cz: 2.9, height: 16.4 }, state: { mini: true, rimFt: 10, doors: 0 } },
   '3a': { label: 'Mega Slam 7 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 7, doors: 0 } },
   '3b': { label: 'Mega Slam 8.5 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 8.5, doors: 0 } },
   '3c': { label: 'Mega Slam 10 ft', pos: [-3.1, 1.2, 6.9], target: [0.1, 2.15, 0.2], fov: 39.8, dof: 7.5, state: { mini: false, rimFt: 10, doors: 0 } },
-  4: { label: 'Mini game', pos: [10.5, 9, 22.5], target: [0, 0.3, 7.2], fov: 40, state: { mini: true, rimFt: 7, doors: 0 } },
-  5: { label: 'Container', pos: [7.9, 1.6, -1.6], target: [3.6, 1.0, -3.4], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
-  6: { label: 'Hero', pos: [-3.7, 1.15, 17.7], target: [-0.5, 0.45, 4.0], fov: 45.7, dof: 16, state: { mini: false, rimFt: 10, doors: 0 } },
+  4: { label: 'Mini game', pos: [14.5, 9.5, 17.5], target: [0, 0.3, 3.8], fov: 42, state: { mini: true, rimFt: 7, doors: 0 } },
+  5: { label: 'Container', pos: [8.9, 1.6, -1.6], target: [4.6, 1.0, -3.4], fov: 45.7, dof: 9, state: { mini: false, rimFt: 10, doors: 1 } },
+  6: { label: 'Hero', pos: [-6.6, 1.15, 12.8], target: [-0.6, 0.6, 1.0], fov: 45.7, dof: 13, state: { mini: false, rimFt: 10, doors: 0 } },
 };

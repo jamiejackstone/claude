@@ -9,9 +9,9 @@ const { values } = parseArgs({ options: { out: { type: 'string', default: 'rende
 await mkdir(values.out, { recursive: true });
 const { page, close } = await openPage({ w: 320, h: 180, query: 'shot=2&ao=0' });
 const variants = {
-  'B-as-brief': { halfwayStart: 6.8, edgeLine: false },
-  'A-from-8.4m': { halfwayStart: 8.4, edgeLine: false },
-  'C-edge-line': { halfwayStart: 6.8, edgeLine: true },
+  'A-full-depth': { halfwayStart: 0 },
+  'B-from-ft-line': { halfwayStart: 5.8 },
+  'C-past-arc': { halfwayStart: 8.4 },
 };
 for (const [name, opts] of Object.entries(variants)) {
   const data = await page.evaluate(async (opts) => {
