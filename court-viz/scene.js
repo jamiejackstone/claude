@@ -1165,8 +1165,8 @@ export class StorageContainer {
         b.rotation.set(j, y * 3, j * 2);
         rack.add(b);
       }
-    // ball rack rides in the gap between the two folded hoops, by the doors
-    rack.position.set(L / 2 - 0.12 - 1.45 / 2, 0.12, 0);
+    // ball rack rides in the gap between the two folded hoops, clear of the trolley stood on end
+    rack.position.set(this.backX + 0.25 + rw / 2, 0.12, 0);
     this.contents.add(rack);
     this.stowed = new THREE.Group();
     this.contents.add(this.stowed);
@@ -1174,16 +1174,23 @@ export class StorageContainer {
     this.setDoors(0);
   }
 
-  stow(hoops, rollOut = 0) {
-    // two folded hoops side by side, wheels towards the doors
-    const D = DIM.container.z1 - DIM.container.z0;
+  // folded hoop base front (group origin) in container space: behind the trolley as delivered,
+  // by the doors in everyday use. The bases are 1.45 m long, wheels towards the doors.
+  stowX(where) {
     const L = DIM.container.x1 - DIM.container.x0;
+    return where === 'back' ? this.backX + 1.46 : L / 2 - 0.12;
+  }
+
+  stowZ(i) {
+    const D = DIM.container.z1 - DIM.container.z0;
+    return (i ? -1 : 1) * (D / 2 - 0.5);
+  }
+
+  stow(hoops, where = 'front') {
     hoops.forEach((hp, i) => {
       this.stowed.add(hp.group);
       hp.group.rotation.set(0, 0, 0);
-      const z = (i ? -1 : 1) * (D / 2 - 0.5);
-      const x = L / 2 - 0.12 + (i === 0 ? rollOut : 0);
-      hp.group.position.set(x, 0.12, z);
+      hp.group.position.set(this.stowX(where), 0.12, this.stowZ(i));
     });
   }
 
@@ -1416,18 +1423,24 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
   const curve = (pts) => new THREE.CatmullRomCurve3(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
   const tmp = new THREE.Vector3();
 
+  // the portable hoops share the rim height, within their own 2.4 to 3.05 m range
+  const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
+  const finalX = hoops.map((hp, i) => (i ? 1 : -1) * (DIM.W / 2 - 0.6 + hp.rimLocal));
   const placeOut = () => {
     hoops.forEach((hp, i) => {
-      const side = i ? 1 : -1; // left (-x) and right (+x); local +x always faces the court
+      // left (-x) and right (+x); local +x always faces the court
       scene.add(hp.group);
       hp.setFolded(false);
       hp.setUnfold(1);
-      hp.group.position.set(side * (DIM.W / 2 - 0.6 + hp.rimLocal), 0, DIM.miniKeyZ);
-      hp.group.rotation.set(0, side > 0 ? Math.PI : 0, 0);
+      hp.setHeight(portableRim());
+      hp.group.position.set(finalX[i], 0, DIM.miniKeyZ);
+      hp.group.rotation.set(0, i ? Math.PI : 0, 0);
     });
   };
+  // as delivered the loaded trolley sits by the doors, so the floor comes out first
+  const trolleyPackedX = backX + 1.52;
   const trolleyPacked = (count) => {
-    trolley.group.position.set(backX + 0.01, 0.12, cw.z);
+    trolley.group.position.set(trolleyPackedX, 0.12, cw.z);
     trolley.group.rotation.set(0, 0, 0);
     trolley.handle(true);
     trolley.setCount(count);
@@ -1447,54 +1460,40 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
     court.userData.border.visible = laid >= nPanels;
   };
 
-  // installation timeline, in seconds: doors, hoops out, trolley out, panels down,
-  // trolley back in and tipped on end, hoops across to the court and unfolded, doors shut
-  const T = { doors: 0.5, hoopsOut: 2.8, trolleyOut: 6.6, panels: 10.6, panelSpan: 13.6, flight: 0.9, trolleyBack: 25.2, tilt: 28.8, hoopsIn: 29.2, doorsShut: 34.6, end: 36.5 };
-  // matches StorageContainer.stow(): front of the container, either side of the ball rack
-  const stowed = hoops.map((_, i) => new THREE.Vector3(x1 - 0.12, 0.12, cw.z + (i ? -1 : 1) * ((z1 - z0) / 2 - 0.5)));
-  const staging = [
-    [9.7, -5.4],
-    [9.7, -6.5],
-  ];
-  const hoopOutPath = hoops.map((_, i) => curve([[stowed[i].x, stowed[i].z], [x1 + 2.4, stowed[i].z], [9.4, (stowed[i].z + staging[i][1]) / 2], staging[i]]));
-  const finalX = hoops.map((hp, i) => (i ? 1 : -1) * (DIM.W / 2 - 0.6 + hp.rimLocal));
-  const hoopInPath = [
-    curve([staging[0], [9.4, -0.8], [6.5, 6.6], [-3.5, 6.6], [finalX[0], DIM.miniKeyZ]]),
-    curve([staging[1], [10.4, -0.5], [10.2, 3.2], [finalX[1] + 0.2, DIM.miniKeyZ]]),
+  // installation timeline, in seconds. Step 1: the Mega Slam goes in. Step 2: the container opens,
+  // the panel trolley comes out and the floor is laid. Step 3: the trolley moves aside, the portable
+  // hoops roll out into position and go up, the empty trolley goes back in on its end, doors shut.
+  const T = {
+    slam: 0.3,
+    doors: 3.2,
+    trolleyOut: 5.4,
+    panels: 9.4,
+    panelSpan: 13.6,
+    flight: 0.9,
+    trolleyPark: 23.2,
+    hoopsOut: 25.0,
+    hoopTravel: 5.0,
+    trolleyBack: 30.2,
+    tilt: 33.2,
+    doorsShut: 34.4,
+    end: 37,
+  };
+  const packed = hoops.map((_, i) => [cw.x + container.stowX('back'), cw.z + container.stowZ(i)]);
+  const hoopPath = [
+    curve([packed[0], [x1 + 2.2, packed[0][1]], [9.4, -0.8], [6.5, 6.6], [-3.5, 6.6], [finalX[0], DIM.miniKeyZ]]),
+    curve([packed[1], [x1 + 2.2, packed[1][1]], [10.6, -0.5], [10.3, 3.2], [finalX[1] + 0.2, DIM.miniKeyZ]]),
   ];
   const trolleyStage = [7.9, 1.2];
-  const trolleyPath = curve([[backX + 0.01, cw.z], [x1 - 0.7, cw.z], [x1 + 1.1, cw.z], [8.6, -0.6], trolleyStage]);
+  const trolleyParkAt = [9.8, -5.8];
+  const trolleyOutPath = curve([[trolleyPackedX, cw.z], [x1 - 0.2, cw.z], [x1 + 1.1, cw.z], [8.6, -0.6], trolleyStage]);
+  const trolleyParkPath = curve([trolleyStage, [8.8, -0.8], [9.8, -3.4], trolleyParkAt]);
+  const trolleyBackPath = curve([trolleyParkAt, [x1 + 1.2, cw.z], [x1 - 0.2, cw.z], [backX + 0.01, cw.z]]);
 
   const applyInstall = (t) => {
+    // step 1: the Mega Slam is lowered into its socket
+    megaSlam.group.position.y = 7 * (1 - ease((t - T.slam) / 2.5));
     container.setDoors(ease((t - T.doors) / 2) * (1 - ease((t - T.doorsShut) / 1.6)));
-    // hoops: out of the container to a holding spot, later across the court and unfolded
-    hoops.forEach((hp, i) => {
-      scene.add(hp.group);
-      const startOut = T.hoopsOut + (i ? 0 : 0.8);
-      const startIn = T.hoopsIn + i * 0.9;
-      const arrive = startIn + 3.4;
-      let u;
-      let path;
-      let rot = 0;
-      if (t < startIn) {
-        path = hoopOutPath[i];
-        u = ease((t - startOut) / 3);
-      } else {
-        path = hoopInPath[i];
-        u = ease((t - startIn) / 3.4);
-        rot = i ? Math.PI * ease((u - 0.5) / 0.5) : 0;
-      }
-      path.getPoint(u, tmp);
-      const cx = tmp.x - Math.cos(rot) * 0.72;
-      hp.group.position.set(tmp.x, floorY(cx, tmp.z), tmp.z);
-      hp.group.rotation.set(0, rot, 0);
-      if (t >= arrive) {
-        hp.setFolded(false);
-        hp.setUnfold(ease((t - arrive) / 1.4));
-        hp.group.position.y = 0;
-      } else hp.setFolded(true);
-    });
-    // panels: each lifts off the trolley and is set into place, row by row from the Mega Slam end
+    // step 2: panels lift off the trolley and are set in place, row by row from the Mega Slam end
     let started = 0;
     const from = new THREE.Vector3();
     panels.forEach((m, k) => {
@@ -1516,26 +1515,44 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
       }
     });
     court.userData.border.visible = t >= T.panels + T.panelSpan;
-    // trolley: out to the court corner, back in once empty, then tipped on end
-    if (t < T.trolleyBack) {
-      trolleyPath.getPoint(ease((t - T.trolleyOut) / 3.6), tmp);
-      trolley.group.rotation.set(0, 0, 0);
-      trolley.handle(true);
-    } else trolleyPath.getPoint(1 - ease((t - T.trolleyBack) / 3.4), tmp);
+    // trolley: out to the court corner, aside while the hoops come out, then back in on its end
     if (t >= T.tilt) trolleyOnEnd(ease((t - T.tilt) / 1.1));
     else {
+      if (t < T.trolleyPark) trolleyOutPath.getPoint(ease((t - T.trolleyOut) / 3.6), tmp);
+      else if (t < T.trolleyBack) trolleyParkPath.getPoint(ease((t - T.trolleyPark) / 2.4), tmp);
+      else trolleyBackPath.getPoint(ease((t - T.trolleyBack) / 3), tmp);
+      trolley.group.rotation.set(0, 0, 0);
+      trolley.handle(true);
       trolley.group.position.set(tmp.x, floorY(tmp.x + trolley.len / 2, tmp.z), tmp.z);
       trolley.setCount(nPanels - started);
     }
+    // step 3: the hoops roll out of the container into position, then go up to the rim height
+    hoops.forEach((hp, i) => {
+      scene.add(hp.group);
+      const start = T.hoopsOut + i * 0.9;
+      const arrive = start + T.hoopTravel;
+      const u = ease((t - start) / T.hoopTravel);
+      const rot = i ? Math.PI * ease((u - 0.6) / 0.4) : 0;
+      hoopPath[i].getPoint(u, tmp);
+      hp.group.position.set(tmp.x, floorY(tmp.x - Math.cos(rot) * 0.72, tmp.z), tmp.z);
+      hp.group.rotation.set(0, rot, 0);
+      if (t >= arrive) {
+        hp.setFolded(false);
+        hp.setHeight(portableRim());
+        hp.setUnfold(ease((t - arrive) / 1.4));
+        hp.group.position.y = 0;
+      } else hp.setFolded(true);
+    });
   };
 
-  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, rollOut: 0, floor: nPanels, kit: 'inuse', install: null };
+  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, floor: nPanels, kit: 'inuse', install: null };
   const apply = (next = {}) => {
     Object.assign(state, next);
     megaSlam.setHeight(state.rimFt * FT);
     megaSlam.setPadding(state.padding === 'navy' ? COL.navy : COL.gold, padLogoTex);
     container.setWrap(state.wrap);
     if (state.install !== null) return applyInstall(state.install);
+    megaSlam.group.position.y = 0;
     container.setDoors(state.doors);
     showFloor(state.floor);
     if (state.kit === 'packed') trolleyPacked(nPanels - state.floor);
@@ -1546,7 +1563,7 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
         h.setFolded(true);
         h.setUnfold(1);
       });
-      container.stow(hoops, state.rollOut);
+      container.stow(hoops, state.kit === 'packed' ? 'back' : 'front');
     }
   };
   apply();

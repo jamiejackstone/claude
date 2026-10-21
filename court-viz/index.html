@@ -175,11 +175,11 @@ if (controls) {
   controls.maxDistance = 80;
 }
 
-function setShot(id) {
+function setShot(id, extra = {}) {
   currentShot = id;
   const s = SHOTS[id];
   // every shot starts from the finished court, then applies its own state
-  hub.apply({ rollOut: 0, floor: hub.nPanels, kit: 'inuse', install: null, ...s.state });
+  hub.apply({ floor: hub.nPanels, kit: 'inuse', install: null, ...s.state, ...extra });
   if (s.ortho) {
     const { cx, cz, height } = s.ortho;
     const aspect = W / H;
@@ -231,7 +231,8 @@ for (const [id, label] of VIEWS) {
   const b = document.createElement('button');
   b.textContent = label;
   b.dataset.shot = id;
-  b.onclick = () => { stopInstall(); setShot(id); };
+  // in the viewer every view shows the finished hub with all three hoops up
+  b.onclick = () => { stopInstall(); setShot(id, { mini: true, rimFt: hub.state.rimFt }); };
   shotBar.appendChild(b);
 }
 const $ = (id) => document.getElementById(id);
@@ -332,7 +333,7 @@ if (renderMode) {
   }
   window.__ready = true;
 } else {
-  setShot('1');
+  setShot('1', { mini: true });
   window.__ready = true;
   renderer.setAnimationLoop(() => {
     if (installT0 !== null) {
