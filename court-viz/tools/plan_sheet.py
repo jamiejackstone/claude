@@ -114,10 +114,10 @@ def main_sheet(court_png: Path, out: Path):
     # legend
     ly = oy + ch + 130
     items = [
-        ((255, 255, 255), "White 50 mm: 3x3 half court (FIBA key, arc, free-throw line, no-charge)"),
-        (GOLD, "Gold 40 mm: mini court boundary just outside the white, halfway line, centre circle; solid key, free-throw semicircle and 3-point line at each portable hoop"),
+        ((255, 255, 255), "White 50 mm: 3x3 half court (FIBA key, arc, free-throw line and semicircle)"),
+        (GOLD, "Gold 40 mm: mini court boundary just outside the white; key outline, free-throw semicircle and 3-point line at each portable hoop"),
         ((110, 114, 118), "Court tiles, mid grey #6e7276"),
-        ((167, 169, 172), "Key, lighter grey #a7a9ac"),
+        ((167, 169, 172), "All three keys, lighter grey #a7a9ac"),
         (HOOP, "Hoop positions, for reference only (not painted)"),
     ]
     for i, (col, text) in enumerate(items):
@@ -130,28 +130,6 @@ def main_sheet(court_png: Path, out: Path):
     return out
 
 
-def variants_sheet(files, captions, title, subtitle, out: Path, pick=None):
-    """Side-by-side comparison of court artwork variants."""
-    s = 52
-    cw, ch = int(W * s), int(L * s)
-    gap, top = 150, 260
-    sheet = Image.new("RGB", (gap + len(files) * (cw + gap), top + ch + 260), BG)
-    d = ImageDraw.Draw(sheet)
-    d.text((60, 50), title, font=heading(56), fill=NAVY)
-    d.text((60, 125), subtitle, font=body(22), fill=INK)
-    for i, (f, (t, l1, l2)) in enumerate(zip(files, captions)):
-        ox, oy = gap + i * (cw + gap), top
-        d.rectangle((ox - 18, oy - 22, ox + cw + 18, oy + ch + 18), fill=(92, 95, 99))
-        sheet.paste(Image.open(f).convert("RGB").resize((cw, ch), Image.LANCZOS), (ox, oy))
-        draw_hoops(d, ox, oy, s, line=3, bases=False)
-        d.text((ox, oy + ch + 40), t, font=heading(34), fill=GOLD if i == pick else NAVY)
-        d.text((ox, oy + ch + 92), l1, font=body(18), fill=INK)
-        d.text((ox, oy + ch + 118), l2, font=body(18), fill=INK)
-    concept_label(d, sheet.height, 60)
-    sheet.save(out)
-    return out
-
-
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("plan_dir", type=Path)
@@ -159,10 +137,3 @@ if __name__ == "__main__":
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     print(main_sheet(a.plan_dir / "court.png", a.out / "court-markings-plan.png"))
-    keys = sorted(a.plan_dir.glob("keys-*.png"))
-    if keys:
-        print(variants_sheet(keys, [
-            ("1  GOLD MINI KEYS", "Grey 3x3 key, solid gold mini keys.", "Mini court stands out most."),
-            ("2  GOLD MAIN KEY", "Gold 3x3 key, grey mini keys.", "Gold halfway line and circle vanish in it."),
-            ("3  ALL GREY", "All three keys light grey.", "Cleanest; every line reads."),
-        ], "KEY COLOUR OPTIONS", "Same markings, three ways to colour the keys.", a.out / "key-colour-options.png", pick=2))

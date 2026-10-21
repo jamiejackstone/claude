@@ -47,9 +47,9 @@ export const DIM = {
   container: { x0: 3.5, x1: 5.94, z0: -4.2, z1: -2.0, h: 2.26 },
 };
 
-// Where the gold mini-court halfway line starts: 0 = full depth, baseline to end line,
-// straight through the 3x3 key (signed off by Hoop Heroes, 21 Oct 2026).
-export const MARKINGS = { halfwayStart: 0, keyFill: COL.key, miniKeyFill: COL.gold };
+// Court markings as signed off by Hoop Heroes (21 Oct 2026): all keys light grey, and no
+// no-charge semicircle, mini halfway line or centre circle, to keep the surface clean.
+export const MARKINGS = { keyFill: COL.key, miniKeyFill: COL.key, halfway: false, noCharge: false };
 
 const FT = 0.3048;
 const PX = 400; // court texture pixels per metre
@@ -105,7 +105,7 @@ function shadowed(obj) {
 
 // ---------------------------------------------------------------- court surface
 
-export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart, keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill } = {}) {
+export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge } = {}) {
   const { L, W } = DIM;
   const c = canvas(Math.round(W * PX), Math.round(L * PX));
   const g = c.getContext('2d');
@@ -136,16 +136,18 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart, keyFill
     g.stroke();
   };
 
-  // gold mini court, under the white: boundary on the tile edge, halfway line and centre circle,
-  // and at each end a solid key, free-throw semicircle and a small three-point line
+  // gold mini court, under the white: boundary on the tile edge (optional halfway line and centre
+  // circle), and at each end a key, free-throw semicircle and a small three-point line
   const gw = DIM.goldW;
   const gh = gw / 2;
   stroke(COL.gold, gw, () => g.rect(X(-W / 2 + gh), Z(gh), (W - gw) * PX, (L - gw) * PX));
-  stroke(COL.gold, gw, () => {
-    g.moveTo(X(0), Z(halfwayStart));
-    g.lineTo(X(0), Z(L));
-  });
-  stroke(COL.gold, gw, () => g.arc(X(0), Z(DIM.miniKeyZ), DIM.miniCircleR * PX, 0, Math.PI * 2));
+  if (halfway) {
+    stroke(COL.gold, gw, () => {
+      g.moveTo(X(0), Z(0));
+      g.lineTo(X(0), Z(L));
+    });
+    stroke(COL.gold, gw, () => g.arc(X(0), Z(DIM.miniKeyZ), DIM.miniCircleR * PX, 0, Math.PI * 2));
+  }
   for (const s of [-1, 1]) {
     const edge = s * (W / 2);
     const inner = s * (W / 2 - DIM.miniKeyD);
@@ -193,7 +195,8 @@ export function paintCourt(logo, { halfwayStart = MARKINGS.halfwayStart, keyFill
     g.lineTo(X(cx), Z(inset));
   });
   // no-charge semicircle with its short straight ends to the board line
-  stroke(COL.white, lw, () => {
+  if (noCharge)
+    stroke(COL.white, lw, () => {
     const r = DIM.noChargeR;
     g.moveTo(X(-r), Z(DIM.boardZ10));
     g.lineTo(X(-r), Z(DIM.basketZ));
