@@ -8,7 +8,7 @@ import { chromium } from 'playwright-core';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.json': 'application/json' };
 
-export async function openPage({ w, h, query }) {
+export async function openPage({ w, h, query, page: pageFile = 'index.html' }) {
   const server = createServer(async (req, res) => {
     const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^\/+/, '');
     try {
@@ -35,7 +35,7 @@ export async function openPage({ w, h, query }) {
     route.fulfill({ body: await readFile(join(ROOT, 'node_modules/three', rel)), contentType: 'text/javascript' });
   });
   await page.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
-  await page.goto(`http://127.0.0.1:${port}/index.html?w=${w}&h=${h}&${query}`);
+  await page.goto(`http://127.0.0.1:${port}/${pageFile}?w=${w}&h=${h}&${query}`);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 600000 });
 
   const grab = async (file) => {

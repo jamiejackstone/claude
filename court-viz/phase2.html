@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoop Hub Phase 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #14264e;
+    --gold: #fba91a;
+    --white: #ffffff;
+    --light: #f8fafc;
+    --gray: #334155;
+    --panel: rgba(20, 38, 78, 0.92);
+    --bg: #c9d3dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0e1a36; }
+  }
+  :root[data-theme="dark"] { --bg: #0e1a36; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: Montserrat, system-ui, sans-serif; color: var(--white); }
+  #view { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+  /* Desktop: a panel across the top. Phone: one slim swipeable row along the bottom. Both can collapse. */
+  .bar {
+    position: fixed; top: calc(16px + env(safe-area-inset-top, 0px));
+    left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 1.5rem; background: var(--panel);
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+  }
+  .bar h1 { font-family: 'Lilita One', sans-serif; font-weight: 400; text-transform: uppercase; font-size: 18px; letter-spacing: 0.5px; margin: 0 8px 0 0; white-space: nowrap; }
+  .bar h1 span { color: var(--gold); }
+  .strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+  .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .sep { width: 1px; height: 24px; background: rgba(255, 255, 255, 0.2); margin: 0 4px; }
+  .collapse { flex: none; }
+  .bar.collapsed { right: auto; padding: 6px; }
+  .bar.collapsed h1, .bar.collapsed .strip { display: none; }
+  button, .toggle {
+    font: 700 11px Montserrat, sans-serif; text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--white); background: transparent; border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px; padding: 6px 11px; cursor: pointer; white-space: nowrap;
+  }
+  .collapse { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+  button:hover { border-color: var(--gold); }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button.on { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+  label.slider { display: flex; align-items: center; gap: 6px; font: 700 11px Montserrat, sans-serif; text-transform: uppercase; }
+  input[type=range] { accent-color: var(--gold); width: 110px; }
+  .concept {
+    position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 6px 12px; border-radius: 6px;
+    background: rgba(20, 38, 78, 0.6); font: 700 12px Montserrat, sans-serif; letter-spacing: 0.4px;
+  }
+  .hint { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font: 600 11px Montserrat, sans-serif; color: var(--white); opacity: 0.85; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; font: 700 14px Montserrat, sans-serif; color: var(--navy); }
+  body.render .bar, body.render .concept, body.render .hint { display: none; }
+  @media (max-width: 720px), (max-height: 500px) {
+    .bar {
+      top: auto; bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
+      padding: 6px; gap: 6px; border-radius: 999px;
+    }
+    .bar h1, .sep, .hint { display: none; }
+    .strip, .group { flex-wrap: nowrap; }
+    .strip {
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; gap: 6px;
+      mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+    }
+    .strip::-webkit-scrollbar { display: none; }
+    button, .toggle { padding: 6px 10px; font-size: 10px; }
+    label.slider { font-size: 10px; white-space: nowrap; }
+    input[type=range] { width: 80px; }
+    .concept { top: calc(10px + env(safe-area-inset-top, 0px)); bottom: auto; left: max(10px, env(safe-area-inset-left, 0px)); padding: 4px 8px; font-size: 10px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="view"></div>
+<div class="loading" id="loading">Building the hub…</div>
+<div class="bar" id="bar">
+  <button id="collapse" class="collapse" aria-expanded="true" aria-controls="strip">Hide</button>
+  <h1>Hoop Hub <span>Phase 2</span></h1>
+  <div class="strip" id="strip">
+  <div class="group" id="shots"></div>
+  <div class="sep"></div>
+  <div class="group">
+    <button id="door" class="on" aria-pressed="true">Door up</button>
+    <label class="slider">Rim <input id="rim" type="range" min="6" max="10" step="1" value="10"> <span id="rimv">10 ft</span></label>
+  </div>
+  </div>
+</div>
+<div class="concept">CONCEPT - HOOP HUB</div>
+<div class="hint">Drag to orbit · scroll to zoom</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { createPhase2, SHOTS } from './phase2/hub.js';
+
+const params = new URLSearchParams(location.search);
+const renderMode = params.has('shot');
+if (renderMode) document.body.classList.add('render');
+const W = +params.get('w') || innerWidth;
+const H = +params.get('h') || innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: renderMode });
+renderer.setPixelRatio(renderMode ? 1 : Math.min(devicePixelRatio, 2));
+renderer.setSize(W, H, !renderMode);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('view').appendChild(renderer.domElement);
+
+const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png' });
+const { scene } = hub;
+document.getElementById('loading').remove();
+
+const persp = new THREE.PerspectiveCamera(40, W / H, 0.1, 3000);
+// shots are framed for 16:9; on narrower screens widen the view so the same width of scene fits
+function setFov(designFov) {
+  persp.userData.fov = designFov;
+  const aspect = persp.aspect;
+  const design = 16 / 9;
+  if (aspect >= design) persp.fov = designFov;
+  else {
+    const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(designFov / 2)) * design);
+    persp.fov = Math.min(100, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(half) / aspect)));
+  }
+  persp.updateProjectionMatrix();
+}
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+let camera = persp;
+
+const useAO = renderMode && params.get('ao') !== '0';
+let composer = null;
+let bokeh = null;
+function buildComposer() {
+  if (!useAO) return;
+  const rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: 4 });
+  composer = new EffectComposer(renderer, rt);
+  composer.setSize(W, H);
+  composer.addPass(new RenderPass(scene, camera));
+  const ao = new GTAOPass(scene, camera, W, H);
+  ao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.5, thickness: 1, scale: 1 });
+  ao.blendIntensity = 0.75;
+  composer.addPass(ao);
+  bokeh = new BokehPass(scene, camera, { focus: 10, aperture: 0.00012, maxblur: 0.004 });
+  bokeh.enabled = false;
+  composer.addPass(bokeh);
+  composer.addPass(new OutputPass());
+}
+
+const controls = renderMode ? null : new OrbitControls(persp, renderer.domElement);
+if (controls) {
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI / 2 - 0.03;
+  controls.minDistance = 1;
+  controls.maxDistance = 90;
+}
+
+let currentShot = '1';
+function setShot(id, extra = {}) {
+  currentShot = id;
+  const s = SHOTS[id];
+  hub.apply({ cutaway: false, ...s.state, ...extra });
+  if (s.ortho) {
+    const { cx, cz, height } = s.ortho;
+    const aspect = W / H;
+    ortho.left = (-height * aspect) / 2;
+    ortho.right = (height * aspect) / 2;
+    ortho.top = height / 2;
+    ortho.bottom = -height / 2;
+    ortho.position.set(cx, 60, cz);
+    ortho.up.set(0, 0, -1);
+    ortho.lookAt(cx, 0, cz);
+    ortho.updateProjectionMatrix();
+    camera = ortho;
+  } else {
+    setFov(s.fov);
+    persp.position.set(...s.pos);
+    persp.updateProjectionMatrix();
+    camera = persp;
+    if (controls) {
+      controls.target.set(...s.target);
+      controls.update();
+    } else persp.lookAt(...s.target);
+  }
+  if (bokeh) {
+    bokeh.enabled = !!s.dof;
+    if (s.dof) bokeh.uniforms.focus.value = s.dof;
+  }
+  syncUI();
+}
+
+function render() {
+  if (composer) {
+    composer.passes.forEach((p) => p.camera !== undefined && (p.camera = camera));
+    if (bokeh) bokeh.camera = camera;
+    composer.render();
+  } else renderer.render(scene, camera);
+}
+
+// ---------- UI
+const VIEWS = [
+  ['1', 'Outside'],
+  ['2', 'Inside'],
+  ['3', 'Top-down'],
+];
+const shotBar = document.getElementById('shots');
+for (const [id, label] of VIEWS) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.dataset.shot = id;
+  b.onclick = () => setShot(id, { roller: hub.state.roller, rimFt: hub.state.rimFt });
+  shotBar.appendChild(b);
+}
+const $ = (id) => document.getElementById(id);
+function syncUI() {
+  for (const b of shotBar.children) b.classList.toggle('on', b.dataset.shot === currentShot);
+  $('door').classList.toggle('on', hub.state.roller > 0.5);
+  $('door').setAttribute('aria-pressed', String(hub.state.roller > 0.5));
+  $('rim').value = hub.state.rimFt;
+  $('rimv').textContent = `${hub.state.rimFt} ft`;
+}
+function setCollapsed(c) {
+  $('bar').classList.toggle('collapsed', c);
+  $('collapse').textContent = c ? 'Controls' : 'Hide';
+  $('collapse').setAttribute('aria-expanded', String(!c));
+  try { localStorage.setItem('hh-controls-collapsed', c ? '1' : '0'); } catch {}
+}
+let startCollapsed = false;
+try { startCollapsed = localStorage.getItem('hh-controls-collapsed') === '1'; } catch {}
+setCollapsed(startCollapsed);
+$('collapse').onclick = () => setCollapsed(!$('bar').classList.contains('collapsed'));
+$('rim').oninput = (e) => { hub.apply({ rimFt: +e.target.value }); syncUI(); };
+// roller door: rolls up or down over a few seconds
+const DOOR_TIME = 4;
+let doorAnim = null;
+$('door').onclick = () => {
+  const up = hub.state.roller < 0.5;
+  const from = hub.state.roller;
+  const t0 = performance.now();
+  doorAnim = { up, p: () => THREE.MathUtils.clamp(from + ((up ? 1 : -1) * (performance.now() - t0)) / 1000 / DOOR_TIME, 0, 1) };
+  $('door').classList.toggle('on', up);
+};
+function stepDoor() {
+  if (!doorAnim) return;
+  const p = doorAnim.p();
+  hub.apply({ roller: p });
+  if ((doorAnim.up && p >= 1) || (!doorAnim.up && p <= 0)) {
+    doorAnim = null;
+    syncUI();
+  }
+}
+
+addEventListener('resize', () => {
+  if (renderMode) return;
+  renderer.setSize(innerWidth, innerHeight);
+  persp.aspect = innerWidth / innerHeight;
+  setFov(persp.userData.fov ?? persp.fov);
+});
+
+// ---------- render-mode hooks for the still exporter
+window.hub = hub;
+window.renderShot = (id, extra) => { setShot(id); if (extra) hub.apply(extra); render(); };
+
+if (renderMode) {
+  persp.aspect = W / H;
+  buildComposer();
+  setShot(params.get('shot'));
+  render();
+  window.__ready = true;
+} else {
+  setShot('1');
+  window.__ready = true;
+  renderer.setAnimationLoop(() => {
+    stepDoor();
+    controls.update();
+    render();
+  });
+}
+</script>
+</body>
+</html>
