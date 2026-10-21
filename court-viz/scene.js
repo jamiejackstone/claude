@@ -1283,7 +1283,7 @@ export async function createHoopHub(renderer, { logoUrl = 'assets/logo.png' } = 
     });
   };
 
-  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'navy', doors: 0, rollOut: 0 };
+  const state = { mini: true, rimFt: 10, padding: 'navy', wrap: 'gold', doors: 0, rollOut: 0 };
   const apply = (next = {}) => {
     Object.assign(state, next);
     megaSlam.setHeight(state.rimFt * FT);

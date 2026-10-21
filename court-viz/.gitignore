@@ -1,2 +1,4 @@
 node_modules/
 dist/
+renders/video/frames/
+renders/video/parts/

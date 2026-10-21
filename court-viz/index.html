@@ -77,7 +77,7 @@
     <button id="mini">Hoops out</button>
     <button id="doors">Container open</button>
     <button id="pad">Pad: navy</button>
-    <button id="wrap">Wrap: navy</button>
+    <button id="wrap">Wrap: gold</button>
     <label class="slider">Rim <input id="rim" type="range" min="5" max="10" step="0.5" value="10"> <span id="rimv">10 ft</span></label>
     <button id="fly">Fly-through</button>
   </div>
@@ -94,7 +94,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { createHoopHub, SHOTS } from './scene.js';
-import { FLY, sampleFly } from './flythrough.js';
+import { FLY, SEGMENTS, sampleFly, sampleSegment } from './flythrough.js';
 
 const params = new URLSearchParams(location.search);
 const renderMode = params.has('shot') || params.has('fly');
@@ -241,6 +241,18 @@ addEventListener('resize', () => {
 window.hub = hub;
 window.renderShot = (id, extra) => { setShot(id); if (extra) hub.apply(extra); render(); };
 window.renderFly = (t) => { camera = persp; applyFly(t); render(); };
+window.renderSeg = (i, t) => {
+  camera = persp;
+  const f = sampleSegment(i, t);
+  hub.apply(f.state);
+  persp.fov = f.fov;
+  persp.position.copy(f.pos);
+  persp.lookAt(f.target);
+  persp.updateProjectionMatrix();
+  if (bokeh) bokeh.enabled = false;
+  render();
+};
+window.SEGMENTS = SEGMENTS.map((s) => ({ name: s.name, duration: s.duration }));
 window.FLY_DURATION = FLY.duration;
 
 if (renderMode) {
