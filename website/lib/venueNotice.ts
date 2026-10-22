@@ -1,3 +1,5 @@
+import type { TemporaryVenue } from '../types.ts';
+
 /** Calendar date in Europe/London as YYYY-MM-DD. */
 export function londonDate(now: Date = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -11,39 +13,37 @@ export function londonDate(now: Date = new Date()): string {
   return `${value('year')}-${value('month')}-${value('day')}`;
 }
 
-/** True while the London calendar date is strictly before expiresOn (YYYY-MM-DD). */
-export function isBeforeLondonDate(expiresOn: string, now: Date = new Date()): boolean {
-  return londonDate(now) < expiresOn;
+/** Inclusive of showFrom and showUntil. Both are YYYY-MM-DD compared in Europe/London. */
+export function isWithinLondonWindow(
+  showFrom: string,
+  showUntil: string,
+  now: Date = new Date(),
+): boolean {
+  const today = londonDate(now);
+  return today >= showFrom && today <= showUntil;
 }
 
-export interface TempVenueFields {
-  tempVenueNotice?: string;
-  /** Hidden from this Europe/London calendar date (YYYY-MM-DD). */
-  tempVenueNoticeUntil?: string;
+export function activeTemporaryVenues(
+  venues: TemporaryVenue[] | undefined,
+  now: Date = new Date(),
+): TemporaryVenue[] {
+  if (!venues?.length) return [];
+  return venues.filter((venue) => isWithinLondonWindow(venue.showFrom, venue.showUntil, now));
 }
 
-/** Same embed URL shape as the usual location map, using the directions query. */
-export function tempVenueEmbedSrc(mapsUrl: string | undefined): string | null {
-  if (!mapsUrl) return null;
-  let query: string | null;
-  try {
-    query = new URL(mapsUrl).searchParams.get('query');
-  } catch {
-    return null;
-  }
+export function temporaryVenueAnchorId(index: number): string {
+  return index === 0 ? 'temporary-venue' : `temporary-venue-${index + 1}`;
+}
+
+/** Same embed URL shape as the usual location map. */
+export function mapEmbedSrc(mapQuery: string | undefined): string | null {
+  const query = mapQuery?.trim();
   if (!query) return null;
   return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=&z=18&ie=UTF8&iwloc=&output=embed`;
 }
 
-/** Notice text while it is set and still before its London expiry, otherwise null. */
-export function activeTempVenueNotice(
-  location: TempVenueFields,
-  now: Date = new Date(),
-): string | null {
-  const text = location.tempVenueNotice?.trim();
-  if (!text) return null;
-  if (location.tempVenueNoticeUntil && !isBeforeLondonDate(location.tempVenueNoticeUntil, now)) {
-    return null;
-  }
-  return text;
+export function directionsUrl(mapQuery: string | undefined): string | null {
+  const query = mapQuery?.trim();
+  if (!query) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }

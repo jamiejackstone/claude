@@ -39,6 +39,32 @@ export interface Review {
   relativeTime: string; // e.g., "2 weeks ago"
 }
 
+export interface TemporaryVenueTime {
+  label: string;
+  time: string;
+  usualTime: string;
+}
+
+export interface TemporaryVenue {
+  venueName: string;
+  address: string;
+  /** Query for the map embed and the Get directions link. */
+  mapQuery: string;
+  /** Inclusive YYYY-MM-DD, compared as a Europe/London calendar date. */
+  showFrom: string;
+  /** Inclusive YYYY-MM-DD, compared as a Europe/London calendar date. */
+  showUntil: string;
+  sessionDates: string[];
+  timesNote: string;
+  times: TemporaryVenueTime[];
+  /** Rendered only when set. */
+  parking?: string;
+  /** Rendered only when set. */
+  entry?: string;
+  returnNote: string;
+  tickerText: string;
+}
+
 export interface LocationData {
   id: string;
   name: string; // e.g., "Bristol", "Manchester South"
@@ -65,14 +91,7 @@ export interface LocationData {
   mapQueryOverride?: string; // Override query for map iframe
   googleMapsUrl?: string; // Custom Google Maps link for directions
   tempVenueNotice?: string; // Optional temporary venue change notice
-  /** YYYY-MM-DD. Notice is hidden from this Europe/London calendar date. */
-  tempVenueNoticeUntil?: string;
-  /** Directions for the temporary venue only. Does not replace the usual map. */
-  tempVenueMapsUrl?: string;
-  /** Parking at the temporary venue. Rendered only when set. */
-  tempVenueParking?: string;
-  /** How to get in at the temporary venue (door or hall). Rendered only when set. */
-  tempVenueAccess?: string;
+  temporaryVenues?: TemporaryVenue[];
 }
 
 export interface Feature {

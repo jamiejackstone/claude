@@ -175,13 +175,27 @@ export const LOCATIONS: LocationData[] = [
     actionVideoUrl: 'https://www.youtube-nocookie.com/embed/ENWlnbItCc0?si=80euwZHd7QVRV-Dg&controls=0',
     bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944',
     mapQueryOverride: "The Mandeville School, Aylesbury",
-    // Monday sessions only (Aylesbury has no other class days). Hidden from 10 Nov 2026, Europe/London.
+    // Shown 22 Oct-9 Nov 2026 inclusive, Europe/London. Monday sessions only.
     // Address confirmed on https://www.sirhenryfloyd.co.uk/contact/ : Oxford Road, Aylesbury, HP21 8PE.
-    tempVenueNotice: 'Venue change: Monday classes on 26 Oct, 2 Nov and 9 Nov are at Sir Henry Floyd Grammar School, Oxford Road, Aylesbury, HP21 8PE, starting 15 minutes later than usual: Rookies (Age 5-7) 17:45 (usually 17:30), Rising Stars (Age 8-11) 18:15 (usually 18:00). From Monday 16 Nov we are back at The Mandeville School.',
-    tempVenueNoticeUntil: '2026-11-10',
-    tempVenueMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Sir Henry Floyd Grammar School HP21 8PE')}`,
-    // Parking, entrance and drop-off: leave unset until Jamie confirms. Do not render placeholders.
-    // tempVenueParking and tempVenueAccess render only when those strings are set.
+    // Parking and entry stay unset until the member-email details arrive. Do not render placeholders.
+    // Ballers has no confirmed temporary start time, so it is not listed.
+    temporaryVenues: [
+      {
+        venueName: 'Sir Henry Floyd Grammar School',
+        address: 'Oxford Road, Aylesbury, HP21 8PE',
+        mapQuery: 'Sir Henry Floyd Grammar School HP21 8PE',
+        showFrom: '2026-10-22',
+        showUntil: '2026-11-09',
+        sessionDates: ['Mon 26 Oct', 'Mon 2 Nov', 'Mon 9 Nov'],
+        timesNote: 'Starting 15 minutes later than usual',
+        times: [
+          { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },
+          { label: 'Rising Stars (Age 8-11)', time: '18:15', usualTime: '18:00' },
+        ],
+        returnNote: 'Back at The Mandeville School from Mon 16 Nov',
+        tickerText: 'Temporary venue for the next 3 weeks: Sir Henry Floyd, new times - see details',
+      },
+    ],
     headCoach: {
       name: 'Johnny Hayward',
       role: 'Head Coach',

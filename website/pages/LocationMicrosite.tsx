@@ -2,14 +2,103 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
-import { activeTempVenueNotice, tempVenueEmbedSrc } from '../lib/venueNotice';
+import { activeTemporaryVenues, directionsUrl, mapEmbedSrc, temporaryVenueAnchorId } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
-import { LocationData } from '../types';
+import { LocationData, TemporaryVenue } from '../types';
 import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, AlertTriangle, ShoppingCart } from 'lucide-react';
 
 interface LocationMicrositeProps {
   forcedId?: string;
+}
+
+function LocationTicker({ text, href }: { text: string; href?: string }) {
+  const ticker = (
+    <div className="bg-brand-orange border-4 border-brand-dark rounded-2xl shadow-sticker overflow-hidden flex items-stretch h-14 motion-reduce:h-auto relative z-30">
+      <div className="bg-brand-dark text-white px-4 flex items-center gap-2 shrink-0 border-r-2 border-brand-dark relative z-10">
+        <AlertTriangle size={20} className="text-brand-orange animate-pulse motion-reduce:animate-none" />
+        <span className="font-display uppercase tracking-wider text-sm">UPDATE</span>
+      </div>
+      <div className="flex-1 overflow-hidden relative motion-reduce:overflow-visible flex items-center">
+        <div className="whitespace-nowrap animate-[marquee_12s_linear_infinite] motion-reduce:animate-none motion-reduce:whitespace-normal flex items-center h-full motion-reduce:py-3">
+          <span className="text-brand-dark font-black uppercase text-sm px-4">
+            {text}
+            <span className="motion-reduce:hidden">
+              {' '}&bull;{' '}{text}{' '}&bull;{' '}{text}{' '}&bull;{' '}{text}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!href) return ticker;
+  return (
+    <a href={href} className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark">
+      {ticker}
+    </a>
+  );
+}
+
+function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchorId: string }) {
+  const embedSrc = mapEmbedSrc(venue.mapQuery);
+  const mapsUrl = directionsUrl(venue.mapQuery);
+  const parking = venue.parking?.trim();
+  const entry = venue.entry?.trim();
+
+  return (
+    <section id={anchorId} className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark p-6 md:p-8 scroll-mt-32">
+      <p className="text-[10px] font-black uppercase tracking-widest text-brand-orange mb-2">Temporary venue</p>
+      <h2 className="font-display text-3xl md:text-4xl uppercase text-brand-dark leading-none mb-4">{venue.venueName}</h2>
+      <p className="font-bold text-brand-dark leading-snug">{venue.address}</p>
+      <p className="mt-4 text-sm font-black uppercase tracking-wide text-brand-orange">{venue.timesNote}</p>
+      <p className="mt-1 font-bold text-brand-dark">{venue.sessionDates.join(', ')}</p>
+      <ul className="mt-3 space-y-1">
+        {venue.times.map((slot) => (
+          <li key={`${slot.label}-${slot.time}`} className="font-bold text-brand-dark">
+            {slot.label} {slot.time} <span className="font-medium text-slate-600">(usually {slot.usualTime})</span>
+          </li>
+        ))}
+      </ul>
+      {embedSrc && (
+        <div className="mt-5 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner">
+          <div className="h-48">
+            <iframe
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              title={`${venue.venueName} map`}
+              src={embedSrc}
+              loading="lazy"
+            ></iframe>
+          </div>
+        </div>
+      )}
+      {mapsUrl && (
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 mt-3 text-sm font-black uppercase underline"
+        >
+          Get directions <ExternalLink size={14} />
+        </a>
+      )}
+      {parking && (
+        <p className="mt-4 text-sm font-bold text-brand-dark leading-snug">
+          <span className="block text-[10px] font-black uppercase tracking-widest">Parking</span>
+          {parking}
+        </p>
+      )}
+      {entry && (
+        <p className="mt-3 text-sm font-bold text-brand-dark leading-snug">
+          <span className="block text-[10px] font-black uppercase tracking-widest">How to get in</span>
+          {entry}
+        </p>
+      )}
+      <p className="mt-4 font-bold text-brand-dark leading-snug">{venue.returnNote}</p>
+    </section>
+  );
 }
 
 function upsertMeta(property: string, content: string | null) {
@@ -170,8 +259,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     return <div className="flex items-center justify-center h-screen bg-brand-dark text-white font-display text-2xl uppercase">Loading Location...</div>;
   }
 
-  const venueNotice = activeTempVenueNotice(location);
-  const venueEmbedSrc = venueNotice ? tempVenueEmbedSrc(location.tempVenueMapsUrl) : null;
+  const temporaryVenues = activeTemporaryVenues(location.temporaryVenues);
 
   // Calculate the next occurrence of a class day
   const getNextClassDate = (loc: LocationData): string | null => {
@@ -335,70 +423,13 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
         {/* Main Content Column */}
         <div className="lg:col-span-8 space-y-6">
           
-          {/* NEWS TICKER */}
-          {location.newsTicker && (
-            <div className="bg-brand-orange border-4 border-brand-dark rounded-2xl shadow-sticker overflow-hidden flex items-center h-14 relative z-30">
-              <div className="bg-brand-dark text-white px-4 h-full flex items-center gap-2 shrink-0 border-r-2 border-brand-dark relative z-10">
-                <AlertTriangle size={20} className="text-brand-orange animate-pulse" />
-                <span className="font-display uppercase tracking-wider text-sm">UPDATE</span>
-              </div>
-              <div className="flex-1 overflow-hidden relative">
-                <div className="whitespace-nowrap animate-[marquee_12s_linear_infinite] flex items-center h-full">
-                  <span className="text-brand-dark font-black uppercase text-sm px-4">
-                    {location.newsTicker} &nbsp;&bull;&nbsp; {location.newsTicker} &nbsp;&bull;&nbsp; {location.newsTicker} &nbsp;&bull;&nbsp; {location.newsTicker}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {venueNotice && (
-            <div id="temp-venue-notice" className="bg-white border-4 border-brand-dark rounded-2xl shadow-sticker p-5 md:p-6 flex items-start gap-4" role="status">
-              <div className="bg-brand-orange text-brand-dark p-2 rounded-xl border-2 border-brand-dark shrink-0">
-                <AlertTriangle size={22} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-display uppercase text-lg text-brand-dark leading-none mb-2">Venue Update</p>
-                <p className="text-sm md:text-base font-bold text-brand-dark leading-snug">{venueNotice}</p>
-                {venueEmbedSrc && (
-                  <div className="mt-4 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner">
-                    <div className="h-48">
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        title="Sir Henry Floyd Grammar School map"
-                        src={venueEmbedSrc}
-                        loading="lazy"
-                      ></iframe>
-                    </div>
-                  </div>
-                )}
-                {location.tempVenueMapsUrl && (
-                  <a
-                    href={location.tempVenueMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-3 text-sm font-black uppercase underline"
-                  >
-                    Get directions <ExternalLink size={14} />
-                  </a>
-                )}
-                {location.tempVenueParking && (
-                  <p className="mt-3 text-sm font-bold text-brand-dark leading-snug">
-                    <span className="block text-[10px] font-black uppercase tracking-widest">Parking</span>
-                    {location.tempVenueParking}
-                  </p>
-                )}
-                {location.tempVenueAccess && (
-                  <p className="mt-3 text-sm font-bold text-brand-dark leading-snug">
-                    <span className="block text-[10px] font-black uppercase tracking-widest">How to get in</span>
-                    {location.tempVenueAccess}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+          {location.newsTicker && <LocationTicker text={location.newsTicker} />}
+          {temporaryVenues.map((venue, index) => (
+            <LocationTicker key={`${venue.venueName}-ticker`} text={venue.tickerText} href={`#${temporaryVenueAnchorId(index)}`} />
+          ))}
+          {temporaryVenues.map((venue, index) => (
+            <TemporaryVenueCard key={venue.venueName} venue={venue} anchorId={temporaryVenueAnchorId(index)} />
+          ))}
 
           {location.comingSoon ? (
             <div id="waitlist" className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark overflow-hidden scroll-mt-32">

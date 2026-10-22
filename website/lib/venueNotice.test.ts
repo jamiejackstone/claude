@@ -1,6 +1,13 @@
 import { LOCATIONS } from '../constants.ts';
 import { DayOfWeek } from '../types.ts';
-import { activeTempVenueNotice, isBeforeLondonDate, londonDate, tempVenueEmbedSrc } from './venueNotice.ts';
+import {
+  activeTemporaryVenues,
+  directionsUrl,
+  isWithinLondonWindow,
+  londonDate,
+  mapEmbedSrc,
+  temporaryVenueAnchorId,
+} from './venueNotice.ts';
 
 function assert(condition: unknown, label: string): void {
   if (!condition) throw new Error(label);
@@ -12,103 +19,121 @@ function assertEqual(actual: unknown, expected: unknown, label: string): void {
   if (a !== b) throw new Error(`${label}\nactual:   ${a}\nexpected: ${b}`);
 }
 
+const dateWindow = { showFrom: '2026-10-22', showUntil: '2026-11-09' };
+
 assertEqual(londonDate(new Date('2026-11-09T23:30:00Z')), '2026-11-09', '9 Nov 23:30 UTC is still 9 Nov in London');
 assertEqual(londonDate(new Date('2026-11-10T00:00:00Z')), '2026-11-10', '10 Nov 00:00 UTC is 10 Nov in London');
-// 24 Oct 2026 is still BST (UTC+1). 23:30 UTC is 00:30 the next calendar day in London.
-assertEqual(londonDate(new Date('2026-10-24T23:30:00Z')), '2026-10-25', 'London date follows BST, not UTC');
-assert(isBeforeLondonDate('2026-10-25', new Date('2026-10-24T22:30:00Z')), '22:30 UTC on 24 Oct is still 24 Oct in London');
-assert(!isBeforeLondonDate('2026-10-25', new Date('2026-10-24T23:30:00Z')), '23:30 UTC on 24 Oct is already 25 Oct in London');
+assertEqual(londonDate(new Date('2026-10-21T23:30:00Z')), '2026-10-22', '21 Oct 23:30 UTC is already 22 Oct in London');
+assertEqual(londonDate(new Date('2026-10-21T22:00:00Z')), '2026-10-21', '21 Oct 22:00 UTC is still 21 Oct in London');
 
-assertEqual(activeTempVenueNotice({}), null, 'missing notice is hidden');
-assertEqual(activeTempVenueNotice({ tempVenueNotice: '   ' }), null, 'blank notice is hidden');
+assert(isWithinLondonWindow(dateWindow.showFrom, dateWindow.showUntil, new Date('2026-10-22T12:00:00Z')), 'shown on the first day');
+assert(isWithinLondonWindow(dateWindow.showFrom, dateWindow.showUntil, new Date('2026-11-09T23:30:00Z')), 'shown through the end of the last day');
+assert(isWithinLondonWindow(dateWindow.showFrom, dateWindow.showUntil, new Date('2026-10-21T23:30:00Z')), 'shown when London has already reached the start date');
+assert(!isWithinLondonWindow(dateWindow.showFrom, dateWindow.showUntil, new Date('2026-10-21T22:00:00Z')), 'hidden the London day before showFrom');
+assert(!isWithinLondonWindow(dateWindow.showFrom, dateWindow.showUntil, new Date('2026-11-10T00:00:00Z')), 'hidden the London day after showUntil');
+
+const sample = {
+  venueName: 'Example',
+  address: '1 Road',
+  mapQuery: 'Example School AB1 2CD',
+  showFrom: '2026-10-22',
+  showUntil: '2026-11-09',
+  sessionDates: ['Mon 26 Oct'],
+  timesNote: 'Starting 15 minutes later than usual',
+  times: [{ label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' }],
+  returnNote: 'Back soon',
+  tickerText: 'Temporary venue',
+};
+
+assertEqual(activeTemporaryVenues(undefined), [], 'missing venues stay hidden');
+assertEqual(activeTemporaryVenues([]), [], 'an empty list stays hidden');
 assertEqual(
-  activeTempVenueNotice({ tempVenueNotice: 'Still here' }, new Date('2026-12-01T00:00:00Z')),
-  'Still here',
-  'a notice without an expiry stays visible',
+  activeTemporaryVenues([sample], new Date('2026-10-22T08:00:00Z')).map((venue) => venue.venueName),
+  ['Example'],
+  'a venue inside the window is shown',
 );
 assertEqual(
-  activeTempVenueNotice(
-    { tempVenueNotice: ' Move ', tempVenueNoticeUntil: '2026-11-10' },
-    new Date('2026-11-09T23:30:00Z'),
-  ),
-  'Move',
-  'notice is visible through the end of 9 Nov London time',
+  activeTemporaryVenues([sample], new Date('2026-11-10T08:00:00Z')),
+  [],
+  'a venue after the window is hidden',
 );
-assertEqual(
-  activeTempVenueNotice(
-    { tempVenueNotice: 'Move', tempVenueNoticeUntil: '2026-11-10' },
-    new Date('2026-11-10T00:00:00Z'),
-  ),
-  null,
-  'notice is hidden from 10 Nov London time',
-);
+assertEqual(temporaryVenueAnchorId(0), 'temporary-venue', 'the first venue uses the shared anchor');
+assertEqual(temporaryVenueAnchorId(1), 'temporary-venue-2', 'later venues get their own anchor');
+assertEqual(mapEmbedSrc('  '), null, 'a blank map query does not render a map');
+assertEqual(directionsUrl(undefined), null, 'a missing map query does not render directions');
 
 const aylesbury = LOCATIONS.find((location) => location.slug === 'aylesbury');
 assert(aylesbury, 'Aylesbury location exists');
 if (!aylesbury) throw new Error('Aylesbury location exists');
 
+const floyd = aylesbury.temporaryVenues?.[0];
+assert(floyd, 'Aylesbury has a temporary venue');
+if (!floyd) throw new Error('Aylesbury has a temporary venue');
+
 assertEqual(
-  aylesbury.classes.map((session) => session.day),
-  [DayOfWeek.MONDAY, DayOfWeek.MONDAY, DayOfWeek.MONDAY],
-  'Aylesbury classes are Monday only',
+  aylesbury.classes.map((session) => `${session.day} ${session.time} ${session.ageGroup}`),
+  [
+    'Monday 17:30 - 18:15 Rookies (Age 5-7)',
+    'Monday 17:30 - 18:15 Rising Stars (Age 8-11)',
+    'Monday 18:15 - 19:00 Ballers (Age 12-15)',
+  ],
+  'the usual Aylesbury class list is unchanged',
 );
-assertEqual(aylesbury.displayDays, 'Mondays', 'Aylesbury display days stay Mondays');
+assertEqual(aylesbury.classes.every((session) => session.day === DayOfWeek.MONDAY), true, 'Aylesbury classes are Monday only');
 assertEqual(
   aylesbury.address,
   'The Mandeville School, Ellen Road, Aylesbury HP21 8ED',
   'the usual Mandeville address stays in place',
 );
 assertEqual(aylesbury.mapQueryOverride, 'The Mandeville School, Aylesbury', 'the usual map query stays in place');
-assertEqual(aylesbury.googleMapsUrl, undefined, 'the usual directions link is unchanged');
-assertEqual(aylesbury.tempVenueParking, undefined, 'parking stays unset until Jamie confirms it');
-assertEqual(aylesbury.tempVenueAccess, undefined, 'how to get in stays unset until Jamie confirms it');
-assertEqual(aylesbury.tempVenueNoticeUntil, '2026-11-10', 'notice expires on 10 Nov 2026 London time');
-assert(
-  aylesbury.tempVenueNotice?.includes('Sir Henry Floyd Grammar School, Oxford Road, Aylesbury, HP21 8PE'),
-  'notice uses the official Sir Henry Floyd address',
-);
-assert(
-  aylesbury.tempVenueNotice?.startsWith('Venue change: Monday classes on 26 Oct, 2 Nov and 9 Nov'),
-  'notice is limited to the Monday dates',
-);
-assert(
-  aylesbury.tempVenueNotice?.includes(
-    'starting 15 minutes later than usual: Rookies (Age 5-7) 17:45 (usually 17:30), Rising Stars (Age 8-11) 18:15 (usually 18:00)',
-  ),
-  'notice shows the confirmed start times and the age-group names from the class list',
-);
-assert(!aylesbury.tempVenueNotice?.includes('Ballers'), 'Ballers has no confirmed Floyd start time');
-assert(!/\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/.test(aylesbury.tempVenueNotice ?? ''), 'notice shows start times only');
+assertEqual(floyd.venueName, 'Sir Henry Floyd Grammar School', 'venue name is the school name');
+assertEqual(floyd.address, 'Oxford Road, Aylesbury, HP21 8PE', 'address is the official school address');
+assertEqual(floyd.mapQuery, 'Sir Henry Floyd Grammar School HP21 8PE', 'map query is the school name and postcode');
+assertEqual(floyd.showFrom, '2026-10-22', 'window starts on 22 Oct 2026');
+assertEqual(floyd.showUntil, '2026-11-09', 'window ends on 9 Nov 2026 inclusive');
+assertEqual(floyd.sessionDates, ['Mon 26 Oct', 'Mon 2 Nov', 'Mon 9 Nov'], 'session dates are the three Mondays');
+assertEqual(floyd.timesNote, 'Starting 15 minutes later than usual', 'times note is set');
+assertEqual(floyd.times, [
+  { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },
+  { label: 'Rising Stars (Age 8-11)', time: '18:15', usualTime: '18:00' },
+], 'start times use the class-list age-group names');
+assertEqual(floyd.returnNote, 'Back at The Mandeville School from Mon 16 Nov', 'return note is set');
 assertEqual(
-  aylesbury.tempVenueMapsUrl,
-  'https://www.google.com/maps/search/?api=1&query=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE',
-  'temporary directions use the school name and postcode',
+  floyd.tickerText,
+  'Temporary venue for the next 3 weeks: Sir Henry Floyd, new times - see details',
+  'ticker text is set',
 );
+assertEqual(floyd.parking, undefined, 'parking stays unset');
+assertEqual(floyd.entry, undefined, 'entry stays unset');
+assert(!JSON.stringify(floyd).includes('Ballers'), 'Ballers has no confirmed Floyd time');
 assertEqual(
-  tempVenueEmbedSrc(aylesbury.tempVenueMapsUrl),
+  mapEmbedSrc(floyd.mapQuery),
   'https://maps.google.com/maps?q=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE&t=&z=18&ie=UTF8&iwloc=&output=embed',
-  'temporary map uses the same embed shape as the usual location map',
-);
-assertEqual(tempVenueEmbedSrc(undefined), null, 'no directions URL means no temporary map');
-assertEqual(tempVenueEmbedSrc('not a url'), null, 'a bad directions URL does not render a map');
-assertEqual(
-  activeTempVenueNotice(aylesbury, new Date('2026-10-22T12:00:00Z')),
-  aylesbury.tempVenueNotice,
-  'notice is showing on 22 Oct 2026',
+  'temporary map uses the usual embed shape',
 );
 assertEqual(
-  activeTempVenueNotice(aylesbury, new Date('2026-11-09T23:30:00Z')),
-  aylesbury.tempVenueNotice,
-  'notice is still showing on the evening of 9 Nov',
+  directionsUrl(floyd.mapQuery),
+  'https://www.google.com/maps/search/?api=1&query=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE',
+  'directions use the school name and postcode',
 );
 assertEqual(
-  activeTempVenueNotice(aylesbury, new Date('2026-11-10T08:00:00Z')),
-  null,
-  'notice is gone on 10 Nov',
+  activeTemporaryVenues(aylesbury.temporaryVenues, new Date('2026-10-22T12:00:00Z')).length,
+  1,
+  'Aylesbury venue is showing on 22 Oct',
+);
+assertEqual(
+  activeTemporaryVenues(aylesbury.temporaryVenues, new Date('2026-11-09T23:30:00Z')).length,
+  1,
+  'Aylesbury venue is showing on the evening of 9 Nov',
+);
+assertEqual(
+  activeTemporaryVenues(aylesbury.temporaryVenues, new Date('2026-11-10T08:00:00Z')).length,
+  0,
+  'Aylesbury venue is hidden on 10 Nov',
 );
 assert(
-  LOCATIONS.filter((location) => location.slug !== 'aylesbury').every((location) => !location.tempVenueNotice),
-  'no other location has a temporary venue notice',
+  LOCATIONS.filter((location) => location.slug !== 'aylesbury').every((location) => !location.temporaryVenues?.length),
+  'no other location has a temporary venue',
 );
 
 console.log('venueNotice tests passed');
