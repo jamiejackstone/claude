@@ -3,6 +3,8 @@ import { DayOfWeek } from '../types.ts';
 import {
   activeTemporaryVenues,
   directionsUrl,
+  getActiveTemporaryVenues,
+  getBookingWidgetUrl,
   isWithinLondonWindow,
   londonDate,
   mapEmbedSrc,
@@ -87,10 +89,36 @@ assertEqual(
   'the usual Mandeville address stays in place',
 );
 assertEqual(aylesbury.mapQueryOverride, 'The Mandeville School, Aylesbury', 'the usual map query stays in place');
+const baseWidgetUrl = 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944';
+assertEqual(aylesbury.bookingWidgetUrl, baseWidgetUrl, 'the base TeamUp url is the original venue list');
+assertEqual(floyd.teamupVenueIds, ['54994'], 'Sir Henry Floyd is added only from the temporary venue');
 assertEqual(
-  new URL(aylesbury.bookingWidgetUrl!).searchParams.get('venues')?.split(','),
-  ['48411', '53172', '50233', '65944', '54994'],
-  'Aylesbury TeamUp filter keeps the old ids and adds Sir Henry Floyd 54994',
+  getBookingWidgetUrl(aylesbury, new Date('2026-10-26T12:00:00Z')),
+  `${baseWidgetUrl},54994`,
+  '26 Oct includes Sir Henry Floyd 54994',
+);
+assertEqual(
+  getBookingWidgetUrl(aylesbury, new Date('2026-11-09T23:30:00Z')),
+  `${baseWidgetUrl},54994`,
+  'the evening of 9 Nov still includes Sir Henry Floyd',
+);
+assertEqual(
+  getActiveTemporaryVenues(aylesbury, new Date('2026-11-10T08:00:00Z')),
+  [],
+  'no temporary entries are active on 10 Nov',
+);
+assertEqual(
+  getBookingWidgetUrl(aylesbury, new Date('2026-11-10T08:00:00Z')),
+  baseWidgetUrl,
+  '10 Nov uses the original base widget url',
+);
+assertEqual(
+  getBookingWidgetUrl({
+    bookingWidgetUrl: 'https://goteamup.com/p/x/c/schedule?venues=1,54994',
+    temporaryVenues: [{ ...sample, teamupVenueIds: ['54994', '2'] }],
+  }, new Date('2026-10-26T12:00:00Z')),
+  'https://goteamup.com/p/x/c/schedule?venues=1,54994,2',
+  'temporary venue ids are appended once',
 );
 const floydAddress = 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE';
 assertEqual(floyd.venueName, 'Sir Henry Floyd Grammar School Sports Hall', 'venue name is the sports hall');

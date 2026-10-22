@@ -1,4 +1,4 @@
-import type { TemporaryVenue } from '../types.ts';
+import type { LocationData, TemporaryVenue } from '../types.ts';
 
 /** Calendar date in Europe/London as YYYY-MM-DD. */
 export function londonDate(now: Date = new Date()): string {
@@ -29,6 +29,40 @@ export function activeTemporaryVenues(
 ): TemporaryVenue[] {
   if (!venues?.length) return [];
   return venues.filter((venue) => isWithinLondonWindow(venue.showFrom, venue.showUntil, now));
+}
+
+/** Banner, box and booking-widget venue ids all come from this window. */
+export function getActiveTemporaryVenues(
+  location: Pick<LocationData, 'temporaryVenues'>,
+  now: Date = new Date(),
+): TemporaryVenue[] {
+  return activeTemporaryVenues(location.temporaryVenues, now);
+}
+
+function venueIds(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value.split(',').map((id) => id.trim()).filter(Boolean);
+}
+
+/** Base booking URL, plus venue ids from temporary entries that are showing today. */
+export function getBookingWidgetUrl(
+  location: Pick<LocationData, 'bookingWidgetUrl' | 'temporaryVenues'>,
+  now: Date = new Date(),
+): string | undefined {
+  const base = location.bookingWidgetUrl;
+  if (!base) return undefined;
+
+  const extra = getActiveTemporaryVenues(location, now).flatMap((venue) => venue.teamupVenueIds ?? []);
+  const existing = venueIds(new URL(base).searchParams.get('venues'));
+  const merged = [...existing];
+  for (const id of venueIds(extra.join(','))) {
+    if (!merged.includes(id)) merged.push(id);
+  }
+  if (merged.join(',') === existing.join(',')) return base;
+
+  const url = new URL(base);
+  url.searchParams.set('venues', merged.join(','));
+  return url.toString().replace(/%2C/g, ',');
 }
 
 export function temporaryVenueAnchorId(index: number): string {

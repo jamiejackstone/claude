@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
-import { activeTemporaryVenues, directionsUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading } from '../lib/venueNotice';
+import { directionsUrl, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData, TemporaryVenue } from '../types';
@@ -266,7 +266,9 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     return <div className="flex items-center justify-center h-screen bg-brand-dark text-white font-display text-2xl uppercase">Loading Location...</div>;
   }
 
-  const temporaryVenues = activeTemporaryVenues(location.temporaryVenues);
+  const now = new Date();
+  const temporaryVenues = getActiveTemporaryVenues(location, now);
+  const bookingWidgetUrl = getBookingWidgetUrl(location, now);
 
   // Calculate the next occurrence of a class day
   const getNextClassDate = (loc: LocationData): string | null => {
@@ -505,9 +507,9 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                   <ClassSessionList sessions={location.classes} />
                 )}
               </div>
-              {location.bookingWidgetUrl && (
+              {bookingWidgetUrl && (
                 <div className="w-full bg-white flex-grow">
-                  <iframe src={getWidgetUrl(location.bookingWidgetUrl)} title="Hoop Heroes Booking Calendar" className="w-full h-[950px]" style={{ border: 0 }} loading="lazy"></iframe>
+                  <iframe src={getWidgetUrl(bookingWidgetUrl)} title="Hoop Heroes Booking Calendar" className="w-full h-[950px]" style={{ border: 0 }} loading="lazy"></iframe>
                 </div>
               )}
             </div>

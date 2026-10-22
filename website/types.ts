@@ -65,6 +65,8 @@ export interface TemporaryVenue {
   siteMapImage?: { src: string; alt: string };
   returnNote: string;
   tickerText: string;
+  /** TeamUp venue ids added to the booking widget only while this entry is showing. */
+  teamupVenueIds?: string[];
 }
 
 export interface LocationData {

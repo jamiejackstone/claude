@@ -173,11 +173,12 @@ export const LOCATIONS: LocationData[] = [
     heroImage: 'https://storage.googleapis.com/msgsndr/9p0wEiLpTaIe1FDTFFQI/media/69731819eb392b0f31c33b74.jpg',
     gallery: ['https://images.unsplash.com/photo-1518407613690-d9fc990e795f?auto=format&fit=crop&q=80&w=800'],
     actionVideoUrl: 'https://www.youtube-nocookie.com/embed/ENWlnbItCc0?si=80euwZHd7QVRV-Dg&controls=0',
-    bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944,54994',
+    bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944',
     mapQueryOverride: "The Mandeville School, Aylesbury",
-    // TeamUp venues: 48411 is The Mandeville School. 54994 is Sir Henry Floyd, the standing backup.
+    // Base TeamUp venues: 48411 is The Mandeville School.
     // 53172 and 50233 return 404 from TeamUp but stay in the original list. 65944 is Wendover and stays too.
     // 48649 is Great Missenden (The Misbourne), not Mandeville, so it is not on this filter.
+    // Sir Henry Floyd (54994) is added only while the temporary venue below is showing.
     // Shown 22 Oct-9 Nov 2026 inclusive, Europe/London. Monday sessions only.
     // Address and entry are from the member email 'HH Aylesbury venue change 20 Oct 2026'.
     // Uncomment parking once Jamie confirms it. Ballers has no confirmed temporary start time.
@@ -202,6 +203,7 @@ export const LOCATIONS: LocationData[] = [
         },
         returnNote: 'Back at The Mandeville School from Mon 16 Nov',
         tickerText: 'Temporary venue for the next 3 weeks: Sir Henry Floyd, new times - see details',
+        teamupVenueIds: ['54994'],
       },
     ],
     headCoach: {
