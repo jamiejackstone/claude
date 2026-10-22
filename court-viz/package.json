@@ -7,6 +7,7 @@
     "video": "node tools/video.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "playwright-core": "1.56.0",
     "qrcode": "^1.5.4",
     "three": "0.169.0"

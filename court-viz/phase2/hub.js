@@ -25,7 +25,9 @@ export const HUB = {
   roller: { w: 6.0, h: 4.5 },
   fe1: { x0: 4.5, x1: 5.5, h: 2.1 }, // the single fire exit, in the Mega Slam end wall right of the hoop
   navyTo: 6.0, // end walls navy to here, white fabric above
-  glazedDoor: { z0: 7.0, z1: 8.0 },
+  glazedDoor: { z0: 7.0, z1: 8.0 }, // reception door onto the court
+  entranceDoor: { x0: -10.2, x1: -9.3 }, // public entrance in the reception's front end, beside the roller door
+  sill: 1.05, // reception windows above a container-wall sill
   lights: { x: [-6, -2, 2, 6], z: [0.9, 5.0, 9.1] },
   benches: [
     [0.6, 2.4],
@@ -406,46 +408,57 @@ class Unit {
   }
 
   glaze(z0, z1, faceX, side, art) {
-    // reception: glazed court side in aluminium frames, with a glazed door
+    // reception: container wall up to the sill on the court side with windows above and a glazed door onto
+    // the court; the public entrance is a door in the outside wall (Jamie, 22 Oct 2026)
     const g = this.group;
-    const { ch } = HUB;
+    const { ch, cw } = HUB;
     const glass = new THREE.MeshPhysicalMaterial({ color: '#cfe8f5', roughness: 0.05, metalness: 0, transparent: true, opacity: 0.22, envMapIntensity: 1.4, side: THREE.DoubleSide, depthWrite: false });
     const alu = std('#2b2f35', { roughness: 0.4, metalness: 0.6 });
     const { z0: d0, z1: d1 } = HUB.glazedDoor;
+    const sill = HUB.sill;
+    const court = side > 0 ? '-x' : '+x';
     const pane = (a, b, y0, y1) => {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(b - a, y1 - y0), glass);
       m.rotation.y = Math.PI / 2;
       m.position.set(faceX, (y0 + y1) / 2, (a + b) / 2);
       g.add(m);
     };
-    const y0 = 0.16;
+    // ribbed lower wall either side of the door, with the brand stripe
+    for (const [a, b] of [
+      [z0 + 0.16, d0 - 0.04],
+      [d1 + 0.04, z1 - 0.16],
+    ]) {
+      g.add(box(0.04, sill - 0.12, b - a, std(COL.navy, { roughness: 0.6, metalness: 0.15 }), faceX + side * 0.02, (sill + 0.12) / 2, (a + b) / 2));
+      const p = facePanel(b - a, sill - 0.16, COL.navy, (cg, s2, w, h) => stripe(cg, s2, w, h + 0.16, COL.gold));
+      g.add(place(p, court, faceX - side * 0.004, (sill + 0.16) / 2, (a + b) / 2));
+    }
     const y1 = ch - 0.16;
-    // mullions about every 1.5 m, either side of the door
+    // windows with mullions about every 1.5 m, either side of the door
     const cuts = [z0 + 0.16];
     for (let z = z0 + 1.6; z < d0 - 0.3; z += 1.5) cuts.push(z);
     cuts.push(d0, d1);
     for (let z = d1 + 1.5; z < z1 - 0.5; z += 1.5) cuts.push(z);
     cuts.push(z1 - 0.16);
     for (let i = 0; i < cuts.length - 1; i++) {
-      const a = cuts[i];
-      const b = cuts[i + 1];
-      if (a === d0) continue; // the door
-      pane(a, b, y0, y1);
+      if (cuts[i] === d0) continue; // the door
+      pane(cuts[i], cuts[i + 1], sill, y1);
     }
-    for (const z of cuts) g.add(box(0.08, y1 - y0, 0.06, alu, faceX, (y0 + y1) / 2, z));
-    g.add(box(0.08, 0.08, z1 - z0, alu, faceX, y0, (z0 + z1) / 2));
-    // door: full-height glass leaf with a transom and a pull handle
+    for (const z of cuts) g.add(box(0.08, y1 - sill, 0.06, alu, faceX, (y1 + sill) / 2, z));
+    g.add(box(0.14, 0.05, z1 - z0 - 0.32, alu, faceX, sill, (z0 + z1) / 2));
+    // door onto the court: full-height glass leaf with a transom and a pull handle
+    const y0 = 0.16;
+    for (const z of [d0, d1]) g.add(box(0.08, y1 - y0, 0.06, alu, faceX, (y0 + y1) / 2, z));
     pane(d0 + 0.04, d1 - 0.04, y0 + 0.04, 2.2);
     pane(d0 + 0.04, d1 - 0.04, 2.28, y1);
     g.add(box(0.08, 0.07, d1 - d0, alu, faceX, 2.24, (d0 + d1) / 2));
     g.add(box(0.06, 0.9, 0.03, std('#c9ccd0', { metalness: 0.9, roughness: 0.25 }), faceX - side * 0.05, 1.05, d1 - 0.14));
-    // inside: pale walls and floor, WC at the Mega Slam end, desk, chairs and a heater by the entrance end
+    // inside: pale walls and floor, WC at the Mega Slam end, waiting chairs, the desk between the two doors
     const inner = std('#f1eee8', { roughness: 0.9 });
-    const cx = side * (HALF + HUB.cw / 2);
-    const outerX = side * (HALF + HUB.cw);
-    g.add(box(HUB.cw - 0.1, 0.02, z1 - z0 - 0.1, std('#d9d4ca', { roughness: 0.7 }), cx, 0.13, (z0 + z1) / 2));
+    const cx = side * (HALF + cw / 2);
+    const outerX = side * (HALF + cw);
+    g.add(box(cw - 0.1, 0.02, z1 - z0 - 0.1, std('#d9d4ca', { roughness: 0.7 }), cx, 0.13, (z0 + z1) / 2));
     g.add(box(0.02, ch - 0.3, z1 - z0 - 0.1, inner, outerX - side * 0.06, ch / 2, (z0 + z1) / 2));
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HUB.cw - 0.1, z1 - z0 - 0.1), inner);
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(cw - 0.1, z1 - z0 - 0.1), inner);
     ceil.rotation.x = Math.PI / 2;
     ceil.position.set(cx, ch - 0.07, (z0 + z1) / 2);
     g.add(ceil);
@@ -458,35 +471,35 @@ class Unit {
     wc.add(box(0.05, 2.3, 0.75 - z0, wcMat, wcX1, 1.27, (z0 + 0.75) / 2));
     wc.add(box(0.03, 2.0, 0.75, std('#bfc3ca', { roughness: 0.6 }), wcX1 - side * 0.03, 1.13, 0.0));
     g.add(wc);
-    g.add(box(0.7, 0.04, 1.8, std(COL.gold, { roughness: 0.5 }), outerX - side * 0.5, 0.86, 7.5));
-    g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, 6.65));
-    g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, 8.35));
+    const wcSign = facePanel(0.3, 0.3, '#ffffff', (cg, s2, w, h) => drawText(cg, s2, h, 'WC', w / 2, h / 2, 0.16, COL.navy, 0.26), { ribs: false });
+    g.add(place(wcSign, court, wcX1 - side * 0.05, 1.55, 0));
     const chairMat = std(COL.navy, { roughness: 0.6 });
-    for (const z of [9.0, 9.55, 10.1, 10.65]) {
+    for (const z of [1.6, 2.15, 2.7, 3.25]) {
       g.add(box(0.46, 0.06, 0.46, chairMat, outerX - side * 0.4, 0.58, z));
       g.add(box(0.06, 0.45, 0.46, chairMat, outerX - side * 0.16, 0.83, z));
       g.add(box(0.4, 0.44, 0.04, std('#2a2d31', { metalness: 0.6 }), outerX - side * 0.4, 0.34, z));
     }
-    g.add(box(0.22, 0.62, 0.6, std('#f6f6f6', { roughness: 0.4 }), faceX + side * 0.45, 0.47, 10.6));
-    // signs: RECEPTION on a fascia over the glazed door, WC on the cubicle, safety manifestation on the glass
-    const court = side > 0 ? '-x' : '+x';
-    const fascia = facePanel(2.6, 0.46, COL.navy, (cg, s, w, h) => {
-      cg.fillStyle = COL.gold;
-      cg.fillRect(0, (h - 0.05) * s, w * s, 0.05 * s);
-      drawText(cg, s, h, 'RECEPTION', w / 2, 0.26, 0.3, '#ffffff', w - 0.3);
-    }, { ribs: false });
-    // stood forward of the arch ribs on short brackets
-    g.add(place(fascia, court, faceX - side * 0.2, ch + 0.26, (d0 + d1) / 2));
-    for (const o of [-0.9, 0.9]) g.add(box(0.2, 0.04, 0.04, std('#2b2f35', { metalness: 0.6 }), faceX - side * 0.1, ch + 0.3, (d0 + d1) / 2 + o));
-    const wcSign = facePanel(0.3, 0.3, '#ffffff', (cg, s, w, h) => drawText(cg, s, h, 'WC', w / 2, h / 2, 0.16, COL.navy, 0.26), { ribs: false });
-    g.add(place(wcSign, court, wcX1 - side * 0.05, 1.55, 0));
-    const band = facePanel(z1 - z0 - 0.4, 0.7, null, (cg, s, w, h) => {
-      cg.fillStyle = 'rgba(255, 255, 255, 0.72)';
-      cg.fillRect(0, (h - 0.12) * s, w * s, 0.06 * s);
-      cg.fillRect(0, (h - 0.64) * s, w * s, 0.06 * s);
-      for (let x = 0.9; x < w; x += 1.5) drawImg(cg, s, h, art.roundNavy, x, 0.35, 0.36);
-    }, { ribs: false, s: 120 });
-    g.add(place(band, court, faceX - side * 0.012, 1.0, (z0 + z1) / 2));
+    const dz = 9.2;
+    g.add(box(0.7, 0.04, 1.8, std(COL.gold, { roughness: 0.5 }), outerX - side * 0.5, 0.86, dz));
+    g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz - 0.85));
+    g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz + 0.85));
+    g.add(box(0.22, 0.62, 0.6, std('#f6f6f6', { roughness: 0.4 }), faceX + side * 0.45, 0.47, 4.3));
+    // the public entrance: a door in the front end, facing the playground, with a step and an ENTRANCE sign
+    const { x0: e0, x1: e1 } = HUB.entranceDoor;
+    const door = new THREE.Group();
+    const ew = e1 - e0;
+    const leafMat = std('#e9ebee', { roughness: 0.45, metalness: 0.3 });
+    const frame = std('#0d1a38', { roughness: 0.5, metalness: 0.4 });
+    door.add(box(ew - 0.04, 2.08, 0.05, leafMat, 0, 0.12 + 1.04, 0));
+    door.add(box(ew - 0.36, 0.9, 0.055, glass, 0, 1.55, 0));
+    for (const x of [-ew / 2, ew / 2]) door.add(box(0.06, 2.16, 0.1, frame, x, 0.12 + 1.08, 0));
+    door.add(box(ew + 0.12, 0.06, 0.1, frame, 0, 0.12 + 2.13, 0));
+    door.add(box(0.04, 0.32, 0.04, std('#c9ccd0', { metalness: 0.9, roughness: 0.25 }), ew / 2 - 0.12, 1.1, 0.06));
+    door.position.set((e0 + e1) / 2, 0, z1 + 0.03);
+    g.add(door);
+    g.add(box(ew + 0.5, 0.11, 0.6, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.055, z1 + 0.3));
+    const sign = facePanel(1.1, 0.26, COL.gold, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.17, COL.navy, w - 0.16), { ribs: false });
+    g.add(place(sign, '+z', (e0 + e1) / 2, 2.41, z1 + 0.012));
     // ceiling lights inside the reception
     for (const z of [1.2, 5.0, 9.0]) {
       const l = new THREE.PointLight('#fff1dc', 2.4, 6, 1.5);
@@ -531,6 +544,24 @@ class HighBay {
     this.group.position.set(x, y, z);
   }
 }
+
+export const BUILD = {
+  units: [0.8, 2.6, 4.4],
+  drop: 2.6,
+  rails: 7.4,
+  ribs: 7.8,
+  ribGap: 0.55,
+  fabric: 12.8,
+  fabricDur: 4.6,
+  wallsSlam: 17.8,
+  wallsEntrance: 19.0,
+  doors: 20.8,
+  fit: 22.8,
+  benches: 23.6,
+  shutters: 24.4,
+  rollerUp: 26.5,
+  end: 31,
+};
 
 export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {} } = {}) {
   RectAreaLightUniformsLib.init();
@@ -621,10 +652,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
 
   // container wraps: navy with a gold stripe, or gold with a navy stripe, as Phase 1. Big logo and HOOP HUB
   // on the outsides, logos facing the court, round badges on the ends, the free-trial QR on container 3
-  const bigSide = (logo, ink) => (g, s, w, h) => {
+  const bigSide = (logo, ink, { logoAt = 0.27, textAt = 0.7, textW = 0.45 } = {}) => (g, s, w, h) => {
     stripe(g, s, w, h + 0.16, ink === COL.gold ? COL.gold : COL.navy);
-    drawImg(g, s, h, logo, w * 0.27, 1.32, Math.min(3.6, w * 0.4));
-    drawText(g, s, h, 'HOOP HUB', w * 0.7, 1.32, 1.1, ink, w * 0.45);
+    drawImg(g, s, h, logo, w * logoAt, 1.32, Math.min(3.6, w * 0.4));
+    drawText(g, s, h, 'HOOP HUB', w * textAt, 1.32, 1.1, ink, w * textW);
   };
   const badge = (round, ink) => (g, s, w, h) => {
     stripe(g, s, w, h + 0.16, ink);
@@ -648,7 +679,16 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     drawImg(g, s, h, art.qr, px + pw / 2, h - 1.35, pw - 0.3);
   };
   const brand = {
-    reception: { base: COL.navy, art, outer: bigSide(art.logo, COL.gold), endBack: badge(art.roundWhite, COL.gold), endFront: badge(art.roundWhite, COL.gold) },
+    reception: {
+      base: COL.navy,
+      art,
+      outer: bigSide(art.logo, COL.gold),
+      endBack: badge(art.roundWhite, COL.gold),
+      endFront: (g, s, w, h) => {
+        stripe(g, s, w, h + 0.16, COL.gold);
+        drawImg(g, s, h, art.roundWhite, 0.52, 1.45, 0.85);
+      },
+    },
     c2: { base: COL.navy, outer: bigSide(art.logo, COL.gold), endBack: badge(art.roundWhite, COL.gold), court: courtLogo(art.logo, COL.gold) },
     c3: { base: COL.gold, outer: qrSide, endFront: badge(art.roundNavy, COL.navy), court: courtLogo(art.logoWhiteNavy, COL.navy) },
   };
@@ -677,13 +717,16 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     ribPts.push(new THREE.Vector3(-(HALF - 0.08) * Math.cos(a), HUB.ch + (RISE - 0.08) * Math.sin(a), 0));
   }
   const ribGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ribPts), 96, 0.07, 8, false);
+  const ribs = [];
   for (let k = 0; k < HUB.ribs; k++) {
     const rib = new THREE.Mesh(ribGeo, steel);
+    ribs.push(rib);
     rib.position.z = THREE.MathUtils.lerp(HUB.z0 + 0.1, HUB.z1 - 0.1, k / (HUB.ribs - 1));
     rib.castShadow = true;
     archGroup.add(rib);
   }
-  for (const s of [-1, 1]) archGroup.add(box(0.22, 0.14, LEN, steel, s * (HALF - 0.05), HUB.ch + 0.07, (HUB.z0 + HUB.z1) / 2));
+  const rails = [-1, 1].map((s) => box(0.22, 0.14, LEN, steel, s * (HALF - 0.05), HUB.ch + 0.07, (HUB.z0 + HUB.z1) / 2));
+  archGroup.add(...rails);
   enclosure.add(archGroup);
 
   // end walls: fabric, each with an outside and an inside face
@@ -705,11 +748,9 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const tEntranceIn = endWallTexture('entrance-in', art);
   const tSlamIn = endWallTexture('slam-in', art);
   const tSlamOut = endWallTexture('slam-out', art);
-  wallFace(HUB.z1 + 0.005, 1, [rollerNotch], tEntranceOut);
-  wallFace(HUB.z1 - 0.005, -1, [rollerNotch], tEntranceIn);
+  const entranceWalls = [wallFace(HUB.z1 + 0.005, 1, [rollerNotch], tEntranceOut), wallFace(HUB.z1 - 0.005, -1, [rollerNotch], tEntranceIn)];
   const fe1Notch = [HUB.fe1.x0, HUB.fe1.x1, HUB.fe1.h];
-  wallFace(HUB.z0 + 0.005, 1, [fe1Notch], tSlamIn);
-  wallFace(HUB.z0 - 0.005, -1, [fe1Notch], tSlamOut);
+  const slamWalls = [wallFace(HUB.z0 + 0.005, 1, [fe1Notch], tSlamIn), wallFace(HUB.z0 - 0.005, -1, [fe1Notch], tSlamOut)];
   enclosure.add(walls);
 
   const roller = new RollerDoor();
@@ -723,6 +764,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
 
   // illuminated green exit signs over the fire exit, inside and out
   const exitTex = exitSignTexture();
+  const exitSigns = [];
   for (const [z, ry] of [
     [HUB.z0 + 0.02, 0],
     [HUB.z0 - 0.02, Math.PI],
@@ -730,15 +772,18 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.2), new THREE.MeshStandardMaterial({ map: exitTex, emissive: '#ffffff', emissiveMap: exitTex, emissiveIntensity: 0.6 }));
     sign.position.set((HUB.fe1.x0 + HUB.fe1.x1) / 2, HUB.fe1.h + 0.28, z);
     sign.rotation.y = ry;
+    exitSigns.push(sign);
     enclosure.add(sign);
   }
 
-  // parents' benches along the reception glazing
+  // parents' benches along the reception windows
+  const benches = new THREE.Group();
   for (const [a, b] of HUB.benches) {
     const bn = bench();
     bn.position.set(-HALF + 0.5, 0, (a + b) / 2);
-    enclosure.add(shadowed(bn));
+    benches.add(shadowed(bn));
   }
+  enclosure.add(benches);
 
   const lamps = [];
   for (const x of HUB.lights.x)
@@ -790,17 +835,67 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     }
   };
 
-  const state = { mini: true, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false };
+  // the build, in seconds of animation: containers craned in, frames up, fabric pulled over from the Mega Slam
+  // end, end walls raised, doors fitted, then lights, benches and storage; the roller door opens last
+  const ease = (u) => {
+    u = THREE.MathUtils.clamp(u, 0, 1);
+    return u * u * (3 - 2 * u);
+  };
+  const land = (u) => 1 - Math.pow(1 - THREE.MathUtils.clamp(u, 0, 1), 3);
+  const unitList = [units.reception, units.hhStore, units.schoolStore];
+  const applyBuild = (t, building) => {
+    const B = BUILD;
+    unitList.forEach((un, i) => {
+      const u = land((t - B.units[i]) / B.drop);
+      un.group.visible = t >= B.units[i];
+      un.group.position.y = 7 * (1 - u);
+    });
+    for (const r of rails) r.visible = t >= B.rails;
+    ribs.forEach((rib, k) => {
+      const u = ease((t - B.ribs - k * B.ribGap) / 1.1);
+      rib.visible = u > 0;
+      rib.scale.y = Math.max(u, 0.001);
+      rib.position.y = HUB.ch * (1 - u);
+    });
+    const f = ease((t - B.fabric) / B.fabricDur);
+    arch.visible = f > 0;
+    arch.scale.z = Math.max(f, 0.001);
+    arch.position.z = (HUB.z0 - 0.05) * (1 - f);
+    for (const [list, at] of [
+      [slamWalls, B.wallsSlam],
+      [entranceWalls, B.wallsEntrance],
+    ])
+      for (const w of list) {
+        const u = ease((t - at) / 1.8);
+        w.visible = u > 0;
+        w.scale.y = Math.max(u, 0.001);
+      }
+    roller.group.visible = roller.group.visible && t >= B.doors;
+    fe1.visible = t >= B.doors;
+    for (const sgn of exitSigns) sgn.visible = t >= B.doors;
+    for (const l of lamps) l.group.visible = l.group.visible && t >= B.fit;
+    benches.visible = t >= B.benches;
+    if (building) {
+      roller.set(ease((t - B.rollerUp) / 2.4));
+      units.hhStore.setDoors(ease((t - B.shutters) / 1.6));
+      units.schoolStore.setDoors(ease((t - B.shutters - 0.3) / 1.6));
+      for (const l of lamps) l.lens.material.emissiveIntensity = 0.6 * ease((t - B.fit) / 1.2);
+    }
+  };
+
+  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null };
   const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
   const apply = (next = {}) => {
     Object.assign(state, next);
     megaSlam.setHeight(state.rimFt * FT);
     megaSlam.setPadding(COL.navy, padLogoTex);
+    // hoopsT animates the mini hoops folding away (0) or up (1)
+    const up = state.hoopsT ?? (state.mini ? 1 : 0);
     hoops.forEach((hp) => {
-      hp.group.visible = state.mini;
+      hp.group.visible = up > 0.02;
       hp.setFolded(false);
-      hp.setUnfold(1);
       hp.setHeight(portableRim());
+      hp.setUnfold(up * up * (3 - 2 * up));
     });
     roller.set(state.roller);
     units.hhStore.setDoors(state.storeDoors);
@@ -812,18 +907,20 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     roller.group.visible = !state.cutaway;
     units.reception.roof.visible = units.reception.ceil.visible = !state.cutaway;
     sun.castShadow = !state.cutaway; // a clean plan, without the canopy's missing shadow or the trees'
-    setNight(state.night);
+    setNight(state.night && state.build === null);
     for (const l of lamps) l.spot.visible = !state.cutaway;
+    applyBuild(state.build ?? Infinity, state.build !== null);
   };
   apply();
-  return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT };
+  return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT, BUILD };
 }
 
 // camera presets for the six Phase 2 shots in the brief; every shot starts from the default state
 export const SHOTS = {
-  1: { label: 'Outside', pos: [12.5, 3.6, 28.5], target: [0, 2.6, 6.0], fov: 42, state: {} },
+  1: { label: 'Outside', pos: [-13.5, 3.4, 27.5], target: [0.6, 2.6, 6.0], fov: 42, state: {} },
   2: { label: 'Inside', pos: [4.6, 1.8, 10.7], target: [-2.2, 2.0, 0.8], fov: 54, state: {} },
   3: { label: 'Top-down', ortho: { cx: 0, cz: 5, height: 16.6 }, state: { cutaway: true } },
+  slam: { label: 'Mega Slam', pos: [-3.4, 2.5, 8.6], target: [0.1, 3.1, 0.2], fov: 44, state: {} },
   4: { label: 'Reception', pos: [2.2, 1.65, 6.4], target: [-9.6, 1.3, 4.6], fov: 46, state: { mini: false } },
   5: { label: 'Night', pos: [9.0, 2.4, 25.5], target: [0.2, 3.3, 5.5], fov: 42, state: { night: true } },
   6: { label: 'Billboard', pos: [17.5, 1.8, 20.5], target: [3.2, 2.5, 6.0], fov: 40, state: { roller: 0 } },
