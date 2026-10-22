@@ -229,7 +229,7 @@ assertEqual(ramsay.venueName, 'Sir William Ramsay School', 'venue name uses the 
 const ramsayAddress = 'Sir William Ramsay School, Rose Avenue, Hazlemere, High Wycombe, Buckinghamshire, HP15 7UB';
 assertEqual(ramsay.address, ramsayAddress, 'address is the school contact-page address');
 assertEqual(ramsay.mapQuery, ramsayAddress, 'map query uses the same address');
-assertEqual(ramsay.showFrom, '2026-10-27', 'Holmer Green window starts on 27 Oct 2026');
+assertEqual(ramsay.showFrom, '2026-10-22', 'Holmer Green preview window starts on 22 Oct 2026');
 assertEqual(ramsay.showUntil, '2026-11-24', 'Holmer Green window ends on 24 Nov 2026 inclusive');
 assertEqual(
   ramsay.sessionDates,
@@ -280,9 +280,9 @@ assert(floydHtml.includes('(usually 18:00)'), 'a changed Rising Stars time still
 assert(!JSON.stringify(holmer).includes('Ramsey'), 'Holmer Green copy uses Ramsay');
 assert(!JSON.stringify(LOCATIONS).includes('Ramsey'), 'no location still spells the school Ramsey');
 assertEqual(
-  getActiveTemporaryVenues(holmer, new Date('2026-10-26T12:00:00Z')),
-  [],
-  'Holmer Green venue is hidden on 26 Oct',
+  getActiveTemporaryVenues(holmer, new Date('2026-10-26T12:00:00Z')).map((venue) => venue.venueName),
+  ['Sir William Ramsay School'],
+  'Holmer Green preview window is already open on 26 Oct',
 );
 assertEqual(
   getBookingWidgetUrl(holmer, new Date('2026-10-26T12:00:00Z')),

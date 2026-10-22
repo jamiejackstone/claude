@@ -91,7 +91,7 @@ export const LOCATIONS: LocationData[] = [
         venueName: 'Sir William Ramsay School',
         address: 'Sir William Ramsay School, Rose Avenue, Hazlemere, High Wycombe, Buckinghamshire, HP15 7UB',
         mapQuery: 'Sir William Ramsay School, Rose Avenue, Hazlemere, High Wycombe, Buckinghamshire, HP15 7UB',
-        showFrom: '2026-10-27',
+        showFrom: '2026-10-22',
         showUntil: '2026-11-24',
         sessionDates: ['Tuesday 17 November', 'Tuesday 24 November'],
         timesNote: 'Same times as usual',
