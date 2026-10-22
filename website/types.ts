@@ -65,6 +65,14 @@ export interface LocationData {
   mapQueryOverride?: string; // Override query for map iframe
   googleMapsUrl?: string; // Custom Google Maps link for directions
   tempVenueNotice?: string; // Optional temporary venue change notice
+  /** YYYY-MM-DD. Notice is hidden from this Europe/London calendar date. */
+  tempVenueNoticeUntil?: string;
+  /** Directions for the temporary venue only. Does not replace the usual map. */
+  tempVenueMapsUrl?: string;
+  /** Parking at the temporary venue. Rendered only when set. */
+  tempVenueParking?: string;
+  /** How to get in at the temporary venue (door or hall). Rendered only when set. */
+  tempVenueAccess?: string;
 }
 
 export interface Feature {

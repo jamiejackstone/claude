@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Search, MapPin, Trophy, Users, ArrowRight, Star, ShieldCheck, Heart, Clock, Award, Calendar, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 import { withTrackedParams } from '../lib/clickTracking';
+import { activeTempVenueNotice } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 
 export const Home: React.FC = () => {
@@ -140,6 +141,7 @@ export const Home: React.FC = () => {
                 {/* Results Grid - Image-free for blazing fast loads */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {searchResults.map((loc) => {
+                        const venueNotice = activeTempVenueNotice(loc);
                         return (
                             <div 
                                 key={loc.id} 
@@ -174,12 +176,12 @@ export const Home: React.FC = () => {
                                         {!loc.comingSoon && loc.classes.some((session) => session.comingSoon) && (
                                           <ClassSessionList sessions={loc.classes} compact />
                                         )}
-                                        {loc.tempVenueNotice && (
+                                        {venueNotice && (
                                             <div className="mb-3 p-3 bg-brand-orange/10 border-2 border-brand-orange/30 rounded-xl flex items-start gap-3 animate-pulse">
                                                 <AlertTriangle size={18} className="text-brand-orange shrink-0 mt-0.5" />
                                                 <div>
                                                     <p className="text-[10px] font-black uppercase text-brand-orange tracking-wider">Venue Update</p>
-                                                    <p className="text-[11px] font-bold text-brand-dark leading-tight">{loc.tempVenueNotice}</p>
+                                                    <p className="text-[11px] font-bold text-brand-dark leading-tight">{venueNotice}</p>
                                                 </div>
                                             </div>
                                         )}

@@ -175,6 +175,14 @@ export const LOCATIONS: LocationData[] = [
     actionVideoUrl: 'https://www.youtube-nocookie.com/embed/ENWlnbItCc0?si=80euwZHd7QVRV-Dg&controls=0',
     bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944',
     mapQueryOverride: "The Mandeville School, Aylesbury",
+    // Monday sessions only (Aylesbury has no other class days). Hidden from 10 Nov 2026, Europe/London.
+    // Address confirmed on https://www.sirhenryfloyd.co.uk/contact/ : Oxford Road, Aylesbury, HP21 8PE.
+    tempVenueNotice: 'Venue change: Monday classes on 26 Oct, 2 Nov and 9 Nov are at Sir Henry Floyd Grammar School, Oxford Road, Aylesbury, HP21 8PE. From Monday 16 Nov we are back at The Mandeville School.',
+    tempVenueNoticeUntil: '2026-11-10',
+    tempVenueMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Sir Henry Floyd Grammar School HP21 8PE')}`,
+    // Parking: leave unset until Jamie confirms where families should park.
+    // How to get in: leave unset until Jamie confirms which door or hall.
+    // tempVenueParking and tempVenueAccess render only when those strings are set.
     headCoach: {
       name: 'Johnny Hayward',
       role: 'Head Coach',

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
+import { activeTempVenueNotice } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData } from '../types';
@@ -168,6 +169,8 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
   if (!location) {
     return <div className="flex items-center justify-center h-screen bg-brand-dark text-white font-display text-2xl uppercase">Loading Location...</div>;
   }
+
+  const venueNotice = activeTempVenueNotice(location);
 
   // Calculate the next occurrence of a class day
   const getNextClassDate = (loc: LocationData): string | null => {
@@ -348,7 +351,39 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
             </div>
           )}
 
-          {/* TEMPORARY VENUE ALERT REMOVED */}
+          {venueNotice && (
+            <div id="temp-venue-notice" className="bg-white border-4 border-brand-dark rounded-2xl shadow-sticker p-5 md:p-6 flex items-start gap-4" role="status">
+              <div className="bg-brand-orange text-brand-dark p-2 rounded-xl border-2 border-brand-dark shrink-0">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <p className="font-display uppercase text-lg text-brand-dark leading-none mb-2">Venue Update</p>
+                <p className="text-sm md:text-base font-bold text-brand-dark leading-snug">{venueNotice}</p>
+                {location.tempVenueMapsUrl && (
+                  <a
+                    href={location.tempVenueMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-3 text-sm font-black uppercase underline"
+                  >
+                    Get directions <ExternalLink size={14} />
+                  </a>
+                )}
+                {location.tempVenueParking && (
+                  <p className="mt-3 text-sm font-bold text-brand-dark leading-snug">
+                    <span className="block text-[10px] font-black uppercase tracking-widest">Parking</span>
+                    {location.tempVenueParking}
+                  </p>
+                )}
+                {location.tempVenueAccess && (
+                  <p className="mt-3 text-sm font-bold text-brand-dark leading-snug">
+                    <span className="block text-[10px] font-black uppercase tracking-widest">How to get in</span>
+                    {location.tempVenueAccess}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {location.comingSoon ? (
             <div id="waitlist" className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark overflow-hidden scroll-mt-32">
