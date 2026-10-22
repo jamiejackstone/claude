@@ -86,6 +86,11 @@ assertEqual(
   'the usual Mandeville address stays in place',
 );
 assertEqual(aylesbury.mapQueryOverride, 'The Mandeville School, Aylesbury', 'the usual map query stays in place');
+assertEqual(
+  new URL(aylesbury.bookingWidgetUrl!).searchParams.get('venues')?.split(','),
+  ['48411', '53172', '50233', '65944', '54994'],
+  'Aylesbury TeamUp filter keeps the old ids and adds Sir Henry Floyd 54994',
+);
 const floydAddress = 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE';
 assertEqual(floyd.venueName, 'Sir Henry Floyd Grammar School (Sports Hall)', 'venue name includes the sports hall');
 assertEqual(floyd.address, floydAddress, 'address is the member-email address');
