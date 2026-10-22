@@ -176,14 +176,13 @@ export const LOCATIONS: LocationData[] = [
     bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944',
     mapQueryOverride: "The Mandeville School, Aylesbury",
     // Shown 22 Oct-9 Nov 2026 inclusive, Europe/London. Monday sessions only.
-    // Address confirmed on https://www.sirhenryfloyd.co.uk/contact/ : Oxford Road, Aylesbury, HP21 8PE.
-    // Parking and entry stay unset until the member-email details arrive. Do not render placeholders.
-    // Ballers has no confirmed temporary start time, so it is not listed.
+    // Address and entry are from the member email 'HH Aylesbury venue change 20 Oct 2026'.
+    // Uncomment parking once Jamie confirms it. Ballers has no confirmed temporary start time.
     temporaryVenues: [
       {
-        venueName: 'Sir Henry Floyd Grammar School',
-        address: 'Oxford Road, Aylesbury, HP21 8PE',
-        mapQuery: 'Sir Henry Floyd Grammar School HP21 8PE',
+        venueName: 'Sir Henry Floyd Grammar School (Sports Hall)',
+        address: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
+        mapQuery: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
         showFrom: '2026-10-22',
         showUntil: '2026-11-09',
         sessionDates: ['Mon 26 Oct', 'Mon 2 Nov', 'Mon 9 Nov'],
@@ -192,6 +191,12 @@ export const LOCATIONS: LocationData[] = [
           { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },
           { label: 'Rising Stars (Age 8-11)', time: '18:15', usualTime: '18:00' },
         ],
+        entry: 'Come in through the lettings entrance by the Gym. The Sports Hall is a short walk from there.',
+        // parking: 'Please park in the college car park next to the school. It is clearly signposted.',
+        siteMapImage: {
+          src: '/images/sir-henry-floyd-lettings-map.jpg',
+          alt: 'Site map showing parking, the lettings entrance, the Gym and the Sports Hall at Sir Henry Floyd',
+        },
         returnNote: 'Back at The Mandeville School from Mon 16 Nov',
         tickerText: 'Temporary venue for the next 3 weeks: Sir Henry Floyd, new times - see details',
       },

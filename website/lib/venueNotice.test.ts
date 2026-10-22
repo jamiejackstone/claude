@@ -86,9 +86,10 @@ assertEqual(
   'the usual Mandeville address stays in place',
 );
 assertEqual(aylesbury.mapQueryOverride, 'The Mandeville School, Aylesbury', 'the usual map query stays in place');
-assertEqual(floyd.venueName, 'Sir Henry Floyd Grammar School', 'venue name is the school name');
-assertEqual(floyd.address, 'Oxford Road, Aylesbury, HP21 8PE', 'address is the official school address');
-assertEqual(floyd.mapQuery, 'Sir Henry Floyd Grammar School HP21 8PE', 'map query is the school name and postcode');
+const floydAddress = 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE';
+assertEqual(floyd.venueName, 'Sir Henry Floyd Grammar School (Sports Hall)', 'venue name includes the sports hall');
+assertEqual(floyd.address, floydAddress, 'address is the member-email address');
+assertEqual(floyd.mapQuery, floydAddress, 'map query uses the same address');
 assertEqual(floyd.showFrom, '2026-10-22', 'window starts on 22 Oct 2026');
 assertEqual(floyd.showUntil, '2026-11-09', 'window ends on 9 Nov 2026 inclusive');
 assertEqual(floyd.sessionDates, ['Mon 26 Oct', 'Mon 2 Nov', 'Mon 9 Nov'], 'session dates are the three Mondays');
@@ -104,17 +105,26 @@ assertEqual(
   'ticker text is set',
 );
 assertEqual(floyd.parking, undefined, 'parking stays unset');
-assertEqual(floyd.entry, undefined, 'entry stays unset');
+assertEqual(
+  floyd.entry,
+  'Come in through the lettings entrance by the Gym. The Sports Hall is a short walk from there.',
+  'entry is the lettings entrance note',
+);
+assertEqual(floyd.siteMapImage, {
+  src: '/images/sir-henry-floyd-lettings-map.jpg',
+  alt: 'Site map showing parking, the lettings entrance, the Gym and the Sports Hall at Sir Henry Floyd',
+}, 'site map image is set');
+assert(!JSON.stringify(floyd).includes('Please park in the college'), 'parking text is not published');
 assert(!JSON.stringify(floyd).includes('Ballers'), 'Ballers has no confirmed Floyd time');
 assertEqual(
   mapEmbedSrc(floyd.mapQuery),
-  'https://maps.google.com/maps?q=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE&t=&z=18&ie=UTF8&iwloc=&output=embed',
+  `https://maps.google.com/maps?q=${encodeURIComponent(floydAddress)}&t=&z=18&ie=UTF8&iwloc=&output=embed`,
   'temporary map uses the usual embed shape',
 );
 assertEqual(
   directionsUrl(floyd.mapQuery),
-  'https://www.google.com/maps/search/?api=1&query=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE',
-  'directions use the school name and postcode',
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(floydAddress)}`,
+  'directions use the member-email address',
 );
 assertEqual(
   activeTemporaryVenues(aylesbury.temporaryVenues, new Date('2026-10-22T12:00:00Z')).length,

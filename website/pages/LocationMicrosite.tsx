@@ -74,6 +74,14 @@ function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchor
           </div>
         </div>
       )}
+      {venue.siteMapImage?.src && (
+        <img
+          src={venue.siteMapImage.src}
+          alt={venue.siteMapImage.alt}
+          className="mt-4 w-full rounded-2xl border-2 border-brand-dark"
+          loading="lazy"
+        />
+      )}
       {mapsUrl && (
         <a
           href={mapsUrl}

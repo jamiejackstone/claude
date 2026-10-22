@@ -61,6 +61,8 @@ export interface TemporaryVenue {
   parking?: string;
   /** Rendered only when set. */
   entry?: string;
+  /** Optional site plan shown under the map embed. */
+  siteMapImage?: { src: string; alt: string };
   returnNote: string;
   tickerText: string;
 }
