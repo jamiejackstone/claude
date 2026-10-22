@@ -177,11 +177,10 @@ export const LOCATIONS: LocationData[] = [
     mapQueryOverride: "The Mandeville School, Aylesbury",
     // Monday sessions only (Aylesbury has no other class days). Hidden from 10 Nov 2026, Europe/London.
     // Address confirmed on https://www.sirhenryfloyd.co.uk/contact/ : Oxford Road, Aylesbury, HP21 8PE.
-    tempVenueNotice: 'Venue change: Monday classes on 26 Oct, 2 Nov and 9 Nov are at Sir Henry Floyd Grammar School, Oxford Road, Aylesbury, HP21 8PE. From Monday 16 Nov we are back at The Mandeville School.',
+    tempVenueNotice: 'Venue change: Monday classes on 26 Oct, 2 Nov and 9 Nov are at Sir Henry Floyd Grammar School, Oxford Road, Aylesbury, HP21 8PE, starting 15 minutes later than usual: Rookies (Age 5-7) 17:45 (usually 17:30), Rising Stars (Age 8-11) 18:15 (usually 18:00). From Monday 16 Nov we are back at The Mandeville School.',
     tempVenueNoticeUntil: '2026-11-10',
     tempVenueMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Sir Henry Floyd Grammar School HP21 8PE')}`,
-    // Parking: leave unset until Jamie confirms where families should park.
-    // How to get in: leave unset until Jamie confirms which door or hall.
+    // Parking, entrance and drop-off: leave unset until Jamie confirms. Do not render placeholders.
     // tempVenueParking and tempVenueAccess render only when those strings are set.
     headCoach: {
       name: 'Johnny Hayward',

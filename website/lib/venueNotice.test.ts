@@ -71,6 +71,14 @@ assert(
   aylesbury.tempVenueNotice?.startsWith('Venue change: Monday classes on 26 Oct, 2 Nov and 9 Nov'),
   'notice is limited to the Monday dates',
 );
+assert(
+  aylesbury.tempVenueNotice?.includes(
+    'starting 15 minutes later than usual: Rookies (Age 5-7) 17:45 (usually 17:30), Rising Stars (Age 8-11) 18:15 (usually 18:00)',
+  ),
+  'notice shows the confirmed start times and the age-group names from the class list',
+);
+assert(!aylesbury.tempVenueNotice?.includes('Ballers'), 'Ballers has no confirmed Floyd start time');
+assert(!/\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/.test(aylesbury.tempVenueNotice ?? ''), 'notice shows start times only');
 assertEqual(
   aylesbury.tempVenueMapsUrl,
   'https://www.google.com/maps/search/?api=1&query=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE',
