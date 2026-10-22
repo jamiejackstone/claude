@@ -78,10 +78,10 @@ assertEqual(
   [
     'Monday 17:30 - 18:15 Rookies (Age 5-7)',
     'Monday 17:30 - 18:15 Rising Stars (Age 8-11)',
-    'Monday 18:15 - 19:00 Ballers (Age 12-15)',
   ],
-  'the usual Aylesbury class list is unchanged',
+  'Aylesbury lists Rookies and Rising Stars only',
 );
+assert(!aylesbury.classes.some((session) => session.ageGroup.includes('Ballers')), 'Aylesbury has no Ballers class');
 assertEqual(aylesbury.classes.every((session) => session.day === DayOfWeek.MONDAY), true, 'Aylesbury classes are Monday only');
 assertEqual(
   aylesbury.address,

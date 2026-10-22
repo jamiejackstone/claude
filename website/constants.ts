@@ -180,7 +180,7 @@ export const LOCATIONS: LocationData[] = [
     // Sir Henry Floyd (54994) is added only while the temporary venue below is showing.
     // Shown 22 Oct-9 Nov 2026 inclusive, Europe/London. Monday sessions only.
     // Address and entry are from the member email 'HH Aylesbury venue change 20 Oct 2026'.
-    // Uncomment parking once Jamie confirms it. Ballers has no confirmed temporary start time.
+    // Uncomment parking once Jamie confirms it. There is no Monday Ballers class at Aylesbury.
     temporaryVenues: [
       {
         venueName: 'Sir Henry Floyd Grammar School Sports Hall',
@@ -215,7 +215,6 @@ export const LOCATIONS: LocationData[] = [
     classes: [
       { id: 'c10_m', day: DayOfWeek.MONDAY, time: '17:30 - 18:15', ageGroup: 'Rookies (Age 5-7)', venue: 'Main Sports Hall', spotsAvailable: 12 },
       { id: 'c10b_m', day: DayOfWeek.MONDAY, time: '17:30 - 18:15', ageGroup: 'Rising Stars (Age 8-11)', venue: 'Main Sports Hall', spotsAvailable: 10 },
-      { id: 'c10c_m', day: DayOfWeek.MONDAY, time: '18:15 - 19:00', ageGroup: 'Ballers (Age 12-15)', venue: 'Main Sports Hall', spotsAvailable: 8 },
     ],
     reviews: [
         { author: 'Sarah J.', rating: 5, text: 'The Sunday morning sessions are brilliant. Starts the day off right!', relativeTime: '1 month ago' },
