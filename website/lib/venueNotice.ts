@@ -35,6 +35,11 @@ export function temporaryVenueAnchorId(index: number): string {
   return index === 0 ? 'temporary-venue' : `temporary-venue-${index + 1}`;
 }
 
+/** Gold heading at the top of a temporary-venue box. Dates come from the config. */
+export function temporaryVenueHeading(sessionDates: string[]): string {
+  return `TEMPORARY VENUE: ${sessionDates.join(', ')}`;
+}
+
 /** Same embed URL shape as the usual location map. */
 export function mapEmbedSrc(mapQuery: string | undefined): string | null {
   const query = mapQuery?.trim();

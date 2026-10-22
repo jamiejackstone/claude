@@ -7,6 +7,7 @@ import {
   londonDate,
   mapEmbedSrc,
   temporaryVenueAnchorId,
+  temporaryVenueHeading,
 } from './venueNotice.ts';
 
 function assert(condition: unknown, label: string): void {
@@ -92,12 +93,21 @@ assertEqual(
   'Aylesbury TeamUp filter keeps the old ids and adds Sir Henry Floyd 54994',
 );
 const floydAddress = 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE';
-assertEqual(floyd.venueName, 'Sir Henry Floyd Grammar School (Sports Hall)', 'venue name includes the sports hall');
+assertEqual(floyd.venueName, 'Sir Henry Floyd Grammar School Sports Hall', 'venue name is the sports hall');
 assertEqual(floyd.address, floydAddress, 'address is the member-email address');
 assertEqual(floyd.mapQuery, floydAddress, 'map query uses the same address');
 assertEqual(floyd.showFrom, '2026-10-22', 'window starts on 22 Oct 2026');
 assertEqual(floyd.showUntil, '2026-11-09', 'window ends on 9 Nov 2026 inclusive');
-assertEqual(floyd.sessionDates, ['Mon 26 Oct', 'Mon 2 Nov', 'Mon 9 Nov'], 'session dates are the three Mondays');
+assertEqual(
+  floyd.sessionDates,
+  ['Monday 26 October', 'Monday 2 November', 'Monday 9 November'],
+  'session dates use the full day and month',
+);
+assertEqual(
+  temporaryVenueHeading(floyd.sessionDates),
+  'TEMPORARY VENUE: Monday 26 October, Monday 2 November, Monday 9 November',
+  'heading is the label plus the configured dates',
+);
 assertEqual(floyd.timesNote, 'Starting 15 minutes later than usual', 'times note is set');
 assertEqual(floyd.times, [
   { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },

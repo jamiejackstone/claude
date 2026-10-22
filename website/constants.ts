@@ -183,12 +183,12 @@ export const LOCATIONS: LocationData[] = [
     // Uncomment parking once Jamie confirms it. Ballers has no confirmed temporary start time.
     temporaryVenues: [
       {
-        venueName: 'Sir Henry Floyd Grammar School (Sports Hall)',
+        venueName: 'Sir Henry Floyd Grammar School Sports Hall',
         address: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
         mapQuery: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
         showFrom: '2026-10-22',
         showUntil: '2026-11-09',
-        sessionDates: ['Mon 26 Oct', 'Mon 2 Nov', 'Mon 9 Nov'],
+        sessionDates: ['Monday 26 October', 'Monday 2 November', 'Monday 9 November'],
         timesNote: 'Starting 15 minutes later than usual',
         times: [
           { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },

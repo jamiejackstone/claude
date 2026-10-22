@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
-import { activeTemporaryVenues, directionsUrl, mapEmbedSrc, temporaryVenueAnchorId } from '../lib/venueNotice';
+import { activeTemporaryVenues, directionsUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData, TemporaryVenue } from '../types';
@@ -48,11 +48,9 @@ function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchor
 
   return (
     <section id={anchorId} className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark p-6 md:p-8 scroll-mt-32">
-      <p className="text-[10px] font-black uppercase tracking-widest text-brand-orange mb-2">Temporary venue</p>
+      <p className="text-sm font-black tracking-wide text-brand-orange mb-3">{temporaryVenueHeading(venue.sessionDates)}</p>
       <h2 className="font-display text-3xl md:text-4xl uppercase text-brand-dark leading-none mb-4">{venue.venueName}</h2>
-      <p className="font-bold text-brand-dark leading-snug">{venue.address}</p>
-      <p className="mt-4 text-sm font-black uppercase tracking-wide text-brand-orange">{venue.timesNote}</p>
-      <p className="mt-1 font-bold text-brand-dark">{venue.sessionDates.join(', ')}</p>
+      <p className="text-sm font-black uppercase tracking-wide text-brand-orange">{venue.timesNote}</p>
       <ul className="mt-3 space-y-1">
         {venue.times.map((slot) => (
           <li key={`${slot.label}-${slot.time}`} className="font-bold text-brand-dark">
@@ -60,6 +58,7 @@ function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchor
           </li>
         ))}
       </ul>
+      <p className="mt-4 font-bold text-brand-dark leading-snug">{venue.address}</p>
       {embedSrc && (
         <div className="mt-5 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner">
           <div className="h-48">
