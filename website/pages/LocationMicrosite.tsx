@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
-import { directionsUrl, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading } from '../lib/venueNotice';
+import { directionsUrl, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData, TemporaryVenue } from '../types';
@@ -40,7 +40,7 @@ function LocationTicker({ text, href }: { text: string; href?: string }) {
   );
 }
 
-function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchorId: string }) {
+export function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchorId: string }) {
   const embedSrc = mapEmbedSrc(venue.mapQuery);
   const mapsUrl = directionsUrl(venue.mapQuery);
   const parking = venue.parking?.trim();
@@ -50,13 +50,19 @@ function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchor
     <section id={anchorId} className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark p-6 md:p-8 scroll-mt-32">
       <p className="text-sm font-black tracking-wide text-brand-orange mb-3">{temporaryVenueHeading(venue.sessionDates)}</p>
       <h2 className="font-display text-3xl md:text-4xl uppercase text-brand-dark leading-none mb-4">{venue.venueName}</h2>
-      <p className="text-sm font-black uppercase tracking-wide text-brand-orange">{venue.timesNote}</p>
+      {venue.timesNote.trim() && (
+        <p className="text-sm font-black uppercase tracking-wide text-brand-orange">{venue.timesNote}</p>
+      )}
       <ul className="mt-3 space-y-1">
-        {venue.times.map((slot) => (
-          <li key={`${slot.label}-${slot.time}`} className="font-bold text-brand-dark">
-            {slot.label} {slot.time} <span className="font-medium text-slate-600">(usually {slot.usualTime})</span>
-          </li>
-        ))}
+        {venue.times.map((slot) => {
+          const usualAside = temporaryVenueUsualAside(slot.time, slot.usualTime);
+          return (
+            <li key={`${slot.label}-${slot.time}`} className="font-bold text-brand-dark">
+              {slot.label} {slot.time}
+              {usualAside && <span className="font-medium text-slate-600"> {usualAside}</span>}
+            </li>
+          );
+        })}
       </ul>
       <p className="mt-4 font-bold text-brand-dark leading-snug">{venue.address}</p>
       {embedSrc && (
@@ -548,7 +554,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                         <span className="font-bold leading-tight block text-base">Holmer Green Senior School, HP15 6SP</span>
                         <div className="text-xs bg-brand-orange/10 border-2 border-brand-dark p-3 rounded-xl mt-2 text-brand-dark">
                           <p className="font-bold mb-1">Backup Venue during Exams:</p>
-                          <p className="font-medium">Sir William Ramsey School, Rose Avenue, Hazlemere, HP15 7UB</p>
+                          <p className="font-medium">Sir William Ramsay School, Rose Avenue, Hazlemere, HP15 7UB</p>
                           <p className="font-medium mt-1 italic text-[10px]">Please check the booking calendar below for up-to-date location details.</p>
                         </div>
                       </div>
