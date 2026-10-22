@@ -1,4 +1,4 @@
-import type { LocationData, TemporaryVenue } from '../types.ts';
+import type { LocationData, TemporaryVenue, TemporaryVenueTime } from '../types.ts';
 
 /** Calendar date in Europe/London as YYYY-MM-DD. */
 export function londonDate(now: Date = new Date()): string {
@@ -72,6 +72,27 @@ export function temporaryVenueAnchorId(index: number): string {
 /** Gold heading at the top of a temporary-venue box. Dates come from the config. */
 export function temporaryVenueHeading(sessionDates: string[]): string {
   return `TEMPORARY VENUE: ${sessionDates.join(', ')}`;
+}
+
+/** Compare session times without treating spacing or dash style as a change. */
+function normaliseSessionTime(value: string): string {
+  return value.trim().replace(/[–—]/g, '-').replace(/\s+/g, '');
+}
+
+/**
+ * Parenthetical usual time. Omitted when the session runs at its normal time,
+ * so an unchanged slot does not say "(usually …)" beside the same time.
+ */
+export function temporaryVenueUsualAside(time: string, usualTime: string): string | null {
+  const usual = usualTime.trim();
+  if (!usual || normaliseSessionTime(time) === normaliseSessionTime(usual)) return null;
+  return `(usually ${usual})`;
+}
+
+/** Visible time line for one slot, including the usual-time aside only when it differs. */
+export function temporaryVenueTimeLine(slot: TemporaryVenueTime): string {
+  const aside = temporaryVenueUsualAside(slot.time, slot.usualTime);
+  return aside ? `${slot.label} ${slot.time} ${aside}` : `${slot.label} ${slot.time}`;
 }
 
 /** Same embed URL shape as the usual location map. */

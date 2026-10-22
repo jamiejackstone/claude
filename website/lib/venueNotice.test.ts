@@ -1,4 +1,7 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { LOCATIONS } from '../constants.ts';
+import { TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
 import { DayOfWeek } from '../types.ts';
 import {
   activeTemporaryVenues,
@@ -10,6 +13,8 @@ import {
   mapEmbedSrc,
   temporaryVenueAnchorId,
   temporaryVenueHeading,
+  temporaryVenueTimeLine,
+  temporaryVenueUsualAside,
 } from './venueNotice.ts';
 
 function assert(condition: unknown, label: string): void {
@@ -188,9 +193,135 @@ assertEqual(
   0,
   'Aylesbury venue is hidden on 10 Nov',
 );
+assertEqual(
+  floyd.times.map((slot) => temporaryVenueUsualAside(slot.time, slot.usualTime)),
+  ['(usually 17:30)', '(usually 18:00)'],
+  'a changed time still shows the usual start time',
+);
 assert(
-  LOCATIONS.filter((location) => location.slug !== 'aylesbury').every((location) => !location.temporaryVenues?.length),
-  'no other location has a temporary venue',
+  LOCATIONS.filter((location) => location.slug !== 'aylesbury' && location.slug !== 'holmer-green').every((location) => !location.temporaryVenues?.length),
+  'only Aylesbury and Holmer Green have temporary venues',
+);
+
+const holmer = LOCATIONS.find((location) => location.slug === 'holmer-green');
+assert(holmer, 'Holmer Green location exists');
+if (!holmer) throw new Error('Holmer Green location exists');
+
+const ramsay = holmer.temporaryVenues?.[0];
+assert(ramsay, 'Holmer Green has a temporary venue');
+if (!ramsay) throw new Error('Holmer Green has a temporary venue');
+
+assertEqual(
+  holmer.classes.map((session) => `${session.day} ${session.time} ${session.ageGroup}`),
+  [
+    'Tuesday 17:00 - 17:30 Rookies (Age 5-7)',
+    'Tuesday 17:30 - 18:15 Rising Stars (Age 8-11)',
+    'Tuesday 18:15 - 19:00 Ballers (Age 12-15)',
+  ],
+  'Holmer Green class times keep Rising Stars and Ballers and move Rookies earlier',
+);
+const holmerBaseWidgetUrl = 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48474,48651';
+assertEqual(holmer.bookingWidgetUrl, holmerBaseWidgetUrl, 'the base TeamUp url already lists both Holmer Green venues');
+assert(holmerBaseWidgetUrl.includes('48474'), '48474 is Holmer Green Senior School');
+assert(holmerBaseWidgetUrl.includes('48651'), '48651 is already on the base Holmer Green filter');
+assertEqual(ramsay.teamupVenueIds, ['48651'], 'Sir William Ramsay is listed on the temporary venue');
+assertEqual(ramsay.venueName, 'Sir William Ramsay School', 'venue name uses the Ramsay spelling');
+const ramsayAddress = 'Sir William Ramsay School, Rose Avenue, Hazlemere, High Wycombe, Buckinghamshire, HP15 7UB';
+assertEqual(ramsay.address, ramsayAddress, 'address is the school contact-page address');
+assertEqual(ramsay.mapQuery, ramsayAddress, 'map query uses the same address');
+assertEqual(ramsay.showFrom, '2026-10-27', 'Holmer Green window starts on 27 Oct 2026');
+assertEqual(ramsay.showUntil, '2026-11-24', 'Holmer Green window ends on 24 Nov 2026 inclusive');
+assertEqual(
+  ramsay.sessionDates,
+  ['Tuesday 17 November', 'Tuesday 24 November'],
+  'session dates are the two November Tuesdays',
+);
+assertEqual(ramsay.timesNote, 'Same times as usual', 'times note does not say the sessions start later');
+assertEqual(ramsay.times, [
+  { label: 'Rookies (Age 5-7)', time: '17:00 - 17:30', usualTime: '17:00 - 17:30' },
+  { label: 'Rising Stars (Age 8-11)', time: '17:30 - 18:15', usualTime: '17:30 - 18:15' },
+  { label: 'Ballers (Age 12-15)', time: '18:15 - 19:00', usualTime: '18:15 - 19:00' },
+], 'temporary times match the usual Tuesday classes');
+assertEqual(
+  ramsay.times.map((slot) => temporaryVenueTimeLine(slot)),
+  [
+    'Rookies (Age 5-7) 17:00 - 17:30',
+    'Rising Stars (Age 8-11) 17:30 - 18:15',
+    'Ballers (Age 12-15) 18:15 - 19:00',
+  ],
+  'unchanged times render with no usually text',
+);
+assertEqual(
+  ramsay.times.map((slot) => temporaryVenueUsualAside(slot.time, slot.usualTime)),
+  [null, null, null],
+  'an unchanged time has no usually aside',
+);
+assertEqual(temporaryVenueUsualAside('17:00 - 17:30', '17:00-17:30'), null, 'dash spacing does not count as a time change');
+assertEqual(ramsay.returnNote, 'Back at Holmer Green Senior School from Tue 1 Dec', 'return note is set');
+assertEqual(
+  ramsay.tickerText,
+  'Temporary venue on Tue 17 and 24 Nov: Sir William Ramsay School - see details',
+  'ticker text is set',
+);
+assertEqual(ramsay.parking, undefined, 'parking is still to come');
+assertEqual(ramsay.entry, undefined, 'entry is still to come');
+assertEqual(ramsay.siteMapImage, undefined, 'no site map image');
+const ramsayHtml = renderToStaticMarkup(React.createElement(TemporaryVenueCard, { venue: ramsay, anchorId: 'temporary-venue' }));
+assert(!ramsayHtml.includes('usually'), 'the rendered card does not say usually when times are unchanged');
+assert(ramsayHtml.includes('Same times as usual'), 'the rendered card says the times are the same as usual');
+assert(ramsayHtml.includes('Rookies (Age 5-7) 17:00 - 17:30'), 'the rendered Rookies time is unchanged');
+assert(ramsayHtml.includes('Rising Stars (Age 8-11) 17:30 - 18:15'), 'the rendered Rising Stars time is unchanged');
+assert(ramsayHtml.includes('Ballers (Age 12-15) 18:15 - 19:00'), 'the rendered Ballers time is unchanged');
+assert(!ramsayHtml.includes('>Parking<') && !ramsayHtml.includes('How to get in'), 'parking and entry stay off the card');
+assert(!ramsayHtml.includes('<img'), 'the card has no site map image');
+const floydHtml = renderToStaticMarkup(React.createElement(TemporaryVenueCard, { venue: floyd, anchorId: 'temporary-venue' }));
+assert(floydHtml.includes('(usually 17:30)'), 'a changed Rookies time still renders the usual aside');
+assert(floydHtml.includes('(usually 18:00)'), 'a changed Rising Stars time still renders the usual aside');
+assert(!JSON.stringify(holmer).includes('Ramsey'), 'Holmer Green copy uses Ramsay');
+assert(!JSON.stringify(LOCATIONS).includes('Ramsey'), 'no location still spells the school Ramsey');
+assertEqual(
+  getActiveTemporaryVenues(holmer, new Date('2026-10-26T12:00:00Z')),
+  [],
+  'Holmer Green venue is hidden on 26 Oct',
+);
+assertEqual(
+  getBookingWidgetUrl(holmer, new Date('2026-10-26T12:00:00Z')),
+  holmerBaseWidgetUrl,
+  '26 Oct keeps the base widget url',
+);
+assertEqual(
+  activeTemporaryVenues(holmer.temporaryVenues, new Date('2026-10-27T00:30:00Z')).map((venue) => venue.venueName),
+  ['Sir William Ramsay School'],
+  'Holmer Green venue appears from 27 Oct',
+);
+assertEqual(
+  activeTemporaryVenues(holmer.temporaryVenues, new Date('2026-11-17T12:00:00Z')).length,
+  1,
+  'Holmer Green venue is showing on 17 Nov',
+);
+assertEqual(
+  getBookingWidgetUrl(holmer, new Date('2026-11-17T12:00:00Z')),
+  holmerBaseWidgetUrl,
+  '17 Nov does not duplicate venue 48651',
+);
+assert(
+  !String(getBookingWidgetUrl(holmer, new Date('2026-11-17T12:00:00Z'))).includes('48651,48651'),
+  'the venues query does not repeat 48651',
+);
+assertEqual(
+  activeTemporaryVenues(holmer.temporaryVenues, new Date('2026-11-24T23:30:00Z')).length,
+  1,
+  'Holmer Green venue is showing through the evening of 24 Nov',
+);
+assertEqual(
+  getActiveTemporaryVenues(holmer, new Date('2026-11-25T12:00:00Z')),
+  [],
+  'Holmer Green venue is hidden on 25 Nov',
+);
+assertEqual(
+  getBookingWidgetUrl(holmer, new Date('2026-11-25T12:00:00Z')),
+  holmerBaseWidgetUrl,
+  '25 Nov uses the original base widget url',
 );
 
 console.log('venueNotice tests passed');

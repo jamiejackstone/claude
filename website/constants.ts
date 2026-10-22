@@ -79,8 +79,32 @@ export const LOCATIONS: LocationData[] = [
     gallery: ['https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&q=80&w=800'],
     actionVideoUrl: 'https://www.youtube-nocookie.com/embed/ENWlnbItCc0?si=80euwZHd7QVRV-Dg&controls=0',
     bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48474,48651',
-    scheduleNotice: "Term times only. During exams, Sir William Ramsey School, Hazlemere (HP15 7UB) is used as a backup. Please check the booking calendar below for up-to-date location details.",
-    locationNotes: "IMPORTANT: During exams, Sir William Ramsey School, Rose Avenue, Hazlemere, HP15 7UB is used as a backup. Please check the booking calendar below for up-to-date location details.",
+    // 48474 is Holmer Green Senior School. 48651 is Sir William Ramsay School and is already on this base filter,
+    // so the temporary entry lists it without the booking URL repeating the id.
+    // Shown 27 Oct-24 Nov 2026 inclusive, Europe/London. Tuesday sessions on 17 and 24 Nov only.
+    // Address is the school's published contact address: https://www.swr.school/Contact/
+    // Times match the usual Tuesday classes, so there is no later-than-usual note. Parking and entry are still to come.
+    scheduleNotice: "Term times only. During exams, Sir William Ramsay School, Hazlemere (HP15 7UB) is used as a backup. Please check the booking calendar below for up-to-date location details.",
+    locationNotes: "IMPORTANT: During exams, Sir William Ramsay School, Rose Avenue, Hazlemere, HP15 7UB is used as a backup. Please check the booking calendar below for up-to-date location details.",
+    temporaryVenues: [
+      {
+        venueName: 'Sir William Ramsay School',
+        address: 'Sir William Ramsay School, Rose Avenue, Hazlemere, High Wycombe, Buckinghamshire, HP15 7UB',
+        mapQuery: 'Sir William Ramsay School, Rose Avenue, Hazlemere, High Wycombe, Buckinghamshire, HP15 7UB',
+        showFrom: '2026-10-27',
+        showUntil: '2026-11-24',
+        sessionDates: ['Tuesday 17 November', 'Tuesday 24 November'],
+        timesNote: 'Same times as usual',
+        times: [
+          { label: 'Rookies (Age 5-7)', time: '17:00 - 17:30', usualTime: '17:00 - 17:30' },
+          { label: 'Rising Stars (Age 8-11)', time: '17:30 - 18:15', usualTime: '17:30 - 18:15' },
+          { label: 'Ballers (Age 12-15)', time: '18:15 - 19:00', usualTime: '18:15 - 19:00' },
+        ],
+        returnNote: 'Back at Holmer Green Senior School from Tue 1 Dec',
+        tickerText: 'Temporary venue on Tue 17 and 24 Nov: Sir William Ramsay School - see details',
+        teamupVenueIds: ['48651'],
+      },
+    ],
     headCoach: {
       name: 'Ben Cousin',
       role: 'Head Coach',
@@ -88,7 +112,7 @@ export const LOCATIONS: LocationData[] = [
       imageUrl: 'https://storage.googleapis.com/msgsndr/9p0wEiLpTaIe1FDTFFQI/media/69845c060a7fd16d726a6869.png?w=200&q=80&auto=format'
     },
     classes: [
-      { id: 'c5', day: DayOfWeek.TUESDAY, time: '17:30 - 18:15', ageGroup: 'Rookies (Age 5-7)', venue: 'Main Hall', spotsAvailable: 8 },
+      { id: 'c5', day: DayOfWeek.TUESDAY, time: '17:00 - 17:30', ageGroup: 'Rookies (Age 5-7)', venue: 'Main Hall', spotsAvailable: 8 },
       { id: 'c5b', day: DayOfWeek.TUESDAY, time: '17:30 - 18:15', ageGroup: 'Rising Stars (Age 8-11)', venue: 'Main Hall', spotsAvailable: 6 },
       { id: 'c5c', day: DayOfWeek.TUESDAY, time: '18:15 - 19:00', ageGroup: 'Ballers (Age 12-15)', venue: 'Main Hall', spotsAvailable: 10 },
     ],
