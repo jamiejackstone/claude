@@ -41,7 +41,6 @@
   .phase button { border: 0; padding: 5px 11px; }
   .fade { position: fixed; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
   .fade.on { opacity: 1; }
-  .play { background: var(--gold); color: var(--navy); border-color: var(--gold); flex: none; }
   button[hidden] { display: none; }
   .caption {
     position: fixed; left: 50%; bottom: calc(56px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 8px);
@@ -114,10 +113,9 @@
   <button id="collapse" class="collapse" aria-expanded="true" aria-controls="strip">Hide</button>
   <h1>Hoop <span>Hub</span></h1>
   <div class="strip" id="strip">
-    <button id="play" class="play" aria-pressed="false">▶ Play</button>
     <div class="phase" role="group" aria-label="Phase">
-      <button data-phase="1" title="Phase 1">1 · Outdoor Court</button>
-      <button data-phase="2" title="Phase 2">2 · Covered Hub</button>
+      <button data-phase="1" title="Outdoor court">Phase 1</button>
+      <button data-phase="2" title="Covered hub">Phase 2</button>
     </div>
     <div class="sep"></div>
     <div class="group" id="controls"></div>

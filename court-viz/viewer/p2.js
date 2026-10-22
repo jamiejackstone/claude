@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { createPhase2, SHOTS, BUILD } from '../phase2/hub.js';
 
 const VIEW_SHOT = { '3d': '1', top: '3', slam: 'slam' };
-const HOOPS_TIME = 1.6;
+const HOOPS_TIME = 5;
 // build captions: [from second, step, estimate]. Time estimates are optimistic concept figures.
 export const P2_STEPS = [
   [0, 'Step 1 of 5 · Containers craned into place', 'About ½ day'],
@@ -14,14 +14,20 @@ export const P2_STEPS = [
   [22.6, 'Step 5 of 5 · Fit-out: lights, reception and storage', 'About 2 days'],
 ];
 export const P2_DONE = ['Covered hub ready to open', 'About 5 days on site in total · estimate'];
-// camera for the build: high over the front left as the containers land, round the reception side, then
-// down to the 3D view
+// camera for the build: high over the front left as the containers land, round to the front, inside for the
+// fit-out, then back out to the 3D view; kept inside the line of trees so nothing blocks the view
 const KEYS = [
-  [0, [-21, 13, 30], [0, 1, 4.5]],
-  [7.0, [-25, 8.5, 13], [0, 1.6, 4.5]],
-  [12.5, [-17, 12, 27], [0, 3, 5]],
+  [0, [-12, 15, 27], [0, 1, 4.5]],
+  [7.0, [-17, 9.5, 21], [0, 1.6, 4.5]],
+  [12.5, [-15, 12, 27], [0, 3, 5]],
   [18.5, [5, 8.5, 31], [0, 3.5, 5]],
-  [24.5, [-9.5, 4.8, 28], [0, 3, 6]],
+  [22.6, [-6, 3.6, 24], [0, 2.4, 6]],
+  // in through the raised roller door to watch the storage open and the mini hoops roll out
+  [25.2, [0.5, 2.3, 14.5], [0, 1.8, 4]],
+  [27.0, [-6.5, 4.6, 10.4], [3, 0.8, 4.5]],
+  [31.6, [-6.8, 4.9, 10.0], [2.5, 0.8, 4.5]],
+  // and back out to the 3D view
+  [33.6, [0.3, 2.4, 14.2], [0, 2.2, 6]],
   [BUILD.end, [-13.5, 3.4, 27.5], [0.6, 2.6, 6.0]],
 ];
 const posCurve = new THREE.CatmullRomCurve3(KEYS.map((k) => new THREE.Vector3(...k[1])), false, 'centripetal');
@@ -100,8 +106,9 @@ export async function phase2({ renderer, persp, ortho, controls, setFov, orthoFr
       stopBuild();
       setView(v);
     },
-    // Mini hoops: the portable hoops fold down and away, or come back up
+    // Mini hoops: roll out of containers 2 and 3 and go up, or fold and roll back in
     toggleHoops() {
+      if (buildT0 !== null) return;
       const out = !hub.state.mini;
       const from = hoopsAnim ? hoopsAnim.p() : out ? 0 : 1;
       const t0 = performance.now();

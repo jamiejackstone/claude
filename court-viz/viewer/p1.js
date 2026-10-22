@@ -7,7 +7,7 @@ const VIEW_SHOT = { '3d': '1', top: '2', slam: '3c' };
 export const P1_STEPS = [
   [0, 'Step 1 of 3 · Mega Slam goes in', 'About ½ day to fit, once its concrete base has cured'],
   [9.0, 'Step 2 of 3 · Floor laid from the container', 'About 1½ hours with a team of three'],
-  [24.8, 'Step 3 of 3 · Mini hoops out and up', 'About 30 minutes'],
+  [24.8, 'Step 3 of 3 · Mini hoops out and up', 'About 10 minutes'],
 ];
 export const P1_DONE = ['Outdoor court ready to play', 'About 1 day on site in total · estimate'];
 const HOOPS_TIME = 5;

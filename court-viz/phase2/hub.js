@@ -557,10 +557,12 @@ export const BUILD = {
   wallsEntrance: 19.0,
   doors: 20.8,
   fit: 22.8,
+  rollerUp: 22.8,
   benches: 23.6,
-  shutters: 24.4,
-  rollerUp: 26.5,
-  end: 31,
+  shutters: 26.0,
+  hoops: 27.0, // the mini hoops roll out of containers 2 and 3
+  hoopTravel: 6.0, // out of storage and up
+  end: 35,
 };
 
 export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {} } = {}) {
@@ -651,7 +653,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   });
 
   // container wraps: navy with a gold stripe, or gold with a navy stripe, as Phase 1. Big logo and HOOP HUB
-  // on the outsides, logos facing the court, round badges on the ends, the free-trial QR on container 3
+  // on the outsides, logos facing the court, round badges on the ends, the free-trial QR by the entrance
   const bigSide = (logo, ink, { logoAt = 0.27, textAt = 0.7, textW = 0.45 } = {}) => (g, s, w, h) => {
     stripe(g, s, w, h + 0.16, ink === COL.gold ? COL.gold : COL.navy);
     drawImg(g, s, h, logo, w * logoAt, 1.32, Math.min(3.6, w * 0.4));
@@ -665,18 +667,20 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     stripe(g, s, w, h + 0.16, ink);
     drawImg(g, s, h, logo, w / 2, 1.42, Math.min(2.9, w - 0.4));
   };
-  const qrSide = (g, s, w, h) => {
-    stripe(g, s, w, h + 0.16, COL.navy);
-    drawImg(g, s, h, art.logoWhiteNavy, w * 0.33, 1.32, 3.3);
-    const pw = 1.25;
-    const px = w * 0.78 - pw / 2;
+  // the free-trial QR panel on the reception's front end, beside the entrance door
+  const qrPanel = (g, s, w, h) => {
+    stripe(g, s, w, h + 0.16, COL.gold);
+    const pw = 0.84;
+    const px = 0.08;
+    const y0 = 0.62; // panel bottom, clear of the stripe
+    const y1 = 2.0;
     g.fillStyle = '#ffffff';
     g.beginPath();
-    g.roundRect(px * s, 0.2 * s, pw * s, 1.85 * s, 0.08 * s);
+    g.roundRect(px * s, (h - y1) * s, pw * s, (y1 - y0) * s, 0.05 * s);
     g.fill();
-    drawText(g, s, h, 'SCAN TO BOOK A', px + pw / 2, h - 0.38, 0.15, COL.navy, pw - 0.15);
-    drawText(g, s, h, 'FREE TRIAL', px + pw / 2, h - 0.6, 0.24, COL.navy, pw - 0.15);
-    drawImg(g, s, h, art.qr, px + pw / 2, h - 1.35, pw - 0.3);
+    drawText(g, s, h, 'SCAN TO BOOK A', px + pw / 2, y1 - 0.13, 0.1, COL.navy, pw - 0.1);
+    drawText(g, s, h, 'FREE TRIAL', px + pw / 2, y1 - 0.29, 0.16, COL.navy, pw - 0.1);
+    drawImg(g, s, h, art.qr, px + pw / 2, y0 + 0.4, pw - 0.18);
   };
   const brand = {
     reception: {
@@ -684,13 +688,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       art,
       outer: bigSide(art.logo, COL.gold),
       endBack: badge(art.roundWhite, COL.gold),
-      endFront: (g, s, w, h) => {
-        stripe(g, s, w, h + 0.16, COL.gold);
-        drawImg(g, s, h, art.roundWhite, 0.52, 1.45, 0.85);
-      },
+      endFront: qrPanel,
     },
     c2: { base: COL.navy, outer: bigSide(art.logo, COL.gold), endBack: badge(art.roundWhite, COL.gold), court: courtLogo(art.logo, COL.gold) },
-    c3: { base: COL.gold, outer: qrSide, endFront: badge(art.roundNavy, COL.navy), court: courtLogo(art.logoWhiteNavy, COL.navy) },
+    c3: { base: COL.gold, outer: bigSide(art.logoWhiteNavy, COL.navy), endFront: badge(art.roundNavy, COL.navy), court: courtLogo(art.logoWhiteNavy, COL.navy) },
   };
   // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, side-opening onto the court
   const units = {
@@ -808,6 +809,22 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     return l;
   });
 
+  // a small downlight over the reception entrance, on at night
+  const { x0: ex0, x1: ex1 } = HUB.entranceDoor;
+  const ex = (ex0 + ex1) / 2;
+  const entranceLamp = new THREE.Group();
+  entranceLamp.add(box(0.3, 0.07, 0.22, std('#2b2f35', { roughness: 0.5, metalness: 0.5 }), 0, 0, 0.11));
+  const entranceLens = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.16), new THREE.MeshStandardMaterial({ color: '#fffaf0', emissive: '#fff1d6', emissiveIntensity: 0 }));
+  entranceLens.rotation.x = Math.PI / 2;
+  entranceLens.position.set(0, -0.036, 0.11);
+  entranceLamp.add(entranceLens);
+  entranceLamp.position.set(ex, HUB.ch + 0.04, HUB.reception.z1);
+  units.reception.group.add(entranceLamp);
+  const entranceSpot = new THREE.SpotLight('#fff1dc', 0, 6, 0.9, 0.7, 1.2);
+  entranceSpot.position.set(ex, HUB.ch - 0.02, HUB.reception.z1 + 0.14);
+  entranceSpot.target.position.set(ex - 0.3, 0, HUB.reception.z1 + 1.2);
+  units.reception.group.add(entranceSpot, entranceSpot.target);
+
   // day and night
   const DAY = { bg: null, fog: '#c9d3dc', env: 0.55, hemi: ['#dfe8f2', '#4b4a46', 0.55], sun: ['#ffe2bd', 3.0], glow: ['#f3f6fa', 0.9], fabric: 0, lens: 0.6, spot: 0 };
   const NIGHT = { bg: '#0a1122', fog: '#0a1122', env: 0.05, hemi: ['#41557d', '#151515', 0.14], sun: ['#9fb4dc', 0.25], glow: ['#ffe9c4', 0.55], fabric: 0.42, lens: 4, spot: 14 };
@@ -829,6 +846,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     fabric.emissiveIntensity = m.fabric;
     for (const w of wallMats) w.emissiveIntensity = m.fabric;
     for (const l of signLights) l.intensity = on ? 18 : 0;
+    entranceSpot.intensity = on ? 9 : 0;
+    entranceLens.material.emissiveIntensity = on ? 3 : 0;
     for (const l of lamps) {
       l.lens.material.emissiveIntensity = m.lens;
       l.spot.intensity = m.spot;
@@ -843,6 +862,29 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
   const land = (u) => 1 - Math.pow(1 - THREE.MathUtils.clamp(u, 0, 1), 3);
   const unitList = [units.reception, units.hhStore, units.schoolStore];
+  const tmp = new THREE.Vector3();
+  const curve = (pts) => new THREE.CatmullRomCurve3(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
+  const hoopPaths = [
+    // left hoop: out of container 2's shutter and across the court to the reception side
+    curve([[10.9, 0.25], [8.3, 0.6], [4.5, 2.4], [-2, 4.4], [finalX[0], DIM.miniKeyZ]]),
+    // right hoop: out of container 3's shutter and along the run-off
+    curve([[9.4, 9.8], [8.2, 8.9], [finalX[1], 6.8], [finalX[1], DIM.miniKeyZ]]),
+  ];
+  // p runs 0 (folded in the storage) to 1 (out and up); played backwards to put them away
+  const placeHoops = (p) => {
+    hoops.forEach((hp, i) => {
+      const u = ease((p - i * 0.06) / 0.72);
+      hoopPaths[i].getPoint(u, tmp);
+      hp.group.visible = true;
+      hp.group.position.set(tmp.x, 0, tmp.z);
+      const up = ease((p - 0.8) / 0.2);
+      hp.setFolded(up <= 0);
+      if (up > 0) {
+        hp.setHeight(portableRim());
+        hp.setUnfold(up);
+      }
+    });
+  };
   const applyBuild = (t, building) => {
     const B = BUILD;
     unitList.forEach((un, i) => {
@@ -876,10 +918,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     for (const l of lamps) l.group.visible = l.group.visible && t >= B.fit;
     benches.visible = t >= B.benches;
     if (building) {
-      roller.set(ease((t - B.rollerUp) / 2.4));
+      roller.set(ease((t - B.rollerUp) / 2.0));
       units.hhStore.setDoors(ease((t - B.shutters) / 1.6));
       units.schoolStore.setDoors(ease((t - B.shutters - 0.3) / 1.6));
       for (const l of lamps) l.lens.material.emissiveIntensity = 0.6 * ease((t - B.fit) / 1.2);
+      // mini hoops: folded inside the storage until the shutters are up, then rolled out and raised
+      placeHoops((t - B.hoops) / B.hoopTravel);
     }
   };
 
@@ -889,14 +933,16 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     Object.assign(state, next);
     megaSlam.setHeight(state.rimFt * FT);
     megaSlam.setPadding(COL.navy, padLogoTex);
-    // hoopsT animates the mini hoops folding away (0) or up (1)
-    const up = state.hoopsT ?? (state.mini ? 1 : 0);
-    hoops.forEach((hp) => {
-      hp.group.visible = up > 0.02;
-      hp.setFolded(false);
-      hp.setHeight(portableRim());
-      hp.setUnfold(up * up * (3 - 2 * up));
-    });
+    // mini hoops: out and up, put away in containers 2 and 3, or hoopsT part way between
+    if (state.hoopsT !== null) placeHoops(state.hoopsT);
+    else
+      hoops.forEach((hp, i) => {
+        hp.group.visible = state.mini;
+        hp.group.position.set(finalX[i], 0, DIM.miniKeyZ);
+        hp.setFolded(false);
+        hp.setHeight(portableRim());
+        hp.setUnfold(1);
+      });
     roller.set(state.roller);
     units.hhStore.setDoors(state.storeDoors);
     units.schoolStore.setDoors(state.storeDoors);
@@ -922,7 +968,7 @@ export const SHOTS = {
   3: { label: 'Top-down', ortho: { cx: 0, cz: 5, height: 16.6 }, state: { cutaway: true } },
   slam: { label: 'Mega Slam', pos: [-3.4, 2.5, 8.6], target: [0.1, 3.1, 0.2], fov: 44, state: {} },
   4: { label: 'Reception', pos: [2.2, 1.65, 6.4], target: [-9.6, 1.3, 4.6], fov: 46, state: { mini: false } },
-  5: { label: 'Night', pos: [9.0, 2.4, 25.5], target: [0.2, 3.3, 5.5], fov: 42, state: { night: true } },
+  5: { label: 'Night', pos: [-11.5, 2.4, 25.5], target: [-0.6, 3.0, 5.5], fov: 42, state: { night: true } },
   6: { label: 'Billboard', pos: [17.5, 1.8, 20.5], target: [3.2, 2.5, 6.0], fov: 40, state: { roller: 0 } },
   // detail for signing off the storage shutters
   s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: {} },
