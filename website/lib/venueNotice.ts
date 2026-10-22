@@ -22,6 +22,19 @@ export interface TempVenueFields {
   tempVenueNoticeUntil?: string;
 }
 
+/** Same embed URL shape as the usual location map, using the directions query. */
+export function tempVenueEmbedSrc(mapsUrl: string | undefined): string | null {
+  if (!mapsUrl) return null;
+  let query: string | null;
+  try {
+    query = new URL(mapsUrl).searchParams.get('query');
+  } catch {
+    return null;
+  }
+  if (!query) return null;
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=&z=18&ie=UTF8&iwloc=&output=embed`;
+}
+
 /** Notice text while it is set and still before its London expiry, otherwise null. */
 export function activeTempVenueNotice(
   location: TempVenueFields,

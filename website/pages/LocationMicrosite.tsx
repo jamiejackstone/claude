@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
-import { activeTempVenueNotice } from '../lib/venueNotice';
+import { activeTempVenueNotice, tempVenueEmbedSrc } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData } from '../types';
@@ -171,6 +171,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
   }
 
   const venueNotice = activeTempVenueNotice(location);
+  const venueEmbedSrc = venueNotice ? tempVenueEmbedSrc(location.tempVenueMapsUrl) : null;
 
   // Calculate the next occurrence of a class day
   const getNextClassDate = (loc: LocationData): string | null => {
@@ -356,9 +357,23 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
               <div className="bg-brand-orange text-brand-dark p-2 rounded-xl border-2 border-brand-dark shrink-0">
                 <AlertTriangle size={22} />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-display uppercase text-lg text-brand-dark leading-none mb-2">Venue Update</p>
                 <p className="text-sm md:text-base font-bold text-brand-dark leading-snug">{venueNotice}</p>
+                {venueEmbedSrc && (
+                  <div className="mt-4 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner">
+                    <div className="h-48">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        title="Sir Henry Floyd Grammar School map"
+                        src={venueEmbedSrc}
+                        loading="lazy"
+                      ></iframe>
+                    </div>
+                  </div>
+                )}
                 {location.tempVenueMapsUrl && (
                   <a
                     href={location.tempVenueMapsUrl}

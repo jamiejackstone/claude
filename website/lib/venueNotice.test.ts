@@ -1,6 +1,6 @@
 import { LOCATIONS } from '../constants.ts';
 import { DayOfWeek } from '../types.ts';
-import { activeTempVenueNotice, isBeforeLondonDate, londonDate } from './venueNotice.ts';
+import { activeTempVenueNotice, isBeforeLondonDate, londonDate, tempVenueEmbedSrc } from './venueNotice.ts';
 
 function assert(condition: unknown, label: string): void {
   if (!condition) throw new Error(label);
@@ -76,6 +76,13 @@ assertEqual(
   'https://www.google.com/maps/search/?api=1&query=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE',
   'temporary directions use the school name and postcode',
 );
+assertEqual(
+  tempVenueEmbedSrc(aylesbury.tempVenueMapsUrl),
+  'https://maps.google.com/maps?q=Sir%20Henry%20Floyd%20Grammar%20School%20HP21%208PE&t=&z=18&ie=UTF8&iwloc=&output=embed',
+  'temporary map uses the same embed shape as the usual location map',
+);
+assertEqual(tempVenueEmbedSrc(undefined), null, 'no directions URL means no temporary map');
+assertEqual(tempVenueEmbedSrc('not a url'), null, 'a bad directions URL does not render a map');
 assertEqual(
   activeTempVenueNotice(aylesbury, new Date('2026-10-22T12:00:00Z')),
   aylesbury.tempVenueNotice,
