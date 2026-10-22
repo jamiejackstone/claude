@@ -147,7 +147,11 @@ assertEqual(
   'Temporary venue for the next 3 weeks: Sir Henry Floyd, new times - see details',
   'ticker text is set',
 );
-assertEqual(floyd.parking, undefined, 'parking stays unset');
+assertEqual(
+  floyd.parking,
+  'Please park in the college car park next to the school. It is clearly signposted.',
+  'parking is the college car park note',
+);
 assertEqual(
   floyd.entry,
   'Come in through the lettings entrance by the Gym. The Sports Hall is a short walk from there.',
@@ -157,7 +161,7 @@ assertEqual(floyd.siteMapImage, {
   src: '/images/sir-henry-floyd-lettings-map.jpg',
   alt: 'Site map showing parking, the lettings entrance, the Gym and the Sports Hall at Sir Henry Floyd',
 }, 'site map image is set');
-assert(!JSON.stringify(floyd).includes('Please park in the college'), 'parking text is not published');
+assert(JSON.stringify(floyd).includes('Please park in the college car park next to the school. It is clearly signposted.'), 'parking text is published');
 assert(!JSON.stringify(floyd).includes('Ballers'), 'Ballers has no confirmed Floyd time');
 assertEqual(
   mapEmbedSrc(floyd.mapQuery),

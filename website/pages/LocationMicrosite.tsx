@@ -73,14 +73,6 @@ function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchor
           </div>
         </div>
       )}
-      {venue.siteMapImage?.src && (
-        <img
-          src={venue.siteMapImage.src}
-          alt={venue.siteMapImage.alt}
-          className="mt-4 w-full rounded-2xl border-2 border-brand-dark"
-          loading="lazy"
-        />
-      )}
       {mapsUrl && (
         <a
           href={mapsUrl}
@@ -102,6 +94,14 @@ function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchor
           <span className="block text-[10px] font-black uppercase tracking-widest">How to get in</span>
           {entry}
         </p>
+      )}
+      {venue.siteMapImage?.src && (
+        <img
+          src={venue.siteMapImage.src}
+          alt={venue.siteMapImage.alt}
+          className="mt-4 w-full rounded-2xl border-2 border-brand-dark"
+          loading="lazy"
+        />
       )}
       <p className="mt-4 font-bold text-brand-dark leading-snug">{venue.returnNote}</p>
     </section>
