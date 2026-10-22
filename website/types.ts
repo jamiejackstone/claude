@@ -39,6 +39,36 @@ export interface Review {
   relativeTime: string; // e.g., "2 weeks ago"
 }
 
+export interface TemporaryVenueTime {
+  label: string;
+  time: string;
+  usualTime: string;
+}
+
+export interface TemporaryVenue {
+  venueName: string;
+  address: string;
+  /** Query for the map embed and the Get directions link. */
+  mapQuery: string;
+  /** Inclusive YYYY-MM-DD, compared as a Europe/London calendar date. */
+  showFrom: string;
+  /** Inclusive YYYY-MM-DD, compared as a Europe/London calendar date. */
+  showUntil: string;
+  sessionDates: string[];
+  timesNote: string;
+  times: TemporaryVenueTime[];
+  /** Rendered only when set. */
+  parking?: string;
+  /** Rendered only when set. */
+  entry?: string;
+  /** Optional site plan shown under the map embed. */
+  siteMapImage?: { src: string; alt: string };
+  returnNote: string;
+  tickerText: string;
+  /** TeamUp venue ids added to the booking widget only while this entry is showing. */
+  teamupVenueIds?: string[];
+}
+
 export interface LocationData {
   id: string;
   name: string; // e.g., "Bristol", "Manchester South"
@@ -65,6 +95,7 @@ export interface LocationData {
   mapQueryOverride?: string; // Override query for map iframe
   googleMapsUrl?: string; // Custom Google Maps link for directions
   tempVenueNotice?: string; // Optional temporary venue change notice
+  temporaryVenues?: TemporaryVenue[];
 }
 
 export interface Feature {

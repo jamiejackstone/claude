@@ -175,6 +175,37 @@ export const LOCATIONS: LocationData[] = [
     actionVideoUrl: 'https://www.youtube-nocookie.com/embed/ENWlnbItCc0?si=80euwZHd7QVRV-Dg&controls=0',
     bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944',
     mapQueryOverride: "The Mandeville School, Aylesbury",
+    // Base TeamUp venues: 48411 is The Mandeville School.
+    // 53172 and 50233 return 404 from TeamUp but stay in the original list. 65944 is Wendover and stays too.
+    // 48649 is Great Missenden (The Misbourne), not Mandeville, so it is not on this filter.
+    // Sir Henry Floyd (54994) is added only while the temporary venue below is showing.
+    // Shown 22 Oct-9 Nov 2026 inclusive, Europe/London. Monday sessions only.
+    // Address, parking, entry and site map are from the member email 'HH Aylesbury venue change 20 Oct 2026'.
+    // There is no Monday Ballers class at Aylesbury.
+    temporaryVenues: [
+      {
+        venueName: 'Sir Henry Floyd Grammar School Sports Hall',
+        address: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
+        mapQuery: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
+        showFrom: '2026-10-22',
+        showUntil: '2026-11-09',
+        sessionDates: ['Monday 26 October', 'Monday 2 November', 'Monday 9 November'],
+        timesNote: 'Starting 15 minutes later than usual',
+        times: [
+          { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },
+          { label: 'Rising Stars (Age 8-11)', time: '18:15', usualTime: '18:00' },
+        ],
+        parking: 'Please park in the college car park next to the school. It is clearly signposted.',
+        entry: 'Come in through the lettings entrance by the Gym. The Sports Hall is a short walk from there.',
+        siteMapImage: {
+          src: '/images/sir-henry-floyd-lettings-map.jpg',
+          alt: 'Site map showing parking, the lettings entrance, the Gym and the Sports Hall at Sir Henry Floyd',
+        },
+        returnNote: 'Back at The Mandeville School from Mon 16 Nov',
+        tickerText: 'Temporary venue for the next 3 weeks: Sir Henry Floyd, new times - see details',
+        teamupVenueIds: ['54994'],
+      },
+    ],
     headCoach: {
       name: 'Johnny Hayward',
       role: 'Head Coach',
@@ -185,7 +216,6 @@ export const LOCATIONS: LocationData[] = [
     classes: [
       { id: 'c10_m', day: DayOfWeek.MONDAY, time: '17:30 - 18:15', ageGroup: 'Rookies (Age 5-7)', venue: 'Main Sports Hall', spotsAvailable: 12 },
       { id: 'c10b_m', day: DayOfWeek.MONDAY, time: '17:30 - 18:15', ageGroup: 'Rising Stars (Age 8-11)', venue: 'Main Sports Hall', spotsAvailable: 10 },
-      { id: 'c10c_m', day: DayOfWeek.MONDAY, time: '18:15 - 19:00', ageGroup: 'Ballers (Age 12-15)', venue: 'Main Sports Hall', spotsAvailable: 8 },
     ],
     reviews: [
         { author: 'Sarah J.', rating: 5, text: 'The Sunday morning sessions are brilliant. Starts the day off right!', relativeTime: '1 month ago' },
