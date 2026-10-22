@@ -89,8 +89,8 @@ assertEqual(
   'the usual Mandeville address stays in place',
 );
 assertEqual(aylesbury.mapQueryOverride, 'The Mandeville School, Aylesbury', 'the usual map query stays in place');
-const baseWidgetUrl = 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,48649,53172,50233,65944';
-assertEqual(aylesbury.bookingWidgetUrl, baseWidgetUrl, 'the base TeamUp url keeps 48411 and adds current Mandeville 48649');
+const baseWidgetUrl = 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944';
+assertEqual(aylesbury.bookingWidgetUrl, baseWidgetUrl, 'the base TeamUp url is the original venue list');
 assertEqual(floyd.teamupVenueIds, ['54994'], 'Sir Henry Floyd is added only from the temporary venue');
 assertEqual(
   getBookingWidgetUrl(aylesbury, new Date('2026-10-26T12:00:00Z')),
@@ -110,7 +110,7 @@ assertEqual(
 assertEqual(
   getBookingWidgetUrl(aylesbury, new Date('2026-11-10T08:00:00Z')),
   baseWidgetUrl,
-  '10 Nov uses the base widget url, including current Mandeville 48649',
+  '10 Nov uses the original base widget url',
 );
 assertEqual(
   getBookingWidgetUrl({
