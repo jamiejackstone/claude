@@ -290,20 +290,21 @@ function exitDoor(w, h) {
 
 class Unit {
   // a container along z, its court-facing side at x = face; side = -1 on the left row, +1 on the right
-  constructor({ z0, z1, side, color, glazed = false, door = null, brand = {} }) {
+  // color paints the court side and the roof (what shows from inside and from above); shell paints the outside
+  constructor({ z0, z1, side, color, shell = color, glazed = false, door = null, brand = {} }) {
     const { cw, ch } = HUB;
     this.group = new THREE.Group();
     const len = z1 - z0;
     const cx = side * (HALF + cw / 2);
     const cz = (z0 + z1) / 2;
-    const paint = std(color, { roughness: 0.6, metalness: 0.15 });
-    const ribbed = std(color, { roughness: 0.6, metalness: 0.15, bumpMap: corrugation(len, ch), bumpScale: 2 });
-    const frame = std(color === COL.gold ? '#c9861a' : '#0d1a38', { roughness: 0.55, metalness: 0.3 });
+    const paint = std(shell, { roughness: 0.6, metalness: 0.15 });
+    const ribbed = std(shell, { roughness: 0.6, metalness: 0.15, bumpMap: corrugation(len, ch), bumpScale: 2 });
+    const frame = std(shell === COL.gold ? '#c9861a' : '#0d1a38', { roughness: 0.55, metalness: 0.3 });
     const g = this.group;
     const outerX = side * (HALF + cw);
     const faceX = side * HALF;
     // roof and floor
-    this.roof = box(cw, 0.06, len, paint, cx, ch - 0.03, cz);
+    this.roof = box(cw, 0.06, len, std(color, { roughness: 0.6, metalness: 0.15 }), cx, ch - 0.03, cz);
     g.add(this.roof);
     g.add(box(cw, 0.12, len, frame, cx, 0.06, cz));
     // outer long side, ribbed
@@ -393,7 +394,7 @@ class Unit {
       // the solid stretch of the court side, away from the shutter
       const [da, db] = door;
       const [a, b] = da - z0 > z1 - db ? [z0 + 0.16, da - 0.06] : [db + 0.06, z1 - 0.16];
-      add(place(facePanel(b - a, ch - 0.32, base, brand.court), inn, faceX - side * 0.004, ch / 2, (a + b) / 2));
+      add(place(facePanel(b - a, ch - 0.32, brand.courtBase ?? base, brand.court), inn, faceX - side * 0.004, ch / 2, (a + b) / 2));
     }
   }
   setDoors(open) {
@@ -691,16 +692,53 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       endFront: qrPanel,
     },
     c2: { base: COL.navy, outer: bigSide(art.logo, COL.gold), endBack: badge(art.roundWhite, COL.gold), court: courtLogo(art.logo, COL.gold) },
-    c3: { base: COL.gold, outer: bigSide(art.logoWhiteNavy, COL.navy), endFront: badge(art.roundNavy, COL.navy), court: courtLogo(art.logoWhiteNavy, COL.navy) },
+    // container 3 is navy outside like the rest, gold on the court side and roof (Jamie, 22 Oct 2026)
+    c3: { base: COL.navy, courtBase: COL.gold, outer: bigSide(art.logo, COL.gold), endFront: badge(art.roundWhite, COL.gold), court: courtLogo(art.logoWhiteNavy, COL.navy) },
   };
   // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, side-opening onto the court
   const units = {
     reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true, brand: brand.reception }),
     // containers 2 and 3: a 2.3 m roller shutter each at the corner end, well clear of the right portable hoop
     hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, door: [HUB.hhStore.z0 + 0.16, HUB.hhStore.z0 + 2.46], brand: brand.c2 }),
-    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, door: [HUB.schoolStore.z1 - 2.46, HUB.schoolStore.z1 - 0.16], brand: brand.c3 }),
+    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, shell: COL.navy, door: [HUB.schoolStore.z1 - 2.46, HUB.schoolStore.z1 - 0.16], brand: brand.c3 }),
   };
   for (const un of Object.values(units)) scene.add(un.group);
+
+  // 2D labels: small tags along each container, shown only in the 2D view
+  const labels = new THREE.Group();
+  const label = (text, x, z, bg, ink) => {
+    const s = 200;
+    const h = 0.52;
+    const font = `700 ${0.25 * s}px Montserrat, sans-serif`;
+    const probe = canvas(8, 8).getContext('2d');
+    probe.font = font;
+    const w = probe.measureText(text).width / s + 0.5;
+    const c = canvas(Math.round(w * s), Math.round(h * s));
+    const g = c.getContext('2d');
+    g.fillStyle = bg;
+    g.beginPath();
+    g.roundRect(0, 0, c.width, c.height, c.height / 2);
+    g.fill();
+    g.fillStyle = ink;
+    g.font = font;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(text, c.width / 2, c.height / 2 + 1);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex(c), transparent: true, toneMapped: false, depthTest: false }));
+    m.rotation.x = -Math.PI / 2;
+    m.renderOrder = 10;
+    // reads up the screen, along the container
+    const turn = new THREE.Group();
+    turn.rotation.y = Math.PI / 2;
+    turn.position.set(x, HUB.ch + 0.1, z);
+    turn.add(m);
+    labels.add(turn);
+  };
+  const lx = HALF + HUB.cw / 2;
+  label('RECEPTION & VIEWING AREA', -lx, (HUB.reception.z0 + HUB.reception.z1) / 2, 'rgba(20, 38, 78, 0.88)', '#ffffff');
+  label('STORAGE 1', lx, (HUB.hhStore.z0 + HUB.hhStore.z1) / 2, 'rgba(255, 255, 255, 0.92)', COL.navy);
+  label('STORAGE 2', lx, (HUB.schoolStore.z0 + HUB.schoolStore.z1) / 2, 'rgba(20, 38, 78, 0.9)', '#ffffff');
+  scene.add(labels);
 
   const enclosure = new THREE.Group();
   scene.add(enclosure);
@@ -956,6 +994,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     setNight(state.night && state.build === null);
     for (const l of lamps) l.spot.visible = !state.cutaway;
     applyBuild(state.build ?? Infinity, state.build !== null);
+    labels.visible = state.cutaway && state.build === null;
   };
   apply();
   return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT, BUILD };
