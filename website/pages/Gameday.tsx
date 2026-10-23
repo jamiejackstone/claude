@@ -10,11 +10,11 @@ export const Gameday: React.FC = () => {
     address: 'Sandy Lane West, Oxford OX4 6JZ',
     ages: '8-15 (Split into leagues by age)',
     cost: '£30 per player',
-    registrationCloses: 'Registration closed',
+    registrationCloses: 'when full',
     description: 'Experience the fast-paced excitement of 3x3 basketball with our small internal mini-tournament',
     registrationUrl: 'https://goteamup.com/p/6822945-hoop-heroes/courses/139859/',
     isLive: true,
-    registrationOpen: false
+    registrationOpen: true
   });
 
   const REGISTRATION_URL = withTrackedParams(settings.registrationUrl);
@@ -61,7 +61,7 @@ export const Gameday: React.FC = () => {
       answer: !settings.isLive
         ? "Registration is not yet open for the next event. We will announce the registration deadline as soon as the event date is confirmed."
         : settings.registrationOpen
-          ? `Registration closes on ${settings.registrationCloses}. We recommend booking early as spots are limited!`
+          ? `Registration closes ${settings.registrationCloses}. We recommend booking early as spots are limited!`
           : "Registration is closed for this event."
     }
   ];
