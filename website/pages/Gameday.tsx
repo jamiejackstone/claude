@@ -5,15 +5,16 @@ import { withTrackedParams } from '../lib/clickTracking';
 export const Gameday: React.FC = () => {
   const settings = ({
     nextDate: 'Sunday 25th October',
-    times: '9:00 AM - 12:00 PM',
+    times: 'Arrive/registration 9:15am, games from 9:30am, finish ~11:30am (~2 hours)',
     location: 'The Oxford Academy, Oxford',
     address: 'Sandy Lane West, Oxford OX4 6JZ',
     ages: '8-15 (Split into leagues by age)',
     cost: '£30 per player',
-    registrationCloses: 'Sunday 18th October',
+    registrationCloses: 'Registration closed',
     description: 'Experience the fast-paced excitement of 3x3 basketball with our small internal mini-tournament',
     registrationUrl: 'https://goteamup.com/p/6822945-hoop-heroes/courses/139859/',
-    isLive: true
+    isLive: true,
+    registrationOpen: false
   });
 
   const REGISTRATION_URL = withTrackedParams(settings.registrationUrl);
@@ -21,7 +22,7 @@ export const Gameday: React.FC = () => {
   const faqs = [
     {
       question: "Where and when is the 3x3 Game day?",
-      answer: settings.isLive ? `${settings.location} on ${settings.nextDate}, from ${settings.times}.` : "The date and location for our next event are currently being finalized. Join our mailing list or check back here soon!"
+      answer: settings.isLive ? `${settings.location} on ${settings.nextDate}. ${settings.times}.` : "The date and location for our next event are currently being finalized. Join our mailing list or check back here soon!"
     },
     {
       question: "How much does it cost to enter?",
@@ -57,7 +58,11 @@ export const Gameday: React.FC = () => {
     },
     {
       question: "When do I need to register by?",
-      answer: settings.isLive ? `Registration closes on ${settings.registrationCloses}. We recommend booking early as spots are limited!` : "Registration is not yet open for the next event. We will announce the registration deadline as soon as the event date is confirmed."
+      answer: !settings.isLive
+        ? "Registration is not yet open for the next event. We will announce the registration deadline as soon as the event date is confirmed."
+        : settings.registrationOpen
+          ? `Registration closes on ${settings.registrationCloses}. We recommend booking early as spots are limited!`
+          : "Registration is closed for this event."
     }
   ];
 
@@ -121,19 +126,27 @@ export const Gameday: React.FC = () => {
             </p>
 
             {settings.isLive ? (
-              <>
-                <a 
-                    href={REGISTRATION_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-3 bg-brand-orange hover:bg-yellow-400 text-brand-dark border-4 border-brand-dark px-10 py-4 rounded-full font-display text-2xl uppercase tracking-wide transition-all shadow-sticker hover:shadow-sticker-hover transform hover:-translate-y-1"
-                >
-                    REGISTER NOW <ArrowRight size={28} strokeWidth={3} />
-                </a>
-                <p className="text-white mt-4 font-bold text-sm uppercase tracking-wider opacity-80">
-                    Registration closes {settings.registrationCloses}
-                </p>
-              </>
+              settings.registrationOpen ? (
+                <>
+                  <a 
+                      href={REGISTRATION_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-3 bg-brand-orange hover:bg-yellow-400 text-brand-dark border-4 border-brand-dark px-10 py-4 rounded-full font-display text-2xl uppercase tracking-wide transition-all shadow-sticker hover:shadow-sticker-hover transform hover:-translate-y-1"
+                  >
+                      REGISTER NOW <ArrowRight size={28} strokeWidth={3} />
+                  </a>
+                  <p className="text-white mt-4 font-bold text-sm uppercase tracking-wider opacity-80">
+                      Registration closes {settings.registrationCloses}
+                  </p>
+                </>
+              ) : (
+                <div className="inline-block">
+                  <div className="bg-white text-brand-dark border-4 border-white px-10 py-4 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker">
+                    Registration closed
+                  </div>
+                </div>
+              )
             ) : (
               <div className="inline-block transform -rotate-1">
                 <div className="bg-blue-500 text-white px-10 py-4 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker border-4 border-brand-dark">
@@ -333,22 +346,32 @@ export const Gameday: React.FC = () => {
         <div className="container mx-auto px-4">
             <h2 className="font-display text-5xl md:text-7xl uppercase text-brand-dark mb-6">Ready for some action?</h2>
             <p className="text-2xl font-bold text-brand-dark mb-10 max-w-2xl mx-auto">
-                Don't miss out on this opportunity to be a part of our exciting 3x3 basketball gameday.
+                {settings.isLive && !settings.registrationOpen
+                  ? "Registration is closed. The date, times, and venue are above if you need directions."
+                  : "Don't miss out on this opportunity to be a part of our exciting 3x3 basketball gameday."}
             </p>
             {settings.isLive ? (
-              <>
-                <a 
-                    href={REGISTRATION_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-3 bg-brand-dark text-white border-4 border-brand-dark px-12 py-5 rounded-full font-display text-2xl uppercase tracking-wide transition-all shadow-sticker hover:shadow-sticker-hover hover:-translate-y-1"
-                >
-                    REGISTER NOW <ArrowRight size={28} strokeWidth={3} />
-                </a>
-                <p className="text-brand-dark mt-6 font-bold text-sm uppercase tracking-wider">
-                    Registration closes {settings.registrationCloses}
-                </p>
-              </>
+              settings.registrationOpen ? (
+                <>
+                  <a 
+                      href={REGISTRATION_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-3 bg-brand-dark text-white border-4 border-brand-dark px-12 py-5 rounded-full font-display text-2xl uppercase tracking-wide transition-all shadow-sticker hover:shadow-sticker-hover hover:-translate-y-1"
+                  >
+                      REGISTER NOW <ArrowRight size={28} strokeWidth={3} />
+                  </a>
+                  <p className="text-brand-dark mt-6 font-bold text-sm uppercase tracking-wider">
+                      Registration closes {settings.registrationCloses}
+                  </p>
+                </>
+              ) : (
+                <div className="inline-block">
+                  <div className="bg-brand-dark text-white px-12 py-5 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker border-4 border-brand-dark">
+                    Registration closed
+                  </div>
+                </div>
+              )
             ) : (
               <div className="inline-block transform rotate-1">
                 <div className="bg-brand-dark text-white px-12 py-5 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker border-4 border-brand-dark">
