@@ -10,11 +10,11 @@ export const Gameday: React.FC = () => {
     address: 'Sandy Lane West, Oxford OX4 6JZ',
     ages: '8-15 (Split into leagues by age)',
     cost: '£30 per player',
-    registrationCloses: 'when full',
+    registrationCloses: 'Registration closed',
     description: 'Experience the fast-paced excitement of 3x3 basketball with our small internal mini-tournament',
     registrationUrl: 'https://goteamup.com/p/6822945-hoop-heroes/courses/139859/',
     isLive: true,
-    registrationOpen: true
+    registrationOpen: false
   });
 
   const REGISTRATION_URL = withTrackedParams(settings.registrationUrl);
