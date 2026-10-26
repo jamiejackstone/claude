@@ -44,6 +44,19 @@ const RISE = HUB.crown - HUB.ch;
 const W_IN = DIM.W / 2 - 0.02; // centre of the gold boundary line across the court
 const HALF = (HUB.x1 - HUB.x0) / 2;
 // inside face of the arch: an elliptical profile springing near-vertical off the container roofs
+// Slide the whole hub along the court (negative = towards the main hoop end), so one end gets more run-off.
+// Mutates HUB in place once, before the scene is built; the court and its markings stay put.
+function shiftHub(dz) {
+  if (!dz || HUB.shift) return;
+  HUB.shift = dz;
+  HUB.z0 += dz;
+  HUB.z1 += dz;
+  for (const k of ['reception', 'hhStore', 'schoolStore', 'glazedDoor']) {
+    HUB[k].z0 += dz;
+    HUB[k].z1 += dz;
+  }
+  HUB.lights.z = HUB.lights.z.map((z) => z + dz);
+}
 export const archY = (x, inset = 0) => HUB.ch + (RISE - inset) * Math.sqrt(Math.max(0, 1 - (x / (HALF - inset)) ** 2));
 const LEN = HUB.z1 - HUB.z0;
 
@@ -556,13 +569,12 @@ export class MicroArena {
   // in 8 mm tempered glass with a 2.5 cm pad, 45 cm rim, rim 2.3 to 3.05 m, folds to 1.8 x 2.5 x 0.9 m to move.
   // The reach from the base to the board is not published: assumed so the base back sits against the end wall
   // with the board face 1.2 m inside the baseline, which puts the padded front of the base 0.48 m onto the court.
-  constructor(badge) {
+  constructor(badge, bz0 = -1.07) {
     this.group = new THREE.Group();
     const black = std('#16181b', { roughness: 0.45, metalness: 0.5 });
     this.padMat = std(COL.navy, { roughness: 0.7 });
     this.face = DIM.boardZ10;
     // base: steel ballast box under a padded navy cover, wheels at the corners
-    const bz0 = -1.07;
     const bz1 = bz0 + 1.55;
     const base = new THREE.Mesh(new RoundedBoxGeometry(0.99, 0.34, 1.55, 4, 0.06), this.padMat);
     base.position.set(0, 0.2, (bz0 + bz1) / 2);
@@ -577,7 +589,7 @@ export class MicroArena {
       }
     // everything above the base hinges at the foot of the post to fold back for moving
     this.rake = 0.1;
-    this.poleZ = -0.72;
+    this.poleZ = bz0 + 0.35;
     this.poleY = 0.37;
     this.upper = new THREE.Group();
     this.upper.position.set(0, this.poleY, this.poleZ);
@@ -716,7 +728,8 @@ export const FULL_BUILD = {
 // runoff: the run-off tile colour
 // name: the name on the building ('HERO DOME' for the Covered Concept); roofs: one colour for every container
 // roof, or each container's own colour when unset
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null } = {}) {
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0 } = {}) {
+  shiftHub(shift);
   const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();
   const art = {};
@@ -814,7 +827,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     floorPanels.sort((a, b) => a.userData.home.z - b.userData.home.z || b.userData.home.x - a.userData.home.x);
   }
   // main hoop: the in-ground Mega Slam, or the portable MicroArena in the covered-only version
-  const megaSlam = mainHoop === 'microArena' ? new MicroArena(art.roundNavy) : new MegaSlam(art.roundNavy);
+  const megaSlam = mainHoop === 'microArena' ? new MicroArena(art.roundNavy, HUB.shift ? HUB.z0 + 0.03 : undefined) : new MegaSlam(art.roundNavy);
   scene.add(megaSlam.group);
   let padLogoTex = null;
   if (art.logo) {
@@ -1303,6 +1316,8 @@ export const SHOTS = {
   6: { label: 'Billboard', pos: [17.5, 1.8, 20.5], target: [3.2, 2.5, 6.0], fov: 40, state: { roller: 0 } },
   // detail for signing off the portable main hoop (render with ?main=microArena)
   ma: { label: 'Main hoop', pos: [5.2, 1.7, 2.6], target: [0, 1.5, 0.1], fov: 46, state: {} },
+  // looking back at the main hoop from just inside the entrance, for the run-off comparison
+  end: { label: 'Main hoop end', pos: [3.2, 2.1, 9.9], target: [-0.4, 1.6, -1.0], fov: 50, state: {} },
   // detail for signing off the storage shutters
   s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: {} },
 };
