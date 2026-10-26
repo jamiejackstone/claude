@@ -29,6 +29,10 @@ export const HUB = {
   entranceDoor: { x0: -10.2, x1: -9.3 }, // public entrance in the reception's front end, beside the roller door
   sill: 1.05, // reception windows above a container-wall sill
   lights: { x: [-6, -2, 2, 6], z: [0.9, 5.0, 9.1] },
+  storageBenches: [
+    [1.6, 3.4],
+    [6.6, 8.4],
+  ], // along the left side between the shutters and the mini hoop
   benches: [
     [0.6, 2.4],
     [2.6, 4.4],
@@ -37,6 +41,7 @@ export const HUB = {
   ribs: 7,
 };
 const RISE = HUB.crown - HUB.ch;
+const W_IN = DIM.W / 2 - 0.02; // centre of the gold boundary line across the court
 const HALF = (HUB.x1 - HUB.x0) / 2;
 // inside face of the arch: an elliptical profile springing near-vertical off the container roofs
 export const archY = (x, inset = 0) => HUB.ch + (RISE - inset) * Math.sqrt(Math.max(0, 1 - (x / (HALF - inset)) ** 2));
@@ -682,7 +687,7 @@ export const BUILD = {
 // the full installation for the covered-only version: containers delivered, floor laid out of storage 1,
 // hoops wheeled into place, then the canopy, end walls and fit-out
 export const FULL_BUILD = {
-  units: [0.8, 2.6, 4.4],
+  units: [0.8, 2.2, 3.6, 5.0],
   drop: 2.6,
   shutters: [7.2, 20.6],
   floor: 8.4,
@@ -706,7 +711,10 @@ export const FULL_BUILD = {
   end: 50,
 };
 
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false } = {}) {
+// layout 'reception': the 40 ft reception on the left (Final Concept). layout 'storage': two 20 ft storage
+// containers on each side, navy at the main hoop end and gold at the entrance end (Covered Concept)
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception' } = {}) {
+  const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();
   const art = {};
   const files = { logo: logoUrl, logoWhiteNavy: 'assets/logo-white-navy.png', roundNavy: 'assets/logo-round-navy.png', roundWhite: 'assets/logo-round-white.png', qr: 'assets/qr.png' };
@@ -861,12 +869,23 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     // container 3 is navy outside like the rest, gold on the court side and roof (Jamie, 22 Oct 2026)
     c3: { base: COL.navy, courtBase: COL.gold, outer: bigSide(art.logo, COL.gold), endFront: badge(art.roundWhite, COL.gold), court: courtLogo(art.logoWhiteNavy, COL.navy) },
   };
-  // containers: 40 ft reception left, 20 ft Hoop Heroes and school storage right, side-opening onto the court
+  // containers: 40 ft reception left (or two more storage containers), 20 ft navy and gold storage right, each
+  // storage container with a 2.3 m roller shutter at its corner end, well clear of the portable hoops
+  const storeUnit = (side, gold, b) => {
+    const { z0, z1 } = gold ? HUB.schoolStore : HUB.hhStore;
+    const door = gold ? [z1 - 2.46, z1 - 0.16] : [z0 + 0.16, z0 + 2.46];
+    return new Unit({ z0, z1, side, color: gold ? COL.gold : COL.navy, shell: COL.navy, door, brand: b });
+  };
   const units = {
-    reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true, brand: brand.reception }),
-    // containers 2 and 3: a 2.3 m roller shutter each at the corner end, well clear of the right portable hoop
-    hhStore: new Unit({ ...HUB.hhStore, side: 1, color: COL.navy, door: [HUB.hhStore.z0 + 0.16, HUB.hhStore.z0 + 2.46], brand: brand.c2 }),
-    schoolStore: new Unit({ ...HUB.schoolStore, side: 1, color: COL.gold, shell: COL.navy, door: [HUB.schoolStore.z1 - 2.46, HUB.schoolStore.z1 - 0.16], brand: brand.c3 }),
+    ...(storage
+      ? {
+          leftNavy: storeUnit(-1, false, brand.c2),
+          // the free-trial QR moves to the left gold container's entrance end
+          leftGold: storeUnit(-1, true, { ...brand.c3, endFront: qrPanel }),
+        }
+      : { reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true, brand: brand.reception }) }),
+    hhStore: storeUnit(1, false, brand.c2),
+    schoolStore: storeUnit(1, true, brand.c3),
   };
   for (const un of Object.values(units)) scene.add(un.group);
 
@@ -901,9 +920,14 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     labels.add(turn);
   };
   const lx = HALF + HUB.cw / 2;
-  label('RECEPTION & VIEWING AREA', -lx, (HUB.reception.z0 + HUB.reception.z1) / 2, 'rgba(20, 38, 78, 0.88)', '#ffffff');
-  label('STORAGE 1', lx, (HUB.hhStore.z0 + HUB.hhStore.z1) / 2, 'rgba(255, 255, 255, 0.92)', COL.navy);
-  label('STORAGE 2', lx, (HUB.schoolStore.z0 + HUB.schoolStore.z1) / 2, 'rgba(20, 38, 78, 0.9)', '#ffffff');
+  const navyTag = ['rgba(255, 255, 255, 0.92)', COL.navy];
+  const goldTag = ['rgba(20, 38, 78, 0.9)', '#ffffff'];
+  if (storage) {
+    label('STORAGE 3', -lx, (HUB.hhStore.z0 + HUB.hhStore.z1) / 2, ...navyTag);
+    label('STORAGE 4', -lx, (HUB.schoolStore.z0 + HUB.schoolStore.z1) / 2, ...goldTag);
+  } else label('RECEPTION & VIEWING AREA', -lx, (HUB.reception.z0 + HUB.reception.z1) / 2, 'rgba(20, 38, 78, 0.88)', '#ffffff');
+  label('STORAGE 1', lx, (HUB.hhStore.z0 + HUB.hhStore.z1) / 2, ...navyTag);
+  label('STORAGE 2', lx, (HUB.schoolStore.z0 + HUB.schoolStore.z1) / 2, ...goldTag);
   scene.add(labels);
 
   const enclosure = new THREE.Group();
@@ -983,12 +1007,59 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
 
   // parents' benches along the reception windows
   const benches = new THREE.Group();
-  for (const [a, b] of HUB.benches) {
+  for (const [a, b] of storage ? HUB.storageBenches : HUB.benches) {
     const bn = bench();
     bn.position.set(-HALF + 0.5, 0, (a + b) / 2);
     benches.add(shadowed(bn));
   }
   enclosure.add(benches);
+
+  // sports kit: three children's nets across the middle for pickleball and badminton, and foam balls on the
+  // halfway line for dodgeball; each set out only for its sport
+  const nets = new THREE.Group();
+  {
+    const c = canvas(64, 64);
+    const g = c.getContext('2d');
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 5;
+    for (let i = 0; i <= 64; i += 16) {
+      g.beginPath();
+      g.moveTo(i, 0);
+      g.lineTo(i, 64);
+      g.moveTo(0, i);
+      g.lineTo(64, i);
+      g.stroke();
+    }
+    const postMat = std('#22252a', { roughness: 0.4, metalness: 0.6 });
+    const tape = std('#ffffff', { roughness: 0.6 });
+    const edges = [-(W_IN), -2.6, 2.6, W_IN];
+    for (const x of edges) {
+      nets.add(box(0.05, 0.95, 0.05, postMat, x, 0.5, 5.0));
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.05, 20), postMat);
+      foot.position.set(x, 0.04, 5.0);
+      nets.add(foot);
+    }
+    for (let i = 0; i < 3; i++) {
+      const a = edges[i] + 0.03;
+      const b = edges[i + 1] - 0.03;
+      const t = tex(c, { repeat: [(b - a) / 0.05, 0.72 / 0.05] });
+      // a see-through mesh: blended rather than cut out, so it stays a net from across the hall
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.72), new THREE.MeshStandardMaterial({ color: '#15171a', alphaMap: t, transparent: true, depthWrite: false, side: THREE.DoubleSide, roughness: 1 }));
+      mesh.position.set((a + b) / 2, 0.55, 5.0);
+      nets.add(mesh);
+      nets.add(box(b - a, 0.05, 0.012, tape, (a + b) / 2, 0.9, 5.0));
+    }
+    nets.traverse((o) => o.isMesh && (o.castShadow = true));
+  }
+  scene.add(nets);
+  const BALL_COLS = ['#e53935', '#1e88e5', '#fbc02d', '#43a047', '#e53935', '#1e88e5'];
+  const balls = BALL_COLS.map((col, i) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 20, 14), std(col, { roughness: 0.85 }));
+    m.castShadow = true;
+    m.userData.z = 1.4 + i * 1.44;
+    scene.add(m);
+    return m;
+  });
 
   const lamps = [];
   for (const x of HUB.lights.x)
@@ -1013,9 +1084,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     return l;
   });
 
-  // a small downlight over the reception entrance, on at night
+  // a small downlight over the reception entrance (or the QR panel in the storage layout), on at night
   const { x0: ex0, x1: ex1 } = HUB.entranceDoor;
-  const ex = (ex0 + ex1) / 2;
+  const ex = storage ? -(HALF + HUB.cw) + 0.16 + 0.5 : (ex0 + ex1) / 2;
+  const lampUnit = storage ? units.leftGold : units.reception;
   const entranceLamp = new THREE.Group();
   entranceLamp.add(box(0.3, 0.07, 0.22, std('#2b2f35', { roughness: 0.5, metalness: 0.5 }), 0, 0, 0.11));
   const entranceLens = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.16), new THREE.MeshStandardMaterial({ color: '#fffaf0', emissive: '#fff1d6', emissiveIntensity: 0 }));
@@ -1023,11 +1095,11 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   entranceLens.position.set(0, -0.036, 0.11);
   entranceLamp.add(entranceLens);
   entranceLamp.position.set(ex, HUB.ch + 0.04, HUB.reception.z1);
-  units.reception.group.add(entranceLamp);
+  lampUnit.group.add(entranceLamp);
   const entranceSpot = new THREE.SpotLight('#fff1dc', 0, 6, 0.9, 0.7, 1.2);
   entranceSpot.position.set(ex, HUB.ch - 0.02, HUB.reception.z1 + 0.14);
   entranceSpot.target.position.set(ex - 0.3, 0, HUB.reception.z1 + 1.2);
-  units.reception.group.add(entranceSpot, entranceSpot.target);
+  lampUnit.group.add(entranceSpot, entranceSpot.target);
 
   // day and night
   const DAY = { bg: null, fog: '#c9d3dc', env: 0.55, hemi: ['#dfe8f2', '#4b4a46', 0.55], sun: ['#ffe2bd', 3.0], glow: ['#f3f6fa', 0.9], fabric: 0, lens: 0.6, spot: 0 };
@@ -1065,12 +1137,16 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     return u * u * (3 - 2 * u);
   };
   const land = (u) => 1 - Math.pow(1 - THREE.MathUtils.clamp(u, 0, 1), 3);
-  const unitList = [units.reception, units.hhStore, units.schoolStore];
+  const unitList = storage ? [units.leftNavy, units.leftGold, units.hhStore, units.schoolStore] : [units.reception, units.hhStore, units.schoolStore];
+  const leftStores = storage ? [units.leftNavy, units.leftGold] : [];
   const tmp = new THREE.Vector3();
   const curve = (pts) => new THREE.CatmullRomCurve3(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
   const hoopPaths = [
-    // left hoop: out of container 2's shutter and across the court to the reception side
-    curve([[10.9, 0.25], [8.3, 0.6], [4.5, 2.4], [-2, 4.4], [finalX[0], DIM.miniKeyZ]]),
+    storage
+      ? // left hoop: out of the left gold container's shutter and along the run-off
+        curve([[-9.4, 9.8], [-8.2, 8.9], [finalX[0], 6.8], [finalX[0], DIM.miniKeyZ]])
+      : // left hoop: out of container 2's shutter and across the court to the reception side
+        curve([[10.9, 0.25], [8.3, 0.6], [4.5, 2.4], [-2, 4.4], [finalX[0], DIM.miniKeyZ]]),
     // right hoop: out of container 3's shutter and along the run-off
     curve([[9.4, 9.8], [8.2, 8.9], [finalX[1], 6.8], [finalX[1], DIM.miniKeyZ]]),
   ];
@@ -1152,6 +1228,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       roller.set(ease((t - B.rollerUp) / 2.0));
       units.hhStore.setDoors(ease((t - B.shutters[0]) / 1.6));
       units.schoolStore.setDoors(ease((t - B.shutters[1]) / 1.6));
+      for (const un of leftStores) un.setDoors(ease((t - B.shutters[1]) / 1.6));
       for (const l of lamps) l.lens.material.emissiveIntensity = 0.6 * ease((t - B.fit) / 1.2);
       // mini hoops: folded inside the storage until the shutters are up, then rolled out and raised
       placeHoops((t - B.hoops) / B.hoopTravel);
@@ -1159,7 +1236,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     }
   };
 
-  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null };
+  // netsT and ballsT run 0 (away) to 1 (set out); mainLowT lowers the main hoop to its lowest for other sports
+  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null, netsT: 0, ballsT: 0, mainLowT: 0 };
   const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
   const apply = (next = {}) => {
     Object.assign(state, next);
@@ -1178,17 +1256,33 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     roller.set(state.roller);
     units.hhStore.setDoors(state.storeDoors);
     units.schoolStore.setDoors(state.storeDoors);
+    for (const un of leftStores) un.setDoors(state.storeDoors);
     // top-down cutaway: lift the canopy and the reception roof off
     archGroup.visible = !state.cutaway;
     for (const l of lamps) l.group.visible = !state.cutaway;
     walls.visible = !state.cutaway;
     roller.group.visible = !state.cutaway;
-    units.reception.roof.visible = units.reception.ceil.visible = !state.cutaway;
+    if (units.reception) units.reception.roof.visible = units.reception.ceil.visible = !state.cutaway;
     sun.castShadow = !state.cutaway; // a clean plan, without the canopy's missing shadow or the trees'
     setNight(state.night && state.build === null);
     for (const l of lamps) l.spot.visible = !state.cutaway;
     applyBuild(state.build ?? Infinity, state.build !== null);
     labels.visible = state.cutaway && state.build === null;
+    if (state.build === null) {
+      // sports kit: nets rise out of the floor, balls drop onto the halfway line one after another
+      const n = ease(state.netsT);
+      nets.visible = n > 0.01;
+      nets.scale.y = Math.max(n, 0.001);
+      balls.forEach((b, i) => {
+        const u = THREE.MathUtils.clamp(state.ballsT * 1.6 - i * 0.12, 0, 1);
+        b.visible = u > 0;
+        b.position.set(0, 0.115 + 2.4 * (1 - land(u)), b.userData.z);
+      });
+      if (state.mainLowT > 0) megaSlam.setHeight(THREE.MathUtils.lerp(state.rimFt * FT, 7.5 * FT, ease(state.mainLowT)));
+    } else {
+      nets.visible = false;
+      for (const b of balls) b.visible = false;
+    }
   };
   apply();
   return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT, BUILD: fullBuild ? FULL_BUILD : BUILD };

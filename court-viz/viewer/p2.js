@@ -71,10 +71,19 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, sports: true });
 
-async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false }) {
-  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild });
+// what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
+const KIT = {
+  basketball: { hoops: 1, nets: 0, balls: 0, low: 0 },
+  pickleball: { hoops: 0, nets: 1, balls: 0, low: 1 },
+  dodgeball: { hoops: 0, nets: 0, balls: 1, low: 1 },
+};
+
+async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, sports = false }) {
+  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings });
+  let sport = 'basketball';
+  let kitAnim = null;
   const B = hub.BUILD;
   const STEPS = fullBuild ? FULL_STEPS : P2_STEPS;
   const DONE = fullBuild ? FULL_DONE : P2_DONE;
@@ -126,7 +135,22 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       return camera;
     },
     hint: 'Drag to orbit · scroll or pinch to zoom in through the door',
-    status: () => ({ view: buildT0 === null ? view : null, hoops: hub.state.mini, installing: buildT0 !== null, night: hub.state.night, rimFt: hub.state.rimFt }),
+    status: () => ({ view: buildT0 === null ? view : null, hoops: hub.state.mini, installing: buildT0 !== null, night: hub.state.night, rimFt: hub.state.rimFt, sport }),
+    sports: sports ? Object.keys(KIT) : null,
+    // switch sport: what is out goes away first (hoops roll back into storage, nets drop, balls go), then the
+    // new sport's kit comes out
+    setSport(name) {
+      if (buildT0 !== null || name === sport || !KIT[name]) return;
+      const from = { hoops: hub.state.hoopsT ?? (hub.state.mini ? 1 : 0), nets: hub.state.netsT, balls: hub.state.ballsT, low: hub.state.mainLowT };
+      const to = KIT[name];
+      const goes = (k) => to[k] < from[k];
+      const plan = { hoops: [goes('hoops') ? 0 : 1.2, HOOPS_TIME], nets: [goes('nets') ? 0 : 2.4, 1.4], balls: [goes('balls') ? 0 : 2.4, 1.6], low: [0, 1.6] };
+      kitAnim = { t0: performance.now(), from, to, plan, end: Math.max(...Object.values(plan).map(([d, s]) => d + s)) };
+      sport = name;
+      hoopsAnim = null;
+      hub.apply({ mini: to.hoops > 0.5 });
+      ui.sync();
+    },
     enter({ view: v, rimFt }) {
       hub.apply({ rimFt });
       controls.enabled = true;
@@ -135,6 +159,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
     leave() {
       stopBuild();
       hoopsAnim = null;
+      kitAnim = null;
       hub.apply({ hoopsT: null });
     },
     view(v) {
@@ -154,7 +179,10 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
     // Installation: the hub built around the finished court, in daylight
     install() {
       if (buildT0 !== null) return stopBuild();
-      hub.apply({ night: false, cutaway: false });
+      // the installation finishes set out for basketball
+      kitAnim = null;
+      sport = 'basketball';
+      hub.apply({ night: false, cutaway: false, mini: true, hoopsT: null, netsT: 0, ballsT: 0, mainLowT: 0 });
       buildT0 = performance.now();
       controls.enabled = false;
       camera = persp;
@@ -179,6 +207,14 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
           ui.sync();
         } else applyBuildCam(t);
         return;
+      }
+      if (kitAnim) {
+        const e = (now - kitAnim.t0) / 1000;
+        const v = {};
+        for (const [k, [delay, dur]] of Object.entries(kitAnim.plan)) v[k] = kitAnim.from[k] + (kitAnim.to[k] - kitAnim.from[k]) * Math.min(1, Math.max(0, (e - delay) / dur));
+        const done = e > kitAnim.end;
+        hub.apply({ hoopsT: done ? null : v.hoops, netsT: v.nets, ballsT: v.balls, mainLowT: v.low });
+        if (done) kitAnim = null;
       }
       if (hoopsAnim) {
         const p = hoopsAnim.p();

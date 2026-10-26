@@ -111,7 +111,10 @@ export function shadowed(obj) {
 
 // ---------------------------------------------------------------- court surface
 
-export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, lines = MARKINGS.lines, logoBox = DIM.logo } = {}) {
+// multi: the multi-sport floor (Covered Concept, floor markings plan 'multi-sport with 3x3'): every basketball
+// line gold, no 3x3 key fill, white boundary or logo, a gold dodgeball halfway line and blue lines for three
+// children's pickleball / badminton courts
+export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, lines = MARKINGS.lines, logoBox = DIM.logo, multi = false } = {}) {
   const allWhite = lines === 'white';
   const miniCol = allWhite ? COL.white : COL.gold;
   const { L, W } = DIM;
@@ -133,8 +136,10 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
   }
   // key fill
   const inset = allWhite ? 0 : DIM.whiteInset;
-  g.fillStyle = keyFill;
-  g.fillRect(X(-DIM.keyW / 2), Z(inset), DIM.keyW * PX, (DIM.keyD - inset) * PX);
+  if (!multi) {
+    g.fillStyle = keyFill;
+    g.fillRect(X(-DIM.keyW / 2), Z(inset), DIM.keyW * PX, (DIM.keyD - inset) * PX);
+  }
 
   const stroke = (color, w, draw) => {
     g.strokeStyle = color;
@@ -181,8 +186,57 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
     });
   }
 
+  if (multi) {
+    // dodgeball halfway line
+    stroke(COL.gold, gw, () => {
+      g.moveTo(X(0), Z(gh));
+      g.lineTo(X(0), Z(L - gh));
+    });
+    // 3x3 key and three-point line in gold, from the gold boundary as the baseline
+    const kd = gw + 5.8 - gh;
+    stroke(COL.gold, gw, () => {
+      g.moveTo(X(-2.45 + gh), Z(gw));
+      g.lineTo(X(-2.45 + gh), Z(kd));
+      g.lineTo(X(2.45 - gh), Z(kd));
+      g.lineTo(X(2.45 - gh), Z(gw));
+    });
+    stroke(COL.gold, gw, () => g.arc(X(0), Z(kd), (1.8 - gh) * PX, 0, Math.PI));
+    const bz = gw + 1.575;
+    const r3 = 6.75 - gh;
+    const cx3 = W / 2 - gw - 0.9 - gh;
+    const meet3 = bz + Math.sqrt(r3 ** 2 - cx3 ** 2);
+    const a3 = Math.atan2(meet3 - bz, cx3);
+    stroke(COL.gold, gw, () => {
+      g.moveTo(X(-cx3), Z(gw));
+      g.lineTo(X(-cx3), Z(meet3));
+      g.arc(X(0), Z(bz), r3 * PX, Math.PI - a3, a3, true);
+      g.lineTo(X(cx3), Z(gw));
+    });
+    // racket courts: inner sidelines at ±2.60, service lines 1.80 m either side of the net, centre lines
+    const blue = '#2f9bdc';
+    const rw = 0.04;
+    const mid = (W / 2 - gh + 2.6) / 2;
+    stroke(blue, rw, () => {
+      for (const x of [-2.6, 2.6]) {
+        g.moveTo(X(x), Z(gh));
+        g.lineTo(X(x), Z(L - gh));
+      }
+      for (const z of [5 - 1.8, 5 + 1.8]) {
+        g.moveTo(X(-W / 2 + gh), Z(z));
+        g.lineTo(X(W / 2 - gh), Z(z));
+      }
+      for (const x of [-mid, mid]) {
+        g.moveTo(X(x), Z(gh));
+        g.lineTo(X(x), Z(5 - 1.8));
+        g.moveTo(X(x), Z(5 + 1.8));
+        g.lineTo(X(x), Z(L - gh));
+      }
+    });
+  }
+
   // white 3x3 half court, its boundary set just inside the gold
   const lw = DIM.lineW;
+  if (!multi) {
   const h = lw / 2;
   const b = inset + h; // centre of the white boundary lines
   stroke(COL.white, lw, () => g.rect(X(-W / 2 + b), Z(b), (W - 2 * b) * PX, (L - 2 * b) * PX));
@@ -213,6 +267,8 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
     g.lineTo(X(r), Z(DIM.boardZ10));
   });
 
+  }
+
   // panel joints, faint, over everything
   g.strokeStyle = 'rgba(40,42,46,0.55)';
   g.lineWidth = 0.012 * PX;
@@ -228,7 +284,7 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
   g.stroke();
 
   // logo at the open end, upright for someone standing there
-  if (logo) {
+  if (logo && !multi) {
     const { x, z, w } = logoBox;
     g.globalAlpha = 0.97;
     g.drawImage(logo, X(x), Z(z), w * PX, ((w * logo.height) / logo.width) * PX);

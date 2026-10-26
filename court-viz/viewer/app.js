@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-export async function startViewer({ builders }) {
+export async function startViewer({ builders, navTools = false }) {
   const $ = (id) => document.getElementById(id);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -32,6 +32,7 @@ export async function startViewer({ builders }) {
   }
   function orthoFrame({ cx, cz, height }) {
     ortho.userData.frame = { cx, cz, height };
+    ortho.zoom = 1;
     const aspect = innerWidth / innerHeight;
     // keep most of the design width on a portrait phone
     const h = aspect >= DESIGN ? height : Math.max(height, (height * DESIGN * 0.72) / aspect);
@@ -68,13 +69,21 @@ export async function startViewer({ builders }) {
   const hoopsBtn = document.createElement('button');
   hoopsBtn.textContent = 'Mini hoops';
   hoopsBtn.onclick = () => active?.toggleHoops();
+  // sports, where the phase has them: these replace Mini hoops
+  const sportBtns = ['basketball', 'pickleball', 'dodgeball'].map((name) => {
+    const b = document.createElement('button');
+    b.textContent = name[0].toUpperCase() + name.slice(1);
+    b.dataset.sport = name;
+    b.onclick = () => active?.setSport(name);
+    return b;
+  });
   const installBtn = document.createElement('button');
   installBtn.onclick = () => active?.install();
   // Night: Phase 2 only, the hub lit up with the canopy glowing
   const nightBtn = document.createElement('button');
   nightBtn.textContent = 'Night';
   nightBtn.onclick = () => active?.night?.();
-  bar.append(hoopsBtn, installBtn, nightBtn);
+  bar.append(hoopsBtn, ...sportBtns, installBtn, nightBtn);
 
   // captions over the scene: the installation steps with their time estimates
   let captionKey = '';
@@ -103,6 +112,12 @@ export async function startViewer({ builders }) {
       for (const b of bar.querySelectorAll('[data-view]')) b.classList.toggle('on', b.dataset.view === s.view);
       hoopsBtn.classList.toggle('on', s.hoops);
       hoopsBtn.setAttribute('aria-pressed', String(s.hoops));
+      hoopsBtn.hidden = !!active.sports;
+      for (const b of sportBtns) {
+        b.hidden = !active.sports;
+        b.classList.toggle('on', s.sport === b.dataset.sport);
+        b.setAttribute('aria-pressed', String(s.sport === b.dataset.sport));
+      }
       installBtn.textContent = s.installing ? '■ Stop' : '▶ Installation';
       nightBtn.hidden = !active.night;
       nightBtn.classList.toggle('on', !!s.night);
@@ -154,6 +169,50 @@ export async function startViewer({ builders }) {
     ui.sync();
   };
 
+  // desktop view tools: zoom in and out, turn left and right, and back to the view's framing
+  let tween = null;
+  const UP = new THREE.Vector3(0, 1, 0);
+  function nudge(scale, turn) {
+    if (!active || !controls.enabled) return;
+    if (active.camera === ortho) {
+      ortho.zoom = THREE.MathUtils.clamp(ortho.zoom / scale, 0.6, 5);
+      ortho.updateProjectionMatrix();
+      return;
+    }
+    const off = persp.position.clone().sub(controls.target);
+    const len = THREE.MathUtils.clamp(off.length() * scale, controls.minDistance, controls.maxDistance);
+    tween = { t0: performance.now(), off, len0: off.length(), len, turn };
+  }
+  function stepTween(now) {
+    if (!tween) return;
+    const u = Math.min(1, (now - tween.t0) / 350);
+    const e = u * u * (3 - 2 * u);
+    const off = tween.off.clone().setLength(THREE.MathUtils.lerp(tween.len0, tween.len, e)).applyAxisAngle(UP, tween.turn * e);
+    persp.position.copy(controls.target).add(off);
+    if (u >= 1) tween = null;
+  }
+  if (navTools) {
+    const nav = document.createElement('div');
+    nav.className = 'nav';
+    nav.setAttribute('role', 'group');
+    nav.setAttribute('aria-label', 'View tools');
+    for (const [label, title, fn] of [
+      ['+', 'Zoom in', () => nudge(0.75, 0)],
+      ['−', 'Zoom out', () => nudge(1 / 0.75, 0)],
+      ['⟲', 'Turn left', () => nudge(1, -Math.PI / 8)],
+      ['⟳', 'Turn right', () => nudge(1, Math.PI / 8)],
+      ['⌂', 'Reset view', () => active?.view(active.status().view ?? '3d')],
+    ]) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.title = title;
+      b.setAttribute('aria-label', title);
+      b.onclick = fn;
+      nav.appendChild(b);
+    }
+    document.body.appendChild(nav);
+  }
+
   function setCollapsed(c) {
     $('bar').classList.toggle('collapsed', c);
     $('collapse').textContent = c ? 'Controls' : 'Hide';
@@ -193,6 +252,7 @@ export async function startViewer({ builders }) {
   };
   renderer.setAnimationLoop(() => {
     if (!active) return;
+    stepTween(performance.now());
     active.tick(performance.now());
     renderer.render(active.scene, active.camera);
   });

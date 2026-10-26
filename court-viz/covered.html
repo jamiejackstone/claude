@@ -42,6 +42,10 @@
   .fade { position: fixed; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
   .fade.on { opacity: 1; }
   button[hidden] { display: none; }
+  .nav { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(44px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 999px; background: var(--panel); box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1); }
+  .nav button { width: 34px; height: 34px; padding: 0; font: 700 17px/1 Montserrat, sans-serif; text-transform: none; letter-spacing: 0; }
+  body.render .nav { display: none; }
+  @media (hover: none), (max-width: 720px), (max-height: 500px) { .nav { display: none; } }
   .caption {
     position: fixed; left: 50%; bottom: calc(56px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 8px);
     max-width: min(640px, calc(100vw - 32px)); padding: 10px 18px; border-radius: 1rem; text-align: center;
