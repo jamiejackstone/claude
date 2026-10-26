@@ -30,9 +30,9 @@ export const HUB = {
   sill: 1.05, // reception windows above a container-wall sill
   lights: { x: [-6, -2, 2, 6], z: [0.9, 5.0, 9.1] },
   storageBenches: [
-    [1.6, 3.4],
-    [6.6, 8.4],
-  ], // along the left side between the shutters and the mini hoop
+    [-3.6, -1.8],
+    [1.8, 3.6],
+  ], // across the main hoop end wall, either side of the hoop and clear of the fire exit (Jamie, 26 Oct 2026)
   benches: [
     [0.6, 2.4],
     [2.6, 4.4],
@@ -311,7 +311,7 @@ function exitDoor(w, h) {
 class Unit {
   // a container along z, its court-facing side at x = face; side = -1 on the left row, +1 on the right
   // color paints the court side and the roof (what shows from inside and from above); shell paints the outside
-  constructor({ z0, z1, side, color, shell = color, roof = color, glazed = false, door = null, brand = {} }) {
+  constructor({ z0, z1, side, color, shell = color, roof = color, glazed = false, door = null, brand = {}, kit = ['balls', 'balls'] }) {
     const { cw, ch } = HUB;
     this.group = new THREE.Group();
     const len = z1 - z0;
@@ -360,11 +360,12 @@ class Unit {
       if (da - z0 > 0.01) rib(z0, da, 0.12, ch - 0.12);
       if (z1 - db > 0.01) rib(db, z1, 0.12, ch - 0.12);
       rib(da, db, sy0 + sh, ch - 0.12);
-      // painted steel lining, lit, with ball racks against the back wall where they show through the shutter
+      // painted steel lining, lit, with ball racks (or other sports' kit) against the back wall where they show
+      // through the shutter
       g.add(box(cw - 0.3, ch - 0.3, len - 0.3, std('#9ba1a8', { roughness: 0.9, side: THREE.BackSide }), cx, ch / 2, cz));
       g.add(box(cw - 0.32, 0.02, len - 0.32, std('#8a7458', { roughness: 0.85 }), cx, 0.13, cz));
-      for (const k of [0.27, 0.73]) {
-        const r = ballRack();
+      for (const [i, k] of [0.27, 0.73].entries()) {
+        const r = { balls: ballRack, dodgeball: dodgeCart, rackets: racketShelf }[kit[i]]();
         r.rotation.y = Math.PI / 2;
         r.position.set(outerX - side * 0.42, 0.14, da + sw * k);
         g.add(r);
@@ -534,6 +535,89 @@ class Unit {
   }
 }
 
+// storage kit for the other sports, sized to sit where a ball rack would (0.95 m wide along x, 0.45 m deep)
+function dodgeCart() {
+  // wheeled mesh cart heaped with foam dodgeballs
+  const grp = new THREE.Group();
+  const frame = std(COL.navy, { roughness: 0.5, metalness: 0.4 });
+  const mesh = std('#1b1f27', { roughness: 0.8, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
+  const [w, d, h, y0] = [0.9, 0.45, 0.62, 0.12];
+  grp.add(box(w, 0.02, d, frame, 0, y0, 0));
+  for (const sx of [-1, 1]) {
+    grp.add(box(0.02, h, d, mesh, (sx * w) / 2, y0 + h / 2, 0));
+    for (const sz of [-1, 1]) {
+      grp.add(box(0.025, h, 0.025, frame, (sx * w) / 2, y0 + h / 2, (sz * d) / 2));
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 12), std('#0d0d0e', { roughness: 0.9 }));
+      wheel.rotation.x = Math.PI / 2;
+      wheel.position.set(sx * (w / 2 - 0.05), 0.05, sz * (d / 2 - 0.05));
+      grp.add(wheel);
+    }
+  }
+  for (const sz of [-1, 1]) grp.add(box(w, h, 0.02, mesh, 0, y0 + h / 2, (sz * d) / 2));
+  grp.add(box(w + 0.03, 0.025, 0.025, frame, 0, y0 + h, -d / 2), box(w + 0.03, 0.025, 0.025, frame, 0, y0 + h, d / 2));
+  const cols = ['#e63946', '#2a7de1', COL.gold, '#3bb273', '#ff7a1a'];
+  const geo = new THREE.SphereGeometry(0.09, 16, 12);
+  const mats = cols.map((c) => std(c, { roughness: 0.75 }));
+  let i = 0;
+  for (const [y, n, dz] of [[0.25, 2, 0], [0.42, 2, 0], [0.59, 2, 0], [0.74, 1, 0]])
+    for (let ix = 0; ix < 4; ix++)
+      for (let iz = 0; iz < n; iz++) {
+        const b = new THREE.Mesh(geo, mats[(i += 3) % mats.length]);
+        b.position.set(-0.32 + ix * 0.21 + ((i * 7) % 5) * 0.008, y + y0 - 0.1 + ((i * 3) % 4) * 0.01, n === 1 ? dz : -0.1 + iz * 0.2);
+        b.castShadow = true;
+        grp.add(b);
+      }
+  return grp;
+}
+function racketShelf() {
+  // four-tier shelf of children's pickleball and badminton paddles, ball tubs and the net bags
+  const grp = new THREE.Group();
+  const steel = std(COL.gold, { roughness: 0.45, metalness: 0.4 });
+  const board = std('#d9dde2', { roughness: 0.7 });
+  const [w, d] = [0.95, 0.42];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) grp.add(box(0.03, 1.6, 0.03, steel, (sx * w) / 2, 0.8, (sz * d) / 2));
+  const levels = [0.12, 0.55, 0.98, 1.41];
+  for (const y of levels) grp.add(box(w, 0.02, d, board, 0, y, 0));
+  // bottom: two net bags
+  const bag = std(COL.navy, { roughness: 0.8 });
+  for (const x of [-0.22, 0.22]) {
+    const b = new THREE.Mesh(new RoundedBoxGeometry(0.4, 0.26, 0.34, 3, 0.06), bag);
+    b.position.set(x, 0.26, 0);
+    b.castShadow = true;
+    grp.add(b, box(0.41, 0.04, 0.01, steel, x, 0.3, 0.172));
+  }
+  // middle shelves: paddles standing in a row, navy and gold
+  const pad = [std(COL.navy, { roughness: 0.5 }), std(COL.gold, { roughness: 0.5 }), std('#2a7de1', { roughness: 0.5 })];
+  const face = new RoundedBoxGeometry(0.016, 0.24, 0.19, 2, 0.006);
+  const grip = new THREE.CylinderGeometry(0.014, 0.014, 0.12, 8);
+  for (const [li, y] of [[0, levels[1]], [1, levels[2]]])
+    for (let k = 0; k < 9; k++) {
+      const p = new THREE.Group();
+      const f = new THREE.Mesh(face, pad[(k + li) % 3]);
+      f.position.y = 0.24;
+      const h = new THREE.Mesh(grip, std('#16181b', { roughness: 0.8 }));
+      h.position.y = 0.07;
+      p.add(f, h);
+      p.position.set(-0.4 + k * 0.1, y + 0.01, 0);
+      p.rotation.z = 0.08;
+      grp.add(p);
+    }
+  // top: tubs of pickleballs and shuttlecocks
+  for (const [x, c] of [[-0.25, '#d7e84a'], [0.05, '#ffffff'], [0.3, '#d7e84a']]) {
+    const tub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.11, 0.18, 20), std('#e9edf1', { roughness: 0.4, transparent: true, opacity: 0.55 }));
+    tub.position.set(x, levels[3] + 0.1, 0);
+    grp.add(tub);
+    const ballM = std(c, { roughness: 0.7 });
+    for (let k = 0; k < 7; k++) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.037, 10, 8), ballM);
+      const a = (k / 7) * Math.PI * 2;
+      b.position.set(x + (k ? Math.cos(a) * 0.07 : 0), levels[3] + 0.21, k ? Math.sin(a) * 0.07 : 0);
+      grp.add(b);
+    }
+  }
+  return grp;
+}
+
 function bench() {
   // parents' bench: timber slats on two navy steel frames, along z
   const grp = new THREE.Group();
@@ -569,16 +653,17 @@ class HighBay {
 export class MicroArena {
   // Portable full-size goal, to the Net World Sports MicroArena listing: base 155 x 99 cm, 152 x 91 cm board
   // in 8 mm tempered glass with a 2.5 cm pad, 45 cm rim, rim 2.3 to 3.05 m, folds to 1.8 x 2.5 x 0.9 m to move.
-  // The reach from the base to the board is not published: assumed so the base back sits against the end wall
-  // with the board face 1.2 m inside the baseline, which puts the padded front of the base 0.48 m onto the court.
-  constructor(badge, bz0 = -1.07) {
+  // The base is drawn shortened to 1.05 m so it fits in the 1.1 m run-off behind the baseline, assuming a
+  // shorter base or a slight change to the end wall (Jamie, 26 Oct 2026). The reach from the base to the board
+  // is not published: assumed so the board face sits 1.2 m inside the baseline.
+  constructor(badge, bz0 = -1.07, baseLen = 1.05) {
     this.group = new THREE.Group();
     const black = std('#16181b', { roughness: 0.45, metalness: 0.5 });
     this.padMat = std(COL.navy, { roughness: 0.7 });
     this.face = DIM.boardZ10;
     // base: steel ballast box under a padded navy cover, wheels at the corners
-    const bz1 = bz0 + 1.55;
-    const base = new THREE.Mesh(new RoundedBoxGeometry(0.99, 0.34, 1.55, 4, 0.06), this.padMat);
+    const bz1 = bz0 + baseLen;
+    const base = new THREE.Mesh(new RoundedBoxGeometry(0.99, 0.34, baseLen, 4, 0.06), this.padMat);
     base.position.set(0, 0.2, (bz0 + bz1) / 2);
     this.group.add(base);
     const wGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16);
@@ -894,11 +979,11 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
   // containers: 40 ft reception left (or two more storage containers), 20 ft navy and gold storage right, each
   // storage container with a 2.3 m roller shutter at its corner end, well clear of the portable hoops
-  const storeUnit = (side, gold, b) => {
+  const storeUnit = (side, gold, b, kit) => {
     const { z0, z1 } = gold ? HUB.schoolStore : HUB.hhStore;
     const door = gold ? [z1 - 2.46, z1 - 0.16] : [z0 + 0.16, z0 + 2.46];
     const color = gold ? COL.gold : COL.navy;
-    const unit = new Unit({ z0, z1, side, color, shell: COL.navy, roof: roofs ?? color, door, brand: b });
+    const unit = new Unit({ z0, z1, side, color, shell: COL.navy, roof: roofs ?? color, door, brand: b, kit });
     if (pads) {
       // velcro wall pads along the solid court side, in the other brand colour, clear of the shutter
       const [a, bz] = door[0] - z0 > z1 - door[1] ? [z0 + 0.06, door[0] - 0.1] : [door[1] + 0.1, z1 - 0.06];
@@ -918,9 +1003,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const units = {
     ...(storage
       ? {
-          leftNavy: storeUnit(-1, false, brand.c2),
+          // basketballs on the right, dodgeball carts and racket-sport kit on the left (Jamie, 26 Oct 2026)
+          leftNavy: storeUnit(-1, false, brand.c2, ['dodgeball', 'dodgeball']),
           // the free-trial QR moves to the left gold container's entrance end
-          leftGold: storeUnit(-1, true, { ...brand.c3, endFront: qrPanel }),
+          leftGold: storeUnit(-1, true, { ...brand.c3, endFront: qrPanel }, ['rackets', 'rackets']),
         }
       : { reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true, brand: brand.reception }) }),
     hhStore: storeUnit(1, false, brand.c2),
@@ -1044,11 +1130,14 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     enclosure.add(sign);
   }
 
-  // parents' benches along the reception windows
+  // parents' benches along the reception windows, or with storage either side of the main hoop
   const benches = new THREE.Group();
   for (const [a, b] of storage ? HUB.storageBenches : HUB.benches) {
     const bn = bench();
-    bn.position.set(-HALF + 0.5, 0, (a + b) / 2);
+    if (storage) {
+      bn.rotation.y = Math.PI / 2;
+      bn.position.set((a + b) / 2, 0, HUB.z0 + 0.45);
+    } else bn.position.set(-HALF + 0.5, 0, (a + b) / 2);
     benches.add(shadowed(bn));
   }
   enclosure.add(benches);
@@ -1341,5 +1430,8 @@ export const SHOTS = {
   // looking back at the main hoop from just inside the entrance, for the run-off comparison
   end: { label: 'Main hoop end', pos: [3.2, 2.1, 9.9], target: [-0.4, 1.6, -1.0], fov: 50, state: {} },
   // detail for signing off the storage shutters
+  s3: { label: 'Storage left', pos: [5.5, 2.4, 9.8], target: [-7.5, 1.2, 3.0], fov: 50, state: {} },
+  kitA: { label: 'Dodgeball kit', pos: [-5.4, 1.5, 3.0], target: [-10.4, 0.9, 0.2], fov: 46, state: {} },
+  kitB: { label: 'Racket kit', pos: [-5.4, 1.5, 7.2], target: [-10.4, 0.9, 9.8], fov: 46, state: { mini: false } },
   s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: {} },
 };

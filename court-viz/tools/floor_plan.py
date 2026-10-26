@@ -248,10 +248,10 @@ def build(variant):
         for x in (-W / 2 + rb, -RACKET_X, RACKET_X, W / 2 - rb):
             s.add(f'<circle cx="{X(x):.2f}" cy="{Y(5.0):.2f}" r="1.0" fill="#0f172a"/>')
 
-    # hoops, for reference only (not floor markings): main portable goal, base straddling the baseline; mini
+    # hoops, for reference only (not floor markings): main portable goal, shortened base behind the baseline; mini
     # hoops on the 10 m sides, bases on the run-off
     dash = 'stroke-dasharray="0.9 0.6"'
-    s.rect(-0.495, -1.07, 0.495, 0.48, fill="#14264e", stroke=WHITE, w=0.015, extra=f'fill-opacity="0.35" {dash}')
+    s.rect(-0.495, -1.07, 0.495, -0.02, fill="#14264e", stroke=WHITE, w=0.015, extra=f'fill-opacity="0.35" {dash}')
     s.line(-0.76, BASE_IN + 1.2, 0.76, BASE_IN + 1.2, "#16181b", 0.05)
     s.add(f'<circle cx="{X(0):.2f}" cy="{Y(basket):.2f}" r="{m(0.2286):.2f}" fill="none" stroke="{HOOP}" stroke-width="0.35"/>')
     for sd in (-1, 1):
@@ -361,10 +361,10 @@ def build(variant):
         "Run-off in the same grey as the court.",
         "Please propose tile type, size and layout, and how",
         "the lines are applied (printed, inlaid or painted).",
-        "Main portable hoop base (155 x 99 cm, about 260 kg",
-        "plus ballast) sits partly on the court; mini hoop",
-        "bases sit on the run-off. Dashed outlines show",
-        "them for reference; they are not markings.",
+        "Main portable hoop base sits behind the baseline",
+        "(drawn about 105 x 99 cm; size to confirm); mini",
+        "hoop bases sit on the run-off. Dashed outlines",
+        "show them for reference; they are not markings.",
         "Court is sized to the floor, not to the full FIBA",
         "3x3 court (15 x 11 m).",
     ]
