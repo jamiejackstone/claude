@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { COL, DIM, FT, canvas, tex, std, shadowed, buildCourt, buildSurroundings, cloudDome, corrugation, loadImage, fitText, MegaSlam, PortableHoop, ballRack } from './scene.js';
+import { COL, DIM, FT, canvas, tex, std, shadowed, buildCourt, buildSurroundings, cloudDome, corrugation, loadImage, fitText, MegaSlam, PortableHoop, ballRack, rimAndNet, boardDecal } from './scene.js';
 
 export const HUB = {
   x0: -9,
@@ -546,6 +546,108 @@ class HighBay {
   }
 }
 
+export class MicroArena {
+  // Portable full-size goal, modelled on the Net World Sports MicroArena: 60 x 36 in tempered glass board,
+  // rim 7.5 to 10 ft, a ballast-filled base behind the baseline on wheels. The base depth and overhang are
+  // assumed (no published figures): base 1.0 m deep behind the baseline, board face 1.2 m in front of it.
+  constructor(badge) {
+    this.group = new THREE.Group();
+    const black = std('#16181b', { roughness: 0.45, metalness: 0.5 });
+    this.padMat = std(COL.navy, { roughness: 0.7 });
+    this.face = DIM.boardZ10;
+    // base: steel ballast box under a padded navy cover, small wheels at the corners
+    const bz0 = -1.03;
+    const bz1 = -0.05;
+    const base = new THREE.Mesh(new RoundedBoxGeometry(1.1, 0.36, bz1 - bz0, 4, 0.06), this.padMat);
+    base.position.set(0, 0.22, (bz0 + bz1) / 2);
+    this.group.add(base);
+    const wGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16);
+    for (const x of [-0.5, 0.5])
+      for (const z of [bz0 + 0.12, bz1 - 0.12]) {
+        const w = new THREE.Mesh(wGeo, std('#0d0d0e', { roughness: 0.9 }));
+        w.rotation.z = Math.PI / 2;
+        w.position.set(x, 0.06, z);
+        this.group.add(w);
+      }
+    // pole: raked square post rising from the base, padded at the bottom
+    this.rake = 0.1;
+    this.poleZ = -0.72;
+    this.poleY = 0.4;
+    const pole = new THREE.Group();
+    pole.position.set(0, this.poleY, this.poleZ);
+    pole.rotation.x = this.rake;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.2, 0.15), black);
+    post.position.y = 1.6;
+    const pad = new THREE.Mesh(new RoundedBoxGeometry(0.27, 1.7, 0.27, 3, 0.04), this.padMat);
+    pad.position.y = 0.85;
+    pole.add(post, pad);
+    this.group.add(pole);
+    // arms from the post to the board frame; they slide with the board as the height changes
+    this.arms = [0, 1].flatMap((lvl) =>
+      [-1, 1].map((side) => {
+        const a = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 1), black);
+        a.userData = { side, lvl };
+        this.group.add(a);
+        return a;
+      }),
+    );
+    // carriage: origin at rim height on the board face
+    this.carriage = new THREE.Group();
+    this.group.add(this.carriage);
+    const bw = 1.524;
+    const bh = 0.914;
+    // board frame behind the glass
+    for (const x of [-0.3, 0.3]) this.carriage.add(box(0.06, 0.8, 0.06, black, x, 0.25, -0.18));
+    for (const y of [-0.08, 0.6]) this.carriage.add(box(0.66, 0.05, 0.05, black, 0, y, -0.18));
+    const glass = new THREE.Mesh(
+      new THREE.BoxGeometry(bw, bh, 0.0127),
+      new THREE.MeshPhysicalMaterial({ color: '#cfe3e8', roughness: 0.05, metalness: 0, transparent: true, opacity: 0.22, envMapIntensity: 1.4 }),
+    );
+    glass.position.set(0, -0.15 + bh / 2, -0.0064);
+    glass.castShadow = false;
+    this.carriage.add(glass);
+    const decal = new THREE.Mesh(
+      new THREE.PlaneGeometry(bw, bh),
+      new THREE.MeshStandardMaterial({ map: boardDecal(bw, bh, 0.05, [0.59, 0.45, 0.15], badge && [badge, 0.3, 0.72]), transparent: true, roughness: 0.6 }),
+    );
+    decal.position.set(0, -0.15 + bh / 2, 0.0005);
+    this.carriage.add(decal);
+    const bpad = new THREE.Mesh(new RoundedBoxGeometry(bw + 0.04, 0.05, 0.05, 2, 0.02), this.padMat);
+    bpad.position.set(0, -0.17, -0.01);
+    this.carriage.add(bpad);
+    for (const sx of [-1, 1]) {
+      const sp = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.36, 0.05, 2, 0.02), this.padMat);
+      sp.position.set(sx * (bw / 2 + 0.01), 0.02, -0.01);
+      this.carriage.add(sp);
+    }
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 0.15), std(COL.rim, { roughness: 0.45, metalness: 0.4 }));
+    plate.position.set(0, -0.02, 0.07);
+    this.carriage.add(plate);
+    const rn = rimAndNet();
+    rn.position.set(0, 0, 0.151 + 0.2286);
+    this.carriage.add(rn);
+    shadowed(this.group);
+    glass.castShadow = decal.castShadow = false;
+    this.setHeight(10 * FT);
+  }
+  setPadding(color) {
+    this.padMat.color.set(color);
+  }
+  setHeight(rim) {
+    rim = THREE.MathUtils.clamp(rim, 7.5 * FT, 10 * FT);
+    this.rimHeight = rim;
+    this.carriage.position.set(0, rim, this.face);
+    const back = this.face - 0.18;
+    for (const a of this.arms) {
+      const { side, lvl } = a.userData;
+      const y = rim + (lvl ? 0.45 : -0.05);
+      const zp = this.poleZ + Math.tan(this.rake) * (y - this.poleY);
+      a.position.set(side * 0.2, y, (zp + back) / 2);
+      a.scale.z = back - zp;
+    }
+  }
+}
+
 export const BUILD = {
   units: [0.8, 2.6, 4.4],
   drop: 2.6,
@@ -560,13 +662,40 @@ export const BUILD = {
   fit: 22.8,
   rollerUp: 22.8,
   benches: 23.6,
-  shutters: 26.0,
+  shutters: [26.0, 26.3], // containers 2 and 3
   hoops: 27.0, // the mini hoops roll out of containers 2 and 3
   hoopTravel: 6.0, // out of storage and up
   end: 35,
 };
 
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {} } = {}) {
+// the full installation for the covered-only version: containers delivered, floor laid out of storage 1,
+// hoops wheeled into place, then the canopy, end walls and fit-out
+export const FULL_BUILD = {
+  units: [0.8, 2.6, 4.4],
+  drop: 2.6,
+  shutters: [7.2, 20.6],
+  floor: 8.4,
+  floorSpan: 11.6,
+  flight: 0.9,
+  main: 21.0, // the portable main hoop wheeled in from the entrance end
+  mainTravel: 5.0,
+  hoops: 21.4,
+  hoopTravel: 6.0,
+  rails: 28.2,
+  ribs: 28.6,
+  ribGap: 0.55,
+  fabric: 33.4,
+  fabricDur: 4.6,
+  wallsSlam: 38.6,
+  wallsEntrance: 39.8,
+  doors: 41.6,
+  fit: 43.8,
+  rollerUp: 43.8,
+  benches: 44.6,
+  end: 50,
+};
+
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false } = {}) {
   RectAreaLightUniformsLib.init();
   const art = {};
   const files = { logo: logoUrl, logoWhiteNavy: 'assets/logo-white-navy.png', roundNavy: 'assets/logo-round-navy.png', roundWhite: 'assets/logo-round-white.png', qr: 'assets/qr.png' };
@@ -636,8 +765,34 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   runoff.position.set(0, 0.012, (HUB.z0 + HUB.z1) / 2);
   runoff.receiveShadow = true;
   scene.add(runoff);
-
-  const megaSlam = new MegaSlam(art.roundNavy);
+  // the full installation lays the run-off as panels too, on the court's grid, out from the Mega Slam end
+  const floorPanels = [];
+  if (fullBuild) {
+    runoff.visible = false;
+    const top = std(HUB.runoff, { roughness: 0.86 });
+    const side = std(COL.border, { roughness: 0.9 });
+    const gap = 0.004;
+    const xs = [-HALF, -DIM.W / 2, ...Array.from({ length: DIM.panel.cols - 1 }, (_, i) => -DIM.W / 2 + (i + 1) * DIM.panel.w), DIM.W / 2, HALF];
+    const zs = [HUB.z0, 0, 2, 4, 6, 8, 10, HUB.z1];
+    for (let r = 0; r < zs.length - 1; r++)
+      for (let c = 0; c < xs.length - 1; c++) {
+        const inCourt = c > 0 && c < xs.length - 2 && r > 0 && r < zs.length - 2;
+        if (inCourt) continue;
+        const w = xs[c + 1] - xs[c];
+        const d = zs[r + 1] - zs[r];
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w - gap, DIM.tileT, d - gap), [side, side, top, side, side, side]);
+        m.receiveShadow = true;
+        m.userData.home = new THREE.Vector3((xs[c] + xs[c + 1]) / 2, DIM.tileT / 2, (zs[r] + zs[r + 1]) / 2);
+        m.position.copy(m.userData.home);
+        scene.add(m);
+        floorPanels.push(m);
+      }
+    floorPanels.push(...court.userData.panels);
+    // laid row by row from the Mega Slam end, each row from the storage side across
+    floorPanels.sort((a, b) => a.userData.home.z - b.userData.home.z || b.userData.home.x - a.userData.home.x);
+  }
+  // main hoop: the in-ground Mega Slam, or the portable MicroArena in the covered-only version
+  const megaSlam = mainHoop === 'microArena' ? new MicroArena(art.roundNavy) : new MegaSlam(art.roundNavy);
   scene.add(megaSlam.group);
   let padLogoTex = null;
   if (art.logo) {
@@ -923,8 +1078,33 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       }
     });
   };
+  const floorFrom = new THREE.Vector3(9.4, 1.0, 0.2); // out of storage 1's shutter
+  const mainPath = curve([[1.6, 22], [0.9, 13.5], [0.3, 5], [0, 0]]);
+  const applyFloor = (t) => {
+    const B = FULL_BUILD;
+    const n = floorPanels.length;
+    floorPanels.forEach((m, k) => {
+      const ts = B.floor + (k * (B.floorSpan - B.flight)) / (n - 1);
+      m.visible = t >= ts;
+      const u = (t - ts) / B.flight;
+      if (u >= 1 || !m.visible) m.position.copy(m.userData.home);
+      else {
+        const e = ease(u);
+        m.position.lerpVectors(floorFrom, m.userData.home, e);
+        m.position.y += Math.sin(Math.PI * e) * 0.9;
+      }
+    });
+    court.userData.border.visible = t >= B.floor + B.floorSpan;
+    // the main hoop is wheeled in at its lowest, then raised to the rim height
+    const u = ease((t - B.main) / B.mainTravel);
+    megaSlam.group.visible = t >= B.main;
+    mainPath.getPoint(u, tmp);
+    megaSlam.group.position.set(tmp.x, 0, tmp.z);
+    megaSlam.setHeight(THREE.MathUtils.lerp(7.5 * FT, state.rimFt * FT, ease((t - B.main - B.mainTravel) / 1.4)));
+  };
   const applyBuild = (t, building) => {
-    const B = BUILD;
+    const B = fullBuild ? FULL_BUILD : BUILD;
+    if (fullBuild) applyFloor(t);
     unitList.forEach((un, i) => {
       const u = land((t - B.units[i]) / B.drop);
       un.group.visible = t >= B.units[i];
@@ -957,11 +1137,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     benches.visible = t >= B.benches;
     if (building) {
       roller.set(ease((t - B.rollerUp) / 2.0));
-      units.hhStore.setDoors(ease((t - B.shutters) / 1.6));
-      units.schoolStore.setDoors(ease((t - B.shutters - 0.3) / 1.6));
+      units.hhStore.setDoors(ease((t - B.shutters[0]) / 1.6));
+      units.schoolStore.setDoors(ease((t - B.shutters[1]) / 1.6));
       for (const l of lamps) l.lens.material.emissiveIntensity = 0.6 * ease((t - B.fit) / 1.2);
       // mini hoops: folded inside the storage until the shutters are up, then rolled out and raised
       placeHoops((t - B.hoops) / B.hoopTravel);
+      for (const hp of hoops) hp.group.visible = t >= B.hoops - 0.5; // stowed until their containers open
     }
   };
 
@@ -997,7 +1178,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     labels.visible = state.cutaway && state.build === null;
   };
   apply();
-  return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT, BUILD };
+  return { scene, sun, megaSlam, hoops, units, roller, lamps, state, apply, FT, BUILD: fullBuild ? FULL_BUILD : BUILD };
 }
 
 // camera presets for the six Phase 2 shots in the brief; every shot starts from the default state

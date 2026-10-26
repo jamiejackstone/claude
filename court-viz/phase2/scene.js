@@ -637,7 +637,7 @@ export function rimAndNet(radius = 0.2286) {
   return grp;
 }
 
-function boardDecal(w, h, borderW, box, badge) {
+export function boardDecal(w, h, borderW, box, badge) {
   const s = 300;
   const c = canvas(Math.round(w * s), Math.round(h * s));
   const g = c.getContext('2d');

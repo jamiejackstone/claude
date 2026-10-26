@@ -1,7 +1,7 @@
 // Phase 2 in the combined viewer: the covered hub. The roller door and storage shutters stay up, so
 // zooming in from the 3D view carries the camera through the doorway and inside.
 import * as THREE from 'three';
-import { createPhase2, SHOTS, BUILD } from '../phase2/hub.js';
+import { createPhase2, SHOTS, BUILD, FULL_BUILD } from '../phase2/hub.js';
 
 const VIEW_SHOT = { '3d': '1', top: '3', slam: 'slam' };
 const HOOPS_TIME = 5;
@@ -30,20 +30,55 @@ const KEYS = [
   [33.6, [0.3, 2.4, 14.2], [0, 2.2, 6]],
   [BUILD.end, [-13.5, 3.4, 27.5], [0.6, 2.6, 6.0]],
 ];
-const posCurve = new THREE.CatmullRomCurve3(KEYS.map((k) => new THREE.Vector3(...k[1])), false, 'centripetal');
-const targetCurve = new THREE.CatmullRomCurve3(KEYS.map((k) => new THREE.Vector3(...k[2])), false, 'centripetal');
-function sampleBuild(t) {
-  // piecewise in time between keys, so each move lands on its key on cue
-  const i = Math.min(KEYS.length - 2, Math.max(0, KEYS.findLastIndex((k) => t >= k[0])));
-  const [a, b] = [KEYS[i][0], KEYS[i + 1][0]];
-  const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
-  const e = u * u * (3 - 2 * u);
-  const v = (i + e) / (KEYS.length - 1);
-  return { pos: posCurve.getPoint(v), target: targetCurve.getPoint(v), fov: 42 };
+
+// the covered-only version: the whole hub from an empty playground, with the portable main hoop
+export const FULL_STEPS = [
+  [0, 'Step 1 of 6 · Containers delivered and craned into place', 'About ½ day'],
+  [7.2, 'Step 2 of 6 · Floor laid out of storage', 'About 3 hours with a team of three'],
+  [21.0, 'Step 3 of 6 · Hoops wheeled into position', 'About 30 minutes'],
+  [28.2, 'Step 4 of 6 · Canopy frames up and fabric pulled over', 'About 1½ days'],
+  [38.6, 'Step 5 of 6 · End walls, roller door and fire exit', 'About 1 day'],
+  [43.6, 'Step 6 of 6 · Fit-out: lights, reception and storage', 'About 2 days'],
+];
+export const FULL_DONE = ['Hoop Hub ready to open', 'About 5½ days on site in total · estimate'];
+const FULL_KEYS = [
+  [0, [-12, 15, 27], [0, 1, 4.5]],
+  // the floor going down, from high over the front
+  [7.2, [-14, 13, 24], [1, 0, 4.5]],
+  [14.0, [-4, 16, 23], [0.5, 0, 4.5]],
+  [20.6, [8, 11, 24], [0, 0.5, 4.5]],
+  // hoops coming in
+  [27.4, [-10, 7, 24], [0, 1.5, 4]],
+  [33.2, [-15, 12, 27], [0, 3, 5]],
+  [38.4, [5, 8.5, 31], [0, 3.5, 5]],
+  [43.4, [-6, 3.6, 24], [0, 2.4, 6]],
+  [47.0, [-9.5, 4.8, 28], [0, 3, 6]],
+  [FULL_BUILD.end, [-13.5, 3.4, 27.5], [0.6, 2.6, 6.0]],
+];
+
+function cameraPath(keys) {
+  const posCurve = new THREE.CatmullRomCurve3(keys.map((k) => new THREE.Vector3(...k[1])), false, 'centripetal');
+  const targetCurve = new THREE.CatmullRomCurve3(keys.map((k) => new THREE.Vector3(...k[2])), false, 'centripetal');
+  return (t) => {
+    // piecewise in time between keys, so each move lands on its key on cue
+    const i = Math.min(keys.length - 2, Math.max(0, keys.findLastIndex((k) => t >= k[0])));
+    const [a, b] = [keys[i][0], keys[i + 1][0]];
+    const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
+    const e = u * u * (3 - 2 * u);
+    const v = (i + e) / (keys.length - 1);
+    return { pos: posCurve.getPoint(v), target: targetCurve.getPoint(v), fov: 42 };
+  };
 }
 
-export async function phase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }) {
-  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png' });
+export const phase2 = (ctx) => makePhase2(ctx, {});
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true });
+
+async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false }) {
+  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild });
+  const B = hub.BUILD;
+  const STEPS = fullBuild ? FULL_STEPS : P2_STEPS;
+  const DONE = fullBuild ? FULL_DONE : P2_DONE;
+  const sampleBuild = cameraPath(fullBuild ? FULL_KEYS : KEYS);
   let camera = persp;
   let view = '3d';
   let hoopsAnim = null;
@@ -70,14 +105,14 @@ export async function phase2({ renderer, persp, ortho, controls, setFov, orthoFr
     if (buildT0 === null) return;
     buildT0 = null;
     hub.apply({ build: null, roller: 1, storeDoors: 1 });
-    caption(finished ? P2_DONE : null, finished ? 5 : 0);
+    caption(finished ? DONE : null, finished ? 5 : 0);
     controls.enabled = true;
     ui.sync();
   }
   function applyBuildCam(t) {
     const f = sampleBuild(t);
     hub.apply({ build: t });
-    const step = P2_STEPS.findLast(([at]) => t >= at);
+    const step = STEPS.findLast(([at]) => t >= at);
     caption([step[1], step[2]]);
     setFov(f.fov);
     persp.position.copy(f.pos);
@@ -136,8 +171,8 @@ export async function phase2({ renderer, persp, ortho, controls, setFov, orthoFr
     tick(now) {
       if (buildT0 !== null) {
         const t = (now - buildT0) / 1000;
-        if (t > BUILD.end) {
-          const f = applyBuildCam(BUILD.end);
+        if (t > B.end) {
+          const f = applyBuildCam(B.end);
           stopBuild(true);
           view = '3d';
           controls.target.copy(f.target);

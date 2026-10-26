@@ -132,7 +132,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('view').appendChild(renderer.domElement);
 
-const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png' });
+// ?main=microArena renders the portable main hoop of the covered-only version
+const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop: params.get('main') ?? undefined });
 const { scene } = hub;
 document.getElementById('loading').remove();
 
