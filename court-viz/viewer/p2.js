@@ -40,7 +40,7 @@ export const FULL_STEPS = [
   [38.6, 'Step 5 of 6 · End walls, roller door and fire exit', 'About 1 day'],
   [43.6, 'Step 6 of 6 · Fit-out: lights, reception and storage', 'About 2 days'],
 ];
-export const FULL_DONE = ['Hoop Hub ready to open', 'About 5½ days on site in total · estimate'];
+export const FULL_DONE = (title) => [`${title} ready to open`, 'About 5½ days on site in total · estimate'];
 const FULL_KEYS = [
   [0, [-12, 15, 27], [0, 1, 4.5]],
   // the floor going down, from high over the front
@@ -71,7 +71,7 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, sports: true });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, sports: true, name: 'HERO DOME', roofs: '#fba91a' });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
@@ -80,13 +80,15 @@ const KIT = {
   dodgeball: { hoops: 0, nets: 0, balls: 1, low: 1 },
 };
 
-async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false }) {
-  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff });
+async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs }) {
+  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff, name, roofs });
+  // 'HERO DOME' -> 'Hero Dome' for captions
+  const title = (name ?? 'HOOP HUB').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   let sport = 'basketball';
   let kitAnim = null;
   const B = hub.BUILD;
   const STEPS = fullBuild ? FULL_STEPS : P2_STEPS;
-  const DONE = fullBuild ? FULL_DONE : P2_DONE;
+  const DONE = fullBuild ? FULL_DONE(title) : P2_DONE;
   const sampleBuild = cameraPath(fullBuild ? FULL_KEYS : KEYS);
   let camera = persp;
   let view = '3d';

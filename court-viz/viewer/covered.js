@@ -1,4 +1,4 @@
-// Hoop Hub covered concept: the finished covered hub on its own, with the portable MicroArena main hoop, four
+// Hero Dome concept (the covered Hoop Hub): the finished covered hub on its own, with the portable MicroArena main hoop, four
 // storage containers, the multi-sport floor with a sport switch, the full installation from an empty
 // playground, and zoom and turn buttons for desktop.
 import { startViewer } from './app.js';

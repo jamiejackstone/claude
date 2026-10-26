@@ -199,7 +199,7 @@ function endWallShape(notches, flip) {
   return geo;
 }
 
-function endWallTexture(kind, art) {
+function endWallTexture(kind, art, name = 'HOOP HUB') {
   // navy up to about 6 m with the gold stripe low down, white fabric above; artwork in the wall's own
   // left-to-right as seen from that side. Returns the map and a mask of the fabric that glows at night.
   const s = 110;
@@ -215,7 +215,7 @@ function endWallTexture(kind, art) {
   stripe(g, s, W, H, COL.gold);
   if (kind === 'entrance-out') {
     // HOOP HUB above the door, a logo either side
-    drawText(g, s, H, 'HOOP HUB', X(0), 5.5, 1.05, COL.gold, 6.4);
+    drawText(g, s, H, name, X(0), 5.5, 1.05, COL.gold, 6.4);
     drawImg(g, s, H, art.logo, X(-6.0), 3.3, 3.0);
     drawImg(g, s, H, art.logo, X(6.0), 3.3, 3.0);
   } else if (kind === 'entrance-in') {
@@ -227,7 +227,7 @@ function endWallTexture(kind, art) {
     drawImg(g, s, H, art.logo, X(0), 5.0, 3.9);
     drawImg(g, s, H, art.roundWhite, X(-6.4), 3.3, 1.7);
     drawImg(g, s, H, art.roundWhite, X(6.6), 3.6, 1.5);
-    drawText(g, s, H, 'HOOP HUB', X(-6.4), 1.55, 0.5, COL.gold, 3);
+    drawText(g, s, H, name, X(-6.4), 1.55, 0.5, COL.gold, 3);
   } else if (kind === 'slam-out') {
     drawImg(g, s, H, art.logo, X(0), 3.7, 4.6);
   }
@@ -296,7 +296,7 @@ function exitDoor(w, h) {
 class Unit {
   // a container along z, its court-facing side at x = face; side = -1 on the left row, +1 on the right
   // color paints the court side and the roof (what shows from inside and from above); shell paints the outside
-  constructor({ z0, z1, side, color, shell = color, glazed = false, door = null, brand = {} }) {
+  constructor({ z0, z1, side, color, shell = color, roof = color, glazed = false, door = null, brand = {} }) {
     const { cw, ch } = HUB;
     this.group = new THREE.Group();
     const len = z1 - z0;
@@ -309,7 +309,7 @@ class Unit {
     const outerX = side * (HALF + cw);
     const faceX = side * HALF;
     // roof and floor
-    this.roof = box(cw, 0.06, len, std(color, { roughness: 0.6, metalness: 0.15 }), cx, ch - 0.03, cz);
+    this.roof = box(cw, 0.06, len, std(roof, { roughness: 0.6, metalness: 0.15 }), cx, ch - 0.03, cz);
     g.add(this.roof);
     g.add(box(cw, 0.12, len, frame, cx, 0.06, cz));
     // outer long side, ribbed
@@ -714,7 +714,9 @@ export const FULL_BUILD = {
 // layout 'reception': the 40 ft reception on the left (Final Concept). layout 'storage': two 20 ft storage
 // containers on each side, navy at the main hoop end and gold at the entrance end (Covered Concept)
 // runoff: the run-off tile colour
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff } = {}) {
+// name: the name on the building ('HERO DOME' for the Covered Concept); roofs: one colour for every container
+// roof, or each container's own colour when unset
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null } = {}) {
   const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();
   const art = {};
@@ -833,7 +835,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const bigSide = (logo, ink, { logoAt = 0.27, textAt = 0.7, textW = 0.45 } = {}) => (g, s, w, h) => {
     stripe(g, s, w, h + 0.16, ink === COL.gold ? COL.gold : COL.navy);
     drawImg(g, s, h, logo, w * logoAt, 1.32, Math.min(3.6, w * 0.4));
-    drawText(g, s, h, 'HOOP HUB', w * textAt, 1.32, 1.1, ink, w * textW);
+    drawText(g, s, h, name, w * textAt, 1.32, 1.1, ink, w * textW);
   };
   const badge = (round, ink) => (g, s, w, h) => {
     stripe(g, s, w, h + 0.16, ink);
@@ -875,7 +877,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const storeUnit = (side, gold, b) => {
     const { z0, z1 } = gold ? HUB.schoolStore : HUB.hhStore;
     const door = gold ? [z1 - 2.46, z1 - 0.16] : [z0 + 0.16, z0 + 2.46];
-    return new Unit({ z0, z1, side, color: gold ? COL.gold : COL.navy, shell: COL.navy, door, brand: b });
+    const color = gold ? COL.gold : COL.navy;
+    return new Unit({ z0, z1, side, color, shell: COL.navy, roof: roofs ?? color, door, brand: b });
   };
   const units = {
     ...(storage
@@ -974,10 +977,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
   const { w: rw, h: rh } = HUB.roller;
   const rollerNotch = [-rw / 2, rw / 2, rh];
-  const tEntranceOut = endWallTexture('entrance-out', art);
-  const tEntranceIn = endWallTexture('entrance-in', art);
-  const tSlamIn = endWallTexture('slam-in', art);
-  const tSlamOut = endWallTexture('slam-out', art);
+  const tEntranceOut = endWallTexture('entrance-out', art, name);
+  const tEntranceIn = endWallTexture('entrance-in', art, name);
+  const tSlamIn = endWallTexture('slam-in', art, name);
+  const tSlamOut = endWallTexture('slam-out', art, name);
   const entranceWalls = [wallFace(HUB.z1 + 0.005, 1, [rollerNotch], tEntranceOut), wallFace(HUB.z1 - 0.005, -1, [rollerNotch], tEntranceIn)];
   const fe1Notch = [HUB.fe1.x0, HUB.fe1.x1, HUB.fe1.h];
   const slamWalls = [wallFace(HUB.z0 + 0.005, 1, [fe1Notch], tSlamIn), wallFace(HUB.z0 - 0.005, -1, [fe1Notch], tSlamOut)];

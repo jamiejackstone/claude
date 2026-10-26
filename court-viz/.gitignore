@@ -6,3 +6,4 @@ renders/video/parts/
 dist-phase2/
 dist-final/
 dist-covered/
+__pycache__/

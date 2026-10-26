@@ -6,7 +6,7 @@ import { chromium } from 'playwright-core';
 
 const dir = process.argv[2] ?? 'renders/floor';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
-for (const name of ['Hoop Hub floor markings plan', 'Hoop Hub floor markings plan - multi-sport', 'Hoop Hub floor markings plan - multi-sport with 3x3', 'Hoop Hub floor markings plan - multi-sport with 3x3, no key fill']) {
+for (const name of ['Hero Dome floor markings plan', 'Hero Dome floor markings plan - multi-sport', 'Hero Dome floor markings plan - multi-sport with 3x3', 'Hero Dome floor markings plan - multi-sport with 3x3, no key fill']) {
   const svg = await readFile(join(dir, `${name}.svg`), 'utf8');
   const page = await browser.newPage({ viewport: { width: 1587, height: 1123 }, deviceScaleFactor: 2 });
   await page.setContent(`<!doctype html><html><head><style>@page{size:420mm 297mm;margin:0}html,body{margin:0}svg{display:block;width:420mm;height:297mm}</style></head><body>${svg}</body></html>`);
