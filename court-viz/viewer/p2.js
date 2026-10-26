@@ -1,7 +1,7 @@
 // Phase 2 in the combined viewer: the covered hub. The roller door and storage shutters stay up, so
 // zooming in from the 3D view carries the camera through the doorway and inside.
 import * as THREE from 'three';
-import { createPhase2, SHOTS, BUILD, FULL_BUILD } from '../phase2/hub.js';
+import { createPhase2, SHOTS, BUILD, FULL_BUILD, HUB, archY } from '../phase2/hub.js';
 
 const VIEW_SHOT = { '3d': '1', top: '3', slam: 'slam' };
 const HOOPS_TIME = 5;
@@ -71,7 +71,7 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, sports: true, name: 'HERO DOME', roofs: '#fba91a' });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, sports: true, name: 'HERO DOME', roofs: '#fba91a', insideToggle: true });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
@@ -80,7 +80,11 @@ const KIT = {
   dodgeball: { hoops: 0, nets: 0, balls: 1, low: 1 },
 };
 
-async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs }) {
+// is a camera position inside the hub (under the canopy or in a container)?
+const isInside = (p) => Math.abs(p.x) < HUB.x1 + HUB.cw && p.z > HUB.z0 && p.z < HUB.z1 && p.y < archY(Math.min(Math.abs(p.x), HUB.x1));
+const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+
+async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs, insideToggle = false }) {
   const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff, name, roofs });
   // 'HERO DOME' -> 'Hero Dome' for captions
   const title = (name ?? 'HOOP HUB').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -94,6 +98,51 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
   let view = '3d';
   let hoopsAnim = null;
   let buildT0 = null;
+  let fly = null;
+  let wasInside = false;
+
+  // Inside / Outside: fly between the outside (3D) view and the inside view, through the roller door
+  function flyTo(id) {
+    const s = SHOTS[id];
+    if (camera === ortho) {
+      // from the 2D plan: start from high above the entrance
+      camera = persp;
+      hub.apply({ cutaway: false });
+      persp.position.set(0, 26, HUB.z1 + 2);
+      controls.target.set(0, 0, 5);
+    }
+    view = '3d';
+    const p0 = persp.position.clone();
+    const t0 = controls.target.clone();
+    const p1 = new THREE.Vector3(...s.pos);
+    const t1 = new THREE.Vector3(...s.target);
+    const pts = [p0];
+    if (isInside(p0) !== isInside(p1)) {
+      const out = isInside(p0) ? p1 : p0;
+      const near = new THREE.Vector3(THREE.MathUtils.clamp(out.x * 0.15, -1.5, 1.5), 2.3, HUB.z1 + 3.5);
+      const inner = new THREE.Vector3(0, 2.1, HUB.z1 - 2.5);
+      pts.push(...(isInside(p0) ? [inner, near] : [near, inner]));
+    }
+    pts.push(p1);
+    const path = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+    const fov0 = persp.userData.fov ?? persp.fov;
+    const dur = pts.length > 2 ? 3.2 : 1.8;
+    const start = performance.now();
+    controls.enabled = false;
+    fly = (now) => {
+      const u = easeInOut(Math.min(1, (now - start) / 1000 / dur));
+      persp.position.copy(path.getPoint(u));
+      controls.target.lerpVectors(t0, t1, u);
+      setFov(THREE.MathUtils.lerp(fov0, s.fov, u));
+      persp.lookAt(controls.target);
+      if (u >= 1) {
+        fly = null;
+        controls.enabled = true;
+        ui.sync();
+      }
+    };
+    ui.sync();
+  }
 
   function setView(v) {
     view = v;
@@ -137,7 +186,15 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       return camera;
     },
     hint: 'Drag to orbit · scroll or pinch to zoom in through the door',
-    status: () => ({ view: buildT0 === null ? view : null, hoops: hub.state.mini, installing: buildT0 !== null, night: hub.state.night, rimFt: hub.state.rimFt, sport }),
+    status: () => ({
+      view: buildT0 === null ? view : null,
+      hoops: hub.state.mini,
+      installing: buildT0 !== null,
+      night: hub.state.night,
+      rimFt: hub.state.rimFt,
+      sport,
+      inside: camera === persp && isInside(persp.position),
+    }),
     sports: sports ? Object.keys(KIT) : null,
     // switch sport: what is out goes away first (hoops roll back into storage, nets drop, balls go), then the
     // new sport's kit comes out
@@ -166,6 +223,8 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
     },
     view(v) {
       stopBuild();
+      fly = null;
+      controls.enabled = true;
       setView(v);
     },
     // Mini hoops: roll out of containers 2 and 3 and go up, or fold and roll back in
@@ -181,6 +240,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
     // Installation: the hub built around the finished court, in daylight
     install() {
       if (buildT0 !== null) return stopBuild();
+      fly = null;
       // the installation finishes set out for basketball
       kitAnim = null;
       sport = 'basketball';
@@ -190,11 +250,20 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       camera = persp;
       ui.sync();
     },
-    night() {
-      if (buildT0 !== null) return;
-      hub.apply({ night: !hub.state.night });
-      ui.sync();
-    },
+    // the Hero Dome swaps Night for Inside / Outside
+    night: insideToggle
+      ? undefined
+      : () => {
+          if (buildT0 !== null) return;
+          hub.apply({ night: !hub.state.night });
+          ui.sync();
+        },
+    insideOut: insideToggle
+      ? () => {
+          if (buildT0 !== null || fly) return;
+          flyTo(camera === persp && isInside(persp.position) ? '1' : '2');
+        }
+      : undefined,
     setRim(ft) {
       hub.apply({ rimFt: ft });
     },
@@ -224,7 +293,14 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
         hub.apply({ hoopsT: done ? null : p });
         if (done) hoopsAnim = null;
       }
-      controls.update();
+      if (fly) fly(now);
+      else controls.update();
+      // keep the Inside button true when the visitor zooms through the door themselves
+      const inside = camera === persp && isInside(persp.position);
+      if (insideToggle && inside !== wasInside) {
+        wasInside = inside;
+        ui.sync();
+      }
     },
   };
 }

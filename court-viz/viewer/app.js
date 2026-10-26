@@ -83,7 +83,11 @@ export async function startViewer({ builders, navTools = false }) {
   const nightBtn = document.createElement('button');
   nightBtn.textContent = 'Night';
   nightBtn.onclick = () => active?.night?.();
-  bar.append(hoopsBtn, ...sportBtns, installBtn, nightBtn);
+  // Inside: where the phase has it (Hero Dome), flies the camera in through the door and back out
+  const insideBtn = document.createElement('button');
+  insideBtn.textContent = 'Inside';
+  insideBtn.onclick = () => active?.insideOut?.();
+  bar.append(hoopsBtn, ...sportBtns, installBtn, nightBtn, insideBtn);
 
   // captions over the scene: the installation steps with their time estimates
   let captionKey = '';
@@ -120,6 +124,9 @@ export async function startViewer({ builders, navTools = false }) {
       }
       installBtn.textContent = s.installing ? '■ Stop' : '▶ Installation';
       nightBtn.hidden = !active.night;
+      insideBtn.hidden = !active.insideOut;
+      insideBtn.classList.toggle('on', !!s.inside);
+      insideBtn.setAttribute('aria-pressed', String(!!s.inside));
       nightBtn.classList.toggle('on', !!s.night);
       nightBtn.setAttribute('aria-pressed', String(!!s.night));
       installBtn.classList.toggle('on', s.installing);
