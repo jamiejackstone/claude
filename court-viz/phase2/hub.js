@@ -30,9 +30,9 @@ export const HUB = {
   sill: 1.05, // reception windows above a container-wall sill
   lights: { x: [-6, -2, 2, 6], z: [0.9, 5.0, 9.1] },
   storageBenches: [
-    [-3.6, -1.8],
-    [1.8, 3.6],
-  ], // across the main hoop end wall, either side of the hoop and clear of the fire exit (Jamie, 26 Oct 2026)
+    [-6.4, -4.6],
+    [4.6, 6.4],
+  ], // across the entrance end wall, either side of the roller door (Jamie, 26 Oct 2026)
   benches: [
     [0.6, 2.4],
     [2.6, 4.4],
@@ -234,7 +234,7 @@ function endWallTexture(kind, art, name = 'HOOP HUB') {
     drawImg(g, s, H, art.logo, X(-6.0), 3.3, 3.0);
     drawImg(g, s, H, art.logo, X(6.0), 3.3, 3.0);
   } else if (kind === 'entrance-in') {
-    drawImg(g, s, H, art.logo, X(0), 5.25, 2.7);
+    drawImg(g, s, H, art.logo, X(0), 5.5, 1.85); // between the roller hood and the top of the navy
     drawImg(g, s, H, art.roundWhite, X(-6.1), 3.1, 1.6);
     drawImg(g, s, H, art.roundWhite, X(6.1), 3.1, 1.6);
   } else if (kind === 'slam-in') {
@@ -1130,13 +1130,13 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     enclosure.add(sign);
   }
 
-  // parents' benches along the reception windows, or with storage either side of the main hoop
+  // parents' benches along the reception windows, or with storage either side of the roller door
   const benches = new THREE.Group();
   for (const [a, b] of storage ? HUB.storageBenches : HUB.benches) {
     const bn = bench();
     if (storage) {
       bn.rotation.y = Math.PI / 2;
-      bn.position.set((a + b) / 2, 0, HUB.z0 + 0.45);
+      bn.position.set((a + b) / 2, 0, HUB.z1 - 0.45);
     } else bn.position.set(-HALF + 0.5, 0, (a + b) / 2);
     benches.add(shadowed(bn));
   }
@@ -1430,6 +1430,7 @@ export const SHOTS = {
   // looking back at the main hoop from just inside the entrance, for the run-off comparison
   end: { label: 'Main hoop end', pos: [3.2, 2.1, 9.9], target: [-0.4, 1.6, -1.0], fov: 50, state: {} },
   // detail for signing off the storage shutters
+  door: { label: 'Entrance end', pos: [1.2, 2.2, 1.0], target: [0, 1.3, 11.0], fov: 56, state: {} },
   s3: { label: 'Storage left', pos: [5.5, 2.4, 9.8], target: [-7.5, 1.2, 3.0], fov: 50, state: {} },
   kitA: { label: 'Dodgeball kit', pos: [-5.4, 1.5, 3.0], target: [-10.4, 0.9, 0.2], fov: 46, state: {} },
   kitB: { label: 'Racket kit', pos: [-5.4, 1.5, 7.2], target: [-10.4, 0.9, 9.8], fov: 46, state: { mini: false } },
