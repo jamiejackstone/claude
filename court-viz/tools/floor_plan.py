@@ -1,7 +1,11 @@
-"""Draw the Hoop Hub floor markings plan for floor tile suppliers: an A3 landscape SVG at 1:75, dimensioned.
+"""Draw the Hoop Hub floor markings plans for floor tile suppliers: A3 landscape SVGs at 1:75, dimensioned.
 
 Usage: python3 tools/floor_plan.py --out renders/floor
-Then: node tools/floor_plan.mjs renders/floor   (PDF and PNG from the SVG)
+Then: node tools/floor_plan.mjs renders/floor   (PDFs and PNGs from the SVGs)
+
+Two versions: 'basketball' (3x3 with a grey key, the mini court across, the logo) and 'multi-sport' (no 3x3
+key fill or logo, so the mini court reads as the main court, plus a gold dodgeball halfway line and blue
+lines for three children's pickleball and badminton courts).
 
 The 3x3 markings are drawn to FIBA measurements from the inner edge of the white baseline (key 4.9 x 5.8 m,
 basket centre 1.575 m, three-point line 6.75 m with 0.9 m corners). The court itself, 14.8 x 10 m, is sized
@@ -16,12 +20,19 @@ ROOT = Path(__file__).resolve().parent.parent
 NAVY, GOLD, WHITE = "#14264e", "#fba91a", "#ffffff"
 COURT, KEY, INK, PAPER = "#6e7276", "#a7a9ac", "#334155", "#ffffff"
 HOOP = "#e0531f"
+BLUE = "#2f9bdc"  # racket lines in the multi-sport version
 
 # floor: 18.0 m between the container faces x 12.19 m between the end walls; court 14.8 x 10 m, centred
 FX, FZ0, FZ1 = 9.0, -1.095, 11.095
 W, L = 14.8, 10.0
 WHITE_W, GOLD_W = 0.05, 0.04
 BASE_IN = 0.15  # inner edge of the white baseline from the court edge (0.10 inset + 0.05 line)
+# children's racket courts (multi-sport): inner sidelines at x ±2.60 make a 5.20 m middle court and two 4.675 m
+# outer courts, each 9.75 m long inside the white boundary; service (non-volley) lines 1.80 m from the net
+RACKET_X = 2.6
+RACKET_MID = (W / 2 - 0.125 + 2.6) / 2  # centre lines of the outer courts
+RACKET_SERVICE = 1.8
+RACKET_W = 0.04
 
 SCALE = 1000 / 75  # mm on the sheet per metre: 1:75 on A3
 OX, OY = 26.0, 56.0  # sheet position of the floor's top-left corner (x -9, z -1.095)
@@ -98,13 +109,43 @@ def arc_path(cx, cz, r, a0, a1, sweep):
     return f"M {X(x0):.3f} {Y(z0):.3f} A {m(r):.3f} {m(r):.3f} 0 {large} {sweep} {X(x1):.3f} {Y(z1):.3f}"
 
 
-def build():
+MULTI_NOTES = [
+    "Mini basketball (gold), the main court: played",
+    "across, between the 10 m sides. Keys 2.75 x 2.50 m,",
+    "free-throw semicircles R 1.25 m, three-point lines",
+    "R 4.00 m from the rim (0.60 m in), corners 1.20 m in.",
+    "Dodgeball (gold): the mini court boundary plus a",
+    "halfway line: two halves of 7.40 x 10.00 m.",
+    "Pickleball / badminton (blue): three children's",
+    "courts inside the white line, 4.675 / 5.20 / 4.675 m",
+    "wide and 9.75 m long, portable nets across the",
+    "middle. Service (non-volley) lines 1.80 m from the",
+    "net; centre lines to the ends. The gold halfway",
+    "line is the middle court's centre line.",
+    "3x3 (white): lines only, no key fill. No logo.",
+]
+MULTI_SUPPLIER = [
+    "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
+    "a fabric canopy, laid on school playground tarmac.",
+    "Run-off in the same grey as the court.",
+    "Not to official sizes: laid out for 5 to 11-year-olds",
+    "to make the most of the floor.",
+    "Please propose tile type, size and layout, and how",
+    "the lines are applied (printed, inlaid or painted).",
+    "Net posts: freestanding, at the dots on the net line.",
+    "Hoop bases: dashed outlines, for reference only.",
+]
+
+
+def build(variant):
+    multi = variant == "multi-sport"
     s = Sheet()
     hw, gw = WHITE_W / 2, GOLD_W / 2
     # floor: run-off and court in the same grey, keys lighter
     s.rect(-FX, FZ0, FX, FZ1, fill=COURT, stroke=NAVY, w=0.03)
     s.rect(-W / 2, 0, W / 2, L, fill="none", stroke="#565a5e", w=0.012, extra='stroke-dasharray="1.2 0.8"')
-    s.rect(-2.45, 0.10, 2.45, BASE_IN + 5.8, fill=KEY)
+    if not multi:
+        s.rect(-2.45, 0.10, 2.45, BASE_IN + 5.8, fill=KEY)
     for sd in (-1, 1):
         x0, x1 = sorted((sd * W / 2, sd * (W / 2 - 2.75)))
         s.rect(x0, 3.75, x1, 6.25, fill=KEY)
@@ -151,10 +192,28 @@ def build():
         WHITE_W,
     )
 
-    # logo at the open end, left of centre
-    lw = 2.98
-    lh = lw * 1418 / 2929
-    s.add(f'<image x="{X(-4.38):.2f}" y="{Y(8.27):.2f}" width="{m(lw):.2f}" height="{m(lh):.2f}" href="data:image/png;base64,{b64("assets/logo.png")}"/>')
+    if not multi:
+        # logo at the open end, left of centre
+        lw = 2.98
+        lh = lw * 1418 / 2929
+        s.add(f'<image x="{X(-4.38):.2f}" y="{Y(8.27):.2f}" width="{m(lw):.2f}" height="{m(lh):.2f}" href="data:image/png;base64,{b64("assets/logo.png")}"/>')
+    else:
+        # dodgeball (gold): the mini court's boundary with a halfway line between the two 14.8 m sides, giving
+        # two 7.40 x 10.00 m halves; it also serves as the middle racket court's centre line
+        s.line(0, gw, 0, L - gw, GOLD, GOLD_W)
+        # racket courts (blue): three side by side inside the white 3x3 boundary, which is their outer line;
+        # nets across the middle (z 5.0), service lines 1.80 m either side, centre lines to the ends
+        for x in (-RACKET_X, RACKET_X):
+            s.line(x, b, x, L - b, BLUE, RACKET_W)
+        for zc in (5.0 - RACKET_SERVICE, 5.0 + RACKET_SERVICE):
+            s.line(-W / 2 + b, zc, W / 2 - b, zc, BLUE, RACKET_W)
+        for x in (-RACKET_MID, RACKET_MID):
+            s.line(x, b, x, 5.0 - RACKET_SERVICE, BLUE, RACKET_W)
+            s.line(x, 5.0 + RACKET_SERVICE, x, L - b, BLUE, RACKET_W)
+        # portable nets and their posts, for reference (not markings)
+        s.line(-W / 2 + b, 5.0, W / 2 - b, 5.0, "#0f172a", 0.02, extra='stroke-dasharray="1.6 0.9"')
+        for x in (-W / 2 + b, -RACKET_X, RACKET_X, W / 2 - b):
+            s.add(f'<circle cx="{X(x):.2f}" cy="{Y(5.0):.2f}" r="1.0" fill="#0f172a"/>')
 
     # hoops, for reference only (not floor markings): main portable goal, base straddling the baseline; mini
     # hoops on the 10 m sides, bases on the run-off
@@ -180,13 +239,27 @@ def build():
     s.dim(X(FX) + 7, Y(0), X(FX) + 7, Y(L), "10.00 court")
     s.dim(X(FX) + 7, Y(FZ0), X(FX) + 7, Y(0), "1.10")
     s.dim(X(FX) + 7, Y(L), X(FX) + 7, Y(FZ1), "1.10")
+    if multi:
+        # racket courts, along the bottom end; dodgeball halves along the top
+        zr = 8.9
+        s.dim(X(-W / 2 + 0.125), Y(zr), X(-RACKET_X), Y(zr), "4.675", size=2.0)
+        s.dim(X(-RACKET_X), Y(zr), X(RACKET_X), Y(zr), "5.20", size=2.0)
+        s.dim(X(RACKET_X), Y(zr), X(W / 2 - 0.125), Y(zr), "4.675", size=2.0)
+        s.dim(X(-RACKET_MID - 0.9), Y(0.125), X(-RACKET_MID - 0.9), Y(L - 0.125), "racket court 9.75", size=2.0)
+        s.dim(X(RACKET_MID + 0.7), Y(5.0 - RACKET_SERVICE), X(RACKET_MID + 0.7), Y(5.0), "1.80", size=1.9)
+        s.dim(X(RACKET_MID + 0.7), Y(5.0), X(RACKET_MID + 0.7), Y(5.0 + RACKET_SERVICE), "1.80", size=1.9)
+        s.dim(X(-W / 2), Y(-0.55), X(0), Y(-0.55), "dodgeball half 7.40", size=2.0)
+        s.dim(X(0), Y(-0.55), X(W / 2), Y(-0.55), "dodgeball half 7.40", size=2.0)
+        s.label(X(-1.3), Y(5.0) - 1.6, "nets", size=1.9)
     # 3x3
-    s.dim(X(-2.45), Y(7.15), X(2.45), Y(7.15), "key 4.90")
-    s.dim(X(-3.2), Y(BASE_IN), X(-3.2), Y(BASE_IN + 5.8), "key 5.80", off=0)
-    s.dim(X(0.0), Y(BASE_IN), X(0.0), Y(basket), "1.575", size=2.0)
-    s.dim(X(0), Y(basket), X(0) + m(6.75) * math.cos(math.radians(62)), Y(basket) + m(6.75) * math.sin(math.radians(62)), "R 6.75")
-    s.dim(X(0), Y(ft), X(0) + m(1.8) * math.cos(math.radians(120)), Y(ft) + m(1.8) * math.sin(math.radians(120)), "R 1.80", size=2.0)
-    s.dim(X(-W / 2 + BASE_IN), Y(0.9), X(-cx - hw), Y(0.9), "0.90", size=2.0)
+    if not multi:
+        s.dim(X(-2.45), Y(7.15), X(2.45), Y(7.15), "key 4.90")
+        s.dim(X(-3.2), Y(BASE_IN), X(-3.2), Y(BASE_IN + 5.8), "key 5.80", off=0)
+    if not multi:
+        s.dim(X(0.0), Y(BASE_IN), X(0.0), Y(basket), "1.575", size=2.0)
+        s.dim(X(0), Y(basket), X(0) + m(6.75) * math.cos(math.radians(62)), Y(basket) + m(6.75) * math.sin(math.radians(62)), "R 6.75")
+        s.dim(X(0), Y(ft), X(0) + m(1.8) * math.cos(math.radians(120)), Y(ft) + m(1.8) * math.sin(math.radians(120)), "R 1.80", size=2.0)
+        s.dim(X(-W / 2 + BASE_IN), Y(0.9), X(-cx - hw), Y(0.9), "0.90", size=2.0)
     # mini court (right-hand end)
     s.dim(X(W / 2 - 2.75), Y(3.2), X(W / 2), Y(3.2), "2.75", size=2.0)
     s.dim(X(W / 2 - 4.05), Y(3.75), X(W / 2 - 4.05), Y(6.25), "2.50", size=2.0)
@@ -196,27 +269,33 @@ def build():
     s.dim(X(W / 2 - 0.6), Y(6.6), X(W / 2), Y(6.6), "0.60", size=1.9)
 
     # ---------------------------------------------------------------- title, notes, legend
-    s.text(OX - 6, 20, "HOOP HUB · FLOOR MARKINGS PLAN", size=9, color=NAVY, anchor="start", family="Lilita One", weight="400")
+    title = "HOOP HUB · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT" if multi else "")
+    s.text(OX - 6, 20, title, size=9, color=NAVY, anchor="start", family="Lilita One", weight="400")
     s.text(OX - 6, 28, "Example for floor tile suppliers · covered hub floor · scale 1:75 at A3 · dimensions in metres", size=3.4, color=INK, anchor="start")
-    s.text(OX - 6, 33.5, "Main hoop end at the top. 3x3 markings to FIBA measurements from the inner edge of the white baseline.", size=2.7, color=INK, anchor="start", weight="400")
+    sub = (
+        "For 5 to 11-year-olds: mini basketball across the court, 3x3, dodgeball and three children's pickleball / badminton courts."
+        if multi
+        else "Main hoop end at the top. 3x3 markings to FIBA measurements from the inner edge of the white baseline."
+    )
+    s.text(OX - 6, 33.5, sub, size=2.7, color=INK, anchor="start", weight="400")
 
     nx, ny = 300.0, 52.0
     s.text(nx, ny, "COLOURS", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
     rows = [
         (COURT, "Court and run-off tiles", "mid grey · #6e7276"),
-        (KEY, "Keys (3x3 and both mini)", "light grey · #a7a9ac"),
-        (WHITE, "3x3 lines", "white · 50 mm wide"),
-        (GOLD, "Mini court lines", "Hoop Heroes gold · #fba91a · 40 mm wide"),
-    ]
+        (KEY, "Mini court keys" if multi else "Keys (3x3 and both mini)", "light grey · #a7a9ac"),
+        (WHITE, "3x3 lines" + (" · racket court outer line" if multi else ""), "white · 50 mm wide"),
+        (GOLD, "Mini basketball" + (" and dodgeball" if multi else " court lines"), "Hoop Heroes gold · #fba91a · 40 mm wide"),
+    ] + ([(BLUE, "Pickleball / badminton", "blue · #2f9bdc · 40 mm wide")] if multi else [])
     for i, (col, a, b2) in enumerate(rows):
         y = ny + 7 + i * 9
         s.add(f'<rect x="{nx:.2f}" y="{y - 4:.2f}" width="7" height="5.5" rx="1" fill="{col}" stroke="#94a3b8" stroke-width="0.25"/>')
         s.text(nx + 10, y - 0.6, a, size=2.8, color=INK, anchor="start")
         s.text(nx + 10, y + 3, b2, size=2.4, color=INK, anchor="start", weight="400")
 
-    y = ny + 50
+    y = ny + 7 + len(rows) * 9 + 5
     s.text(nx, y, "MARKINGS", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
-    notes = [
+    notes = MULTI_NOTES if multi else [
         "3x3 (white): boundary 0.10 m inside the court edge;",
         "key 4.90 x 5.80 m; free-throw semicircle R 1.80 m;",
         "three-point line R 6.75 m from the basket centre",
@@ -236,7 +315,7 @@ def build():
 
     y += 6 + len(notes) * 4.2 + 6
     s.text(nx, y, "FOR THE SUPPLIER", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
-    notes = [
+    notes = MULTI_SUPPLIER if multi else [
         "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
         "a fabric canopy, laid on school playground tarmac.",
         "Run-off in the same grey as the court.",
@@ -275,6 +354,7 @@ if __name__ == "__main__":
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    f = out / "Hoop Hub floor markings plan.svg"
-    f.write_text(build())
-    print(f)
+    for variant, name in (("basketball", "Hoop Hub floor markings plan"), ("multi-sport", "Hoop Hub floor markings plan - multi-sport")):
+        f = out / f"{name}.svg"
+        f.write_text(build(variant))
+        print(f)
