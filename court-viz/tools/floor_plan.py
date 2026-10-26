@@ -35,6 +35,7 @@ RACKET_EDGE = GOLD_W / 2  # centre of the gold boundary in from the court edge
 RACKET_MID = (W / 2 - RACKET_EDGE + 2.6) / 2  # centre lines of the outer courts
 RACKET_SERVICE = 1.8
 RACKET_W = 0.04
+CENTRE_R = 0.9  # small mini basketball centre circle (to its outer edge)
 
 SCALE = 1000 / 75  # mm on the sheet per metre: 1:75 on A3
 OX, OY = 26.0, 56.0  # sheet position of the floor's top-left corner (x -9, z -1.095)
@@ -115,7 +116,8 @@ MULTI_NOTES = [
     "Mini basketball (gold), the main court: played",
     "across, between the 10 m sides. Keys 2.75 x 2.50 m,",
     "free-throw semicircles R 1.25 m, three-point lines",
-    "R 4.00 m from the rim (0.60 m in), corners 1.20 m in.",
+    "R 4.00 m from the rim (0.60 m in), corners 1.20 m in;",
+    "small centre circle R 0.90 m.",
     "Dodgeball (gold): the mini court boundary plus a",
     "halfway line: two halves of 7.40 x 10.00 m.",
     "Pickleball / badminton (blue): three children's",
@@ -125,6 +127,12 @@ MULTI_NOTES = [
     "1.80 m from the net; centre lines to the ends. The",
     "gold halfway line is the middle court's centre line.",
     "No 3x3 markings and no logo in this version.",
+]
+MULTI_3X3 = [
+    "3x3 (white, lines only): key 4.90 x 5.80 m, free-throw",
+    "semicircle R 1.80 m, three-point line R 6.75 m with",
+    "0.90 m corners, all from the gold boundary as the",
+    "baseline. No key fill and no logo.",
 ]
 MULTI_SUPPLIER = [
     "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
@@ -140,7 +148,8 @@ MULTI_SUPPLIER = [
 
 
 def build(variant):
-    multi = variant == "multi-sport"
+    multi = variant.startswith("multi-sport")
+    with3 = variant == "multi-sport-3x3"  # the multi-sport floor with the 3x3 key and three-point line back
     s = Sheet()
     hw, gw = WHITE_W / 2, GOLD_W / 2
     # floor: run-off and court in the same grey, keys lighter
@@ -205,7 +214,26 @@ def build(variant):
         # dodgeball (gold): the mini court's boundary with a halfway line between the two 14.8 m sides, giving
         # two 7.40 x 10.00 m halves; it also serves as the middle racket court's centre line
         s.line(0, gw, 0, L - gw, GOLD, GOLD_W)
-        # racket courts (blue): three side by side inside the white 3x3 boundary, which is their outer line;
+        # a small centre circle for mini basketball, 1.80 m across
+        s.add(f'<circle cx="{X(0):.3f}" cy="{Y(5.0):.3f}" r="{m(CENTRE_R - gw):.3f}" fill="none" stroke="{GOLD}" stroke-width="{m(GOLD_W):.3f}"/>')
+        if with3:
+            # 3x3 key and three-point line in white, lines only, measured from the gold boundary as the baseline
+            ft3 = GOLD_W + 5.8 - hw
+            s.path(f"M {X(-2.45 + hw):.3f} {Y(GOLD_W):.3f} L {X(-2.45 + hw):.3f} {Y(ft3):.3f} L {X(2.45 - hw):.3f} {Y(ft3):.3f} L {X(2.45 - hw):.3f} {Y(GOLD_W):.3f}", WHITE, WHITE_W)
+            s.path(arc_path(0, ft3, 1.8 - hw, math.pi, 0, 0), WHITE, WHITE_W)
+            bk = GOLD_W + 1.575
+            r3 = 6.75 - hw
+            cx3 = W / 2 - GOLD_W - 0.9 - hw
+            meet = bk + math.sqrt(r3 * r3 - cx3 * cx3)
+            ang = math.atan2(meet - bk, cx3)
+            s.path(
+                f"M {X(-cx3):.3f} {Y(GOLD_W):.3f} L {X(-cx3):.3f} {Y(meet):.3f} "
+                + arc_path(0, bk, r3, math.pi - ang, ang, 0).replace("M", "L", 1)
+                + f" L {X(cx3):.3f} {Y(GOLD_W):.3f}",
+                WHITE,
+                WHITE_W,
+            )
+        # racket courts (blue): three side by side inside the gold boundary, which is their outer line;
         # nets across the middle (z 5.0), service lines 1.80 m either side, centre lines to the ends
         rb = RACKET_EDGE
         for x in (-RACKET_X, RACKET_X):
@@ -256,6 +284,12 @@ def build(variant):
         s.dim(X(-W / 2), Y(-0.55), X(0), Y(-0.55), "dodgeball half 7.40", size=2.0)
         s.dim(X(0), Y(-0.55), X(W / 2), Y(-0.55), "dodgeball half 7.40", size=2.0)
         s.label(X(-1.3), Y(5.0) - 1.6, "nets", size=1.9)
+        s.dim(X(0), Y(5.0), X(0) + m(CENTRE_R) * math.cos(math.radians(140)), Y(5.0) + m(CENTRE_R) * math.sin(math.radians(140)), "R 0.90", size=1.8)
+        if with3:
+            s.dim(X(-2.45), Y(7.9), X(2.45), Y(7.9), "key 4.90", size=2.0)
+            s.dim(X(-3.6), Y(GOLD_W), X(-3.6), Y(GOLD_W + 5.8), "key 5.80", size=2.0)
+            bk = GOLD_W + 1.575
+            s.dim(X(0), Y(bk), X(0) + m(6.75) * math.cos(math.radians(62)), Y(bk) + m(6.75) * math.sin(math.radians(62)), "R 6.75", size=2.0)
     # 3x3
     if not multi:
         s.dim(X(-2.45), Y(7.15), X(2.45), Y(7.15), "key 4.90")
@@ -274,7 +308,7 @@ def build(variant):
     s.dim(X(W / 2 - 0.6), Y(6.6), X(W / 2), Y(6.6), "0.60", size=1.9)
 
     # ---------------------------------------------------------------- title, notes, legend
-    title = "HOOP HUB · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT" if multi else "")
+    title = "HOOP HUB · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "")
     s.text(OX - 6, 20, title, size=9, color=NAVY, anchor="start", family="Lilita One", weight="400")
     s.text(OX - 6, 28, "Example for floor tile suppliers · covered hub floor · scale 1:75 at A3 · dimensions in metres", size=3.4, color=INK, anchor="start")
     sub = (
@@ -289,7 +323,7 @@ def build(variant):
     rows = [
         (COURT, "Court and run-off tiles", "mid grey · #6e7276"),
         (KEY, "Mini court keys" if multi else "Keys (3x3 and both mini)", "light grey · #a7a9ac"),
-    ] + ([] if multi else [(WHITE, "3x3 lines", "white · 50 mm wide")]) + [
+    ] + ([(WHITE, "3x3 key and three-point line", "white · 50 mm wide")] if with3 else [] if multi else [(WHITE, "3x3 lines", "white · 50 mm wide")]) + [
         (GOLD, "Mini basketball" + (" and dodgeball" if multi else " court lines"), "Hoop Heroes gold · #fba91a · 40 mm wide"),
     ] + ([(BLUE, "Pickleball / badminton", "blue · #2f9bdc · 40 mm wide")] if multi else [])
     for i, (col, a, b2) in enumerate(rows):
@@ -300,7 +334,7 @@ def build(variant):
 
     y = ny + 7 + len(rows) * 9 + 5
     s.text(nx, y, "MARKINGS", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
-    notes = MULTI_NOTES if multi else [
+    notes = (MULTI_NOTES[:-1] + MULTI_3X3 if with3 else MULTI_NOTES) if multi else [
         "3x3 (white): boundary 0.10 m inside the court edge;",
         "key 4.90 x 5.80 m; free-throw semicircle R 1.80 m;",
         "three-point line R 6.75 m from the basket centre",
@@ -359,7 +393,11 @@ if __name__ == "__main__":
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    for variant, name in (("basketball", "Hoop Hub floor markings plan"), ("multi-sport", "Hoop Hub floor markings plan - multi-sport")):
+    for variant, name in (
+        ("basketball", "Hoop Hub floor markings plan"),
+        ("multi-sport", "Hoop Hub floor markings plan - multi-sport"),
+        ("multi-sport-3x3", "Hoop Hub floor markings plan - multi-sport with 3x3"),
+    ):
         f = out / f"{name}.svg"
         f.write_text(build(variant))
         print(f)
