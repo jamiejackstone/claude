@@ -40,6 +40,8 @@ export const HUB = {
   ],
   ribs: 7,
 };
+// wall pads on the containers' court sides: about the bottom half, 1.2 m panels, 5 cm foam
+const PAD = { h: 1.3, w: 1.2, t: 0.05, lift: 0.04 };
 const RISE = HUB.crown - HUB.ch;
 const W_IN = DIM.W / 2 - 0.02; // centre of the gold boundary line across the court
 const HALF = (HUB.x1 - HUB.x0) / 2;
@@ -728,7 +730,7 @@ export const FULL_BUILD = {
 // runoff: the run-off tile colour
 // name: the name on the building ('HERO DOME' for the Covered Concept); roofs: one colour for every container
 // roof, or each container's own colour when unset
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0 } = {}) {
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false } = {}) {
   shiftHub(shift);
   const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();
@@ -855,6 +857,11 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     drawImg(g, s, h, round, w / 2, 1.45, 1.3);
   };
   const courtLogo = (logo, ink) => (g, s, w, h) => {
+    if (pads) {
+      // wall pads cover the lower half, so the logo sits in the band above them
+      if (logo) drawImg(g, s, h, logo, w / 2, PAD.h + 0.42, Math.min(2.9, w - 0.4, (0.9 * logo.width) / logo.height));
+      return;
+    }
     stripe(g, s, w, h + 0.16, ink);
     drawImg(g, s, h, logo, w / 2, 1.42, Math.min(2.9, w - 0.4));
   };
@@ -891,7 +898,22 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     const { z0, z1 } = gold ? HUB.schoolStore : HUB.hhStore;
     const door = gold ? [z1 - 2.46, z1 - 0.16] : [z0 + 0.16, z0 + 2.46];
     const color = gold ? COL.gold : COL.navy;
-    return new Unit({ z0, z1, side, color, shell: COL.navy, roof: roofs ?? color, door, brand: b });
+    const unit = new Unit({ z0, z1, side, color, shell: COL.navy, roof: roofs ?? color, door, brand: b });
+    if (pads) {
+      // velcro wall pads along the solid court side, in the other brand colour, clear of the shutter
+      const [a, bz] = door[0] - z0 > z1 - door[1] ? [z0 + 0.06, door[0] - 0.1] : [door[1] + 0.1, z1 - 0.06];
+      const n = Math.max(1, Math.round((bz - a) / PAD.w));
+      const pw = (bz - a) / n;
+      const mat = std(gold ? COL.navy : COL.gold, { roughness: 0.85 });
+      const geo = new RoundedBoxGeometry(PAD.t, PAD.h, pw - 0.008, 3, 0.012);
+      for (let i = 0; i < n; i++) {
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(side * (HALF - PAD.t / 2 - 0.01), PAD.lift + PAD.h / 2, a + pw * (i + 0.5));
+        m.castShadow = m.receiveShadow = true;
+        unit.group.add(m);
+      }
+    }
+    return unit;
   };
   const units = {
     ...(storage

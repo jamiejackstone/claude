@@ -133,7 +133,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('view').appendChild(renderer.domElement);
 
 // ?main=microArena&full&layout=storage&multi renders the covered-only version: portable main hoop, full installation, four storage containers, multi-sport floor
-const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop: params.get('main') ?? undefined, fullBuild: params.has('full'), layout: params.get('layout') ?? undefined, name: params.get('name') ?? undefined, roofs: params.get('roofs') ?? undefined, shift: +params.get('shift') || 0, markings: params.has('multi') ? { multi: true, ...(params.has('nokeys') ? { keyFill: '#6e7276', miniKeyFill: '#6e7276' } : {}) } : {} });
+const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop: params.get('main') ?? undefined, fullBuild: params.has('full'), layout: params.get('layout') ?? undefined, name: params.get('name') ?? undefined, roofs: params.get('roofs') ?? undefined, shift: +params.get('shift') || 0, pads: params.has('pads'), markings: params.has('multi') ? { multi: true, ...(params.has('nokeys') ? { keyFill: '#6e7276', miniKeyFill: '#6e7276' } : {}) } : {} });
 const { scene } = hub;
 document.getElementById('loading').remove();
 
