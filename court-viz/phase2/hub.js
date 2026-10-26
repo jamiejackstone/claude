@@ -713,7 +713,7 @@ export const FULL_BUILD = {
 
 // layout 'reception': the 40 ft reception on the left (Final Concept). layout 'storage': two 20 ft storage
 // containers on each side, navy at the main hoop end and gold at the entrance end (Covered Concept)
-// runoff: the run-off tile colour (the Covered Concept uses the light grey of the keys)
+// runoff: the run-off tile colour
 export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff } = {}) {
   const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();

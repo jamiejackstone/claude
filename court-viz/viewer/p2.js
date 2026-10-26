@@ -2,7 +2,6 @@
 // zooming in from the 3D view carries the camera through the doorway and inside.
 import * as THREE from 'three';
 import { createPhase2, SHOTS, BUILD, FULL_BUILD } from '../phase2/hub.js';
-import { COL } from '../phase2/scene.js';
 
 const VIEW_SHOT = { '3d': '1', top: '3', slam: 'slam' };
 const HOOPS_TIME = 5;
@@ -72,7 +71,7 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, runoff: COL.key, sports: true });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, sports: true });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {

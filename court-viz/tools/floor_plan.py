@@ -147,18 +147,18 @@ MULTI_SUPPLIER = [
 
 def build(variant):
     multi = variant.startswith("multi-sport")
-    with3 = variant == "multi-sport-3x3"  # the multi-sport floor with the 3x3 key and three-point line back
+    with3 = variant.startswith("multi-sport-3x3")  # the multi-sport floor with the 3x3 key and three-point line back
+    keys = not variant.endswith("no-keys")  # light grey key fills (a comparison sheet leaves them out)
     s = Sheet()
     hw, gw = WHITE_W / 2, GOLD_W / 2
     # floor: run-off and court in the same grey, keys lighter
-    # the multi-sport floor with 3x3 has light grey run-off to match the keys, and a filled 3x3 key
-    s.rect(-FX, FZ0, FX, FZ1, fill=KEY if with3 else COURT, stroke=NAVY, w=0.03)
-    s.rect(-W / 2, 0, W / 2, L, fill=COURT if with3 else "none", stroke="#565a5e", w=0.012, extra='stroke-dasharray="1.2 0.8"')
-    if with3:
+    s.rect(-FX, FZ0, FX, FZ1, fill=COURT, stroke=NAVY, w=0.03)
+    s.rect(-W / 2, 0, W / 2, L, fill="none", stroke="#565a5e", w=0.012, extra='stroke-dasharray="1.2 0.8"')
+    if with3 and keys:
         s.rect(-2.45, GOLD_W, 2.45, GOLD_W + 5.8, fill=KEY)
     if not multi:
         s.rect(-2.45, 0.10, 2.45, BASE_IN + 5.8, fill=KEY)
-    for sd in (-1, 1):
+    for sd in (-1, 1) if keys else ():
         x0, x1 = sorted((sd * W / 2, sd * (W / 2 - 2.75)))
         s.rect(x0, 3.75, x1, 6.25, fill=KEY)
 
@@ -307,7 +307,7 @@ def build(variant):
     s.dim(X(W / 2 - 0.6), Y(6.6), X(W / 2), Y(6.6), "0.60", size=1.9)
 
     # ---------------------------------------------------------------- title, notes, legend
-    title = "HOOP HUB · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "")
+    title = "HOOP HUB · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "") + ("" if keys else " · NO KEY FILL")
     s.text(OX - 6, 20, title, size=9, color=NAVY, anchor="start", family="Lilita One", weight="400")
     s.text(OX - 6, 28, "Example for floor tile suppliers · covered hub floor · scale 1:75 at A3 · dimensions in metres", size=3.4, color=INK, anchor="start")
     sub = (
@@ -320,8 +320,8 @@ def build(variant):
     nx, ny = 300.0, 52.0
     s.text(nx, ny, "COLOURS", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
     rows = [
-        (COURT, "Court tiles" if with3 else "Court and run-off tiles", "mid grey · #6e7276"),
-        (KEY, "Keys and run-off tiles" if with3 else "Mini court keys" if multi else "Keys (3x3 and both mini)", "light grey · #a7a9ac"),
+        (COURT, "Court and run-off tiles", "mid grey · #6e7276"),
+    ] + ([(KEY, "Keys (3x3 and both mini)" if with3 else "Mini court keys" if multi else "Keys (3x3 and both mini)", "light grey · #a7a9ac")] if keys else []) + [
     ] + ([] if multi else [(WHITE, "3x3 lines", "white · 50 mm wide")]) + [
         (GOLD, ("Basketball (mini and 3x3) and dodgeball" if with3 else "Mini basketball and dodgeball") if multi else "Mini court lines", "Hoop Heroes gold · #fba91a · 40 mm wide"),
     ] + ([(BLUE, "Pickleball / badminton", "blue · #2f9bdc · 40 mm wide")] if multi else [])
@@ -348,12 +348,14 @@ def build(variant):
         "Logo: Hoop Heroes, about 3.0 x 1.4 m, open end,",
         "left of centre (artwork to be supplied).",
     ]
+    if not keys:
+        notes = [n.replace(" filled light grey", " (lines only)").replace("Keys 2.75 x 2.50 m,", "Keys 2.75 x 2.50 m (lines only),") for n in notes]
     for i, t in enumerate(notes):
         s.text(nx, y + 6 + i * 4.2, t, size=2.45, color=INK, anchor="start", weight="400")
 
     y += 6 + len(notes) * 4.2 + 6
     s.text(nx, y, "FOR THE SUPPLIER", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
-    notes = ([n.replace("Run-off in the same grey as the court.", "Run-off in the light grey of the keys.") for n in MULTI_SUPPLIER] if with3 else MULTI_SUPPLIER) if multi else [
+    notes = MULTI_SUPPLIER if multi else [
         "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
         "a fabric canopy, laid on school playground tarmac.",
         "Run-off in the same grey as the court.",
@@ -396,6 +398,7 @@ if __name__ == "__main__":
         ("basketball", "Hoop Hub floor markings plan"),
         ("multi-sport", "Hoop Hub floor markings plan - multi-sport"),
         ("multi-sport-3x3", "Hoop Hub floor markings plan - multi-sport with 3x3"),
+        ("multi-sport-3x3-no-keys", "Hoop Hub floor markings plan - multi-sport with 3x3, no key fill"),
     ):
         f = out / f"{name}.svg"
         f.write_text(build(variant))
