@@ -547,32 +547,39 @@ class HighBay {
 }
 
 export class MicroArena {
-  // Portable full-size goal, modelled on the Net World Sports MicroArena: 60 x 36 in tempered glass board,
-  // rim 7.5 to 10 ft, a ballast-filled base behind the baseline on wheels. The base depth and overhang are
-  // assumed (no published figures): base 1.0 m deep behind the baseline, board face 1.2 m in front of it.
+  // Portable full-size goal, to the Net World Sports MicroArena listing: base 155 x 99 cm, 152 x 91 cm board
+  // in 8 mm tempered glass with a 2.5 cm pad, 45 cm rim, rim 2.3 to 3.05 m, folds to 1.8 x 2.5 x 0.9 m to move.
+  // The reach from the base to the board is not published: assumed so the base back sits against the end wall
+  // with the board face 1.2 m inside the baseline, which puts the padded front of the base 0.48 m onto the court.
   constructor(badge) {
     this.group = new THREE.Group();
     const black = std('#16181b', { roughness: 0.45, metalness: 0.5 });
     this.padMat = std(COL.navy, { roughness: 0.7 });
     this.face = DIM.boardZ10;
-    // base: steel ballast box under a padded navy cover, small wheels at the corners
-    const bz0 = -1.03;
-    const bz1 = -0.05;
-    const base = new THREE.Mesh(new RoundedBoxGeometry(1.1, 0.36, bz1 - bz0, 4, 0.06), this.padMat);
-    base.position.set(0, 0.22, (bz0 + bz1) / 2);
+    // base: steel ballast box under a padded navy cover, wheels at the corners
+    const bz0 = -1.07;
+    const bz1 = bz0 + 1.55;
+    const base = new THREE.Mesh(new RoundedBoxGeometry(0.99, 0.34, 1.55, 4, 0.06), this.padMat);
+    base.position.set(0, 0.2, (bz0 + bz1) / 2);
     this.group.add(base);
     const wGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16);
-    for (const x of [-0.5, 0.5])
+    for (const x of [-0.45, 0.45])
       for (const z of [bz0 + 0.12, bz1 - 0.12]) {
         const w = new THREE.Mesh(wGeo, std('#0d0d0e', { roughness: 0.9 }));
         w.rotation.z = Math.PI / 2;
         w.position.set(x, 0.06, z);
         this.group.add(w);
       }
-    // pole: raked square post rising from the base, padded at the bottom
+    // everything above the base hinges at the foot of the post to fold back for moving
     this.rake = 0.1;
     this.poleZ = -0.72;
-    this.poleY = 0.4;
+    this.poleY = 0.37;
+    this.upper = new THREE.Group();
+    this.upper.position.set(0, this.poleY, this.poleZ);
+    const inner = new THREE.Group();
+    inner.position.set(0, -this.poleY, -this.poleZ);
+    this.upper.add(inner);
+    this.group.add(this.upper);
     const pole = new THREE.Group();
     pole.position.set(0, this.poleY, this.poleZ);
     pole.rotation.x = this.rake;
@@ -581,30 +588,29 @@ export class MicroArena {
     const pad = new THREE.Mesh(new RoundedBoxGeometry(0.27, 1.7, 0.27, 3, 0.04), this.padMat);
     pad.position.y = 0.85;
     pole.add(post, pad);
-    this.group.add(pole);
+    inner.add(pole);
     // arms from the post to the board frame; they slide with the board as the height changes
     this.arms = [0, 1].flatMap((lvl) =>
       [-1, 1].map((side) => {
         const a = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 1), black);
         a.userData = { side, lvl };
-        this.group.add(a);
+        inner.add(a);
         return a;
       }),
     );
     // carriage: origin at rim height on the board face
     this.carriage = new THREE.Group();
-    this.group.add(this.carriage);
-    const bw = 1.524;
-    const bh = 0.914;
+    inner.add(this.carriage);
+    const bw = 1.52;
+    const bh = 0.91;
     // board frame behind the glass
     for (const x of [-0.3, 0.3]) this.carriage.add(box(0.06, 0.8, 0.06, black, x, 0.25, -0.18));
     for (const y of [-0.08, 0.6]) this.carriage.add(box(0.66, 0.05, 0.05, black, 0, y, -0.18));
     const glass = new THREE.Mesh(
-      new THREE.BoxGeometry(bw, bh, 0.0127),
+      new THREE.BoxGeometry(bw, bh, 0.008),
       new THREE.MeshPhysicalMaterial({ color: '#cfe3e8', roughness: 0.05, metalness: 0, transparent: true, opacity: 0.22, envMapIntensity: 1.4 }),
     );
-    glass.position.set(0, -0.15 + bh / 2, -0.0064);
-    glass.castShadow = false;
+    glass.position.set(0, -0.15 + bh / 2, -0.004);
     this.carriage.add(glass);
     const decal = new THREE.Mesh(
       new THREE.PlaneGeometry(bw, bh),
@@ -612,12 +618,13 @@ export class MicroArena {
     );
     decal.position.set(0, -0.15 + bh / 2, 0.0005);
     this.carriage.add(decal);
-    const bpad = new THREE.Mesh(new RoundedBoxGeometry(bw + 0.04, 0.05, 0.05, 2, 0.02), this.padMat);
-    bpad.position.set(0, -0.17, -0.01);
+    // 2.5 cm pad along the bottom and up the sides of the board
+    const bpad = new THREE.Mesh(new RoundedBoxGeometry(bw + 0.05, 0.05, 0.025, 2, 0.01), this.padMat);
+    bpad.position.set(0, -0.17, -0.004);
     this.carriage.add(bpad);
     for (const sx of [-1, 1]) {
-      const sp = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.36, 0.05, 2, 0.02), this.padMat);
-      sp.position.set(sx * (bw / 2 + 0.01), 0.02, -0.01);
+      const sp = new THREE.Mesh(new RoundedBoxGeometry(0.025, 0.36, 0.025, 2, 0.01), this.padMat);
+      sp.position.set(sx * (bw / 2 + 0.0125), 0.02, -0.004);
       this.carriage.add(sp);
     }
     const plate = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 0.15), std(COL.rim, { roughness: 0.45, metalness: 0.4 }));
@@ -645,6 +652,10 @@ export class MicroArena {
       a.position.set(side * 0.2, y, (zp + back) / 2);
       a.scale.z = back - zp;
     }
+  }
+  // 0 up and playing, 1 folded back over the base to be wheeled about
+  setFold(f) {
+    this.upper.rotation.x = -f * THREE.MathUtils.degToRad(78);
   }
 }
 
@@ -677,7 +688,7 @@ export const FULL_BUILD = {
   floor: 8.4,
   floorSpan: 11.6,
   flight: 0.9,
-  main: 21.0, // the portable main hoop wheeled in from the entrance end
+  main: 21.0, // the portable main hoop wheeled in folded from the entrance end, then unfolded and raised
   mainTravel: 5.0,
   hoops: 21.4,
   hoopTravel: 6.0,
@@ -1100,7 +1111,9 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     megaSlam.group.visible = t >= B.main;
     mainPath.getPoint(u, tmp);
     megaSlam.group.position.set(tmp.x, 0, tmp.z);
-    megaSlam.setHeight(THREE.MathUtils.lerp(7.5 * FT, state.rimFt * FT, ease((t - B.main - B.mainTravel) / 1.4)));
+    const settle = t - B.main - B.mainTravel;
+    megaSlam.setFold(1 - ease(settle / 1.4));
+    megaSlam.setHeight(THREE.MathUtils.lerp(7.5 * FT, state.rimFt * FT, ease((settle - 1.2) / 1.2)));
   };
   const applyBuild = (t, building) => {
     const B = fullBuild ? FULL_BUILD : BUILD;
@@ -1190,6 +1203,8 @@ export const SHOTS = {
   4: { label: 'Reception', pos: [2.2, 1.65, 6.4], target: [-9.6, 1.3, 4.6], fov: 46, state: { mini: false } },
   5: { label: 'Night', pos: [-11.5, 2.4, 25.5], target: [-0.6, 3.0, 5.5], fov: 42, state: { night: true } },
   6: { label: 'Billboard', pos: [17.5, 1.8, 20.5], target: [3.2, 2.5, 6.0], fov: 40, state: { roller: 0 } },
+  // detail for signing off the portable main hoop (render with ?main=microArena)
+  ma: { label: 'Main hoop', pos: [5.2, 1.7, 2.6], target: [0, 1.5, 0.1], fov: 46, state: {} },
   // detail for signing off the storage shutters
   s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: {} },
 };
