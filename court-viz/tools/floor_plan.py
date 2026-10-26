@@ -127,10 +127,10 @@ MULTI_NOTES = [
     "No 3x3 markings and no logo in this version.",
 ]
 MULTI_3X3 = [
-    "3x3 (gold, lines only): key 4.90 x 5.80 m, free-throw",
+    "3x3 (gold): key 4.90 x 5.80 m filled light grey, free-throw",
     "semicircle R 1.80 m, three-point line R 6.75 m with",
     "0.90 m corners, all from the gold boundary as the",
-    "baseline. No key fill and no logo.",
+    "baseline. No logo.",
 ]
 MULTI_SUPPLIER = [
     "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
@@ -151,8 +151,11 @@ def build(variant):
     s = Sheet()
     hw, gw = WHITE_W / 2, GOLD_W / 2
     # floor: run-off and court in the same grey, keys lighter
-    s.rect(-FX, FZ0, FX, FZ1, fill=COURT, stroke=NAVY, w=0.03)
-    s.rect(-W / 2, 0, W / 2, L, fill="none", stroke="#565a5e", w=0.012, extra='stroke-dasharray="1.2 0.8"')
+    # the multi-sport floor with 3x3 has light grey run-off to match the keys, and a filled 3x3 key
+    s.rect(-FX, FZ0, FX, FZ1, fill=KEY if with3 else COURT, stroke=NAVY, w=0.03)
+    s.rect(-W / 2, 0, W / 2, L, fill=COURT if with3 else "none", stroke="#565a5e", w=0.012, extra='stroke-dasharray="1.2 0.8"')
+    if with3:
+        s.rect(-2.45, GOLD_W, 2.45, GOLD_W + 5.8, fill=KEY)
     if not multi:
         s.rect(-2.45, 0.10, 2.45, BASE_IN + 5.8, fill=KEY)
     for sd in (-1, 1):
@@ -317,8 +320,8 @@ def build(variant):
     nx, ny = 300.0, 52.0
     s.text(nx, ny, "COLOURS", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
     rows = [
-        (COURT, "Court and run-off tiles", "mid grey · #6e7276"),
-        (KEY, "Mini court keys" if multi else "Keys (3x3 and both mini)", "light grey · #a7a9ac"),
+        (COURT, "Court tiles" if with3 else "Court and run-off tiles", "mid grey · #6e7276"),
+        (KEY, "Keys and run-off tiles" if with3 else "Mini court keys" if multi else "Keys (3x3 and both mini)", "light grey · #a7a9ac"),
     ] + ([] if multi else [(WHITE, "3x3 lines", "white · 50 mm wide")]) + [
         (GOLD, ("Basketball (mini and 3x3) and dodgeball" if with3 else "Mini basketball and dodgeball") if multi else "Mini court lines", "Hoop Heroes gold · #fba91a · 40 mm wide"),
     ] + ([(BLUE, "Pickleball / badminton", "blue · #2f9bdc · 40 mm wide")] if multi else [])
@@ -350,7 +353,7 @@ def build(variant):
 
     y += 6 + len(notes) * 4.2 + 6
     s.text(nx, y, "FOR THE SUPPLIER", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
-    notes = MULTI_SUPPLIER if multi else [
+    notes = ([n.replace("Run-off in the same grey as the court.", "Run-off in the light grey of the keys.") for n in MULTI_SUPPLIER] if with3 else MULTI_SUPPLIER) if multi else [
         "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
         "a fabric canopy, laid on school playground tarmac.",
         "Run-off in the same grey as the court.",

@@ -2,6 +2,7 @@
 // zooming in from the 3D view carries the camera through the doorway and inside.
 import * as THREE from 'three';
 import { createPhase2, SHOTS, BUILD, FULL_BUILD } from '../phase2/hub.js';
+import { COL } from '../phase2/scene.js';
 
 const VIEW_SHOT = { '3d': '1', top: '3', slam: 'slam' };
 const HOOPS_TIME = 5;
@@ -71,7 +72,7 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, sports: true });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true }, runoff: COL.key, sports: true });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
@@ -80,8 +81,8 @@ const KIT = {
   dodgeball: { hoops: 0, nets: 0, balls: 1, low: 1 },
 };
 
-async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, sports = false }) {
-  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings });
+async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false }) {
+  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff });
   let sport = 'basketball';
   let kitAnim = null;
   const B = hub.BUILD;

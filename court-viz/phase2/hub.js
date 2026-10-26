@@ -713,7 +713,8 @@ export const FULL_BUILD = {
 
 // layout 'reception': the 40 ft reception on the left (Final Concept). layout 'storage': two 20 ft storage
 // containers on each side, navy at the main hoop end and gold at the entrance end (Covered Concept)
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception' } = {}) {
+// runoff: the run-off tile colour (the Covered Concept uses the light grey of the keys)
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff } = {}) {
   const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();
   const art = {};
@@ -788,7 +789,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const floorPanels = [];
   if (fullBuild) {
     runoff.visible = false;
-    const top = std(HUB.runoff, { roughness: 0.86 });
+    const top = std(runoffColor, { roughness: 0.86 });
     const side = std(COL.border, { roughness: 0.9 });
     const gap = 0.004;
     const xs = [-HALF, -DIM.W / 2, ...Array.from({ length: DIM.panel.cols - 1 }, (_, i) => -DIM.W / 2 + (i + 1) * DIM.panel.w), DIM.W / 2, HALF];

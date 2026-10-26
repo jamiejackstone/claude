@@ -112,7 +112,7 @@ export function shadowed(obj) {
 // ---------------------------------------------------------------- court surface
 
 // multi: the multi-sport floor (Covered Concept, floor markings plan 'multi-sport with 3x3'): every basketball
-// line gold, no 3x3 key fill, white boundary or logo, a gold dodgeball halfway line and blue lines for three
+// line gold, the 3x3 key filled light grey, no white boundary or logo, a gold dodgeball halfway line and blue lines for three
 // children's pickleball / badminton courts
 export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, lines = MARKINGS.lines, logoBox = DIM.logo, multi = false } = {}) {
   const allWhite = lines === 'white';
@@ -136,10 +136,9 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
   }
   // key fill
   const inset = allWhite ? 0 : DIM.whiteInset;
-  if (!multi) {
-    g.fillStyle = keyFill;
-    g.fillRect(X(-DIM.keyW / 2), Z(inset), DIM.keyW * PX, (DIM.keyD - inset) * PX);
-  }
+  g.fillStyle = keyFill;
+  if (multi) g.fillRect(X(-DIM.keyW / 2), Z(DIM.goldW), DIM.keyW * PX, 5.8 * PX); // from the gold baseline
+  else g.fillRect(X(-DIM.keyW / 2), Z(inset), DIM.keyW * PX, (DIM.keyD - inset) * PX);
 
   const stroke = (color, w, draw) => {
     g.strokeStyle = color;
