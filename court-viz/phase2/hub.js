@@ -44,8 +44,17 @@ export const HUB = {
 const PAD = { h: 1.3, w: 1.2, t: 0.05, lift: 0.04 };
 const RISE = HUB.crown - HUB.ch;
 const W_IN = DIM.W / 2 - 0.02; // centre of the gold boundary line across the court
-const HALF = (HUB.x1 - HUB.x0) / 2;
+let HALF = (HUB.x1 - HUB.x0) / 2; // half the clear span; setSpan() narrows it before a build
 // inside face of the arch: an elliptical profile springing near-vertical off the container roofs
+// Narrow (or widen) the clear span between the container faces, keeping the court centred. Mutates HUB once,
+// before the scene is built, like shiftHub below.
+function setSpan(span) {
+  if (!span || HUB.span) return;
+  HUB.span = span;
+  HUB.x0 = -span / 2;
+  HUB.x1 = span / 2;
+  HALF = span / 2;
+}
 // Slide the whole hub along the court (negative = towards the main hoop end), so one end gets more run-off.
 // Mutates HUB in place once, before the scene is built; the court and its markings stay put.
 function shiftHub(dz) {
@@ -148,17 +157,17 @@ function exitSignTexture() {
 function runoffTexture() {
   // navy-grey interlocking tiles around the court, on the same panel grid as the court
   const s = 60;
-  const c = canvas(18 * s, Math.round(LEN * s));
+  const c = canvas(Math.round(2 * HALF * s), Math.round(LEN * s));
   const g = c.getContext('2d');
   g.fillStyle = HUB.runoff;
   g.fillRect(0, 0, c.width, c.height);
   g.strokeStyle = 'rgba(20, 22, 26, 0.45)';
   g.lineWidth = 2;
   const pw = DIM.panel.w;
-  for (let x = -7.4 - pw * 2; x <= 9; x += pw) {
+  for (let x = -7.4 - pw * Math.ceil((HALF - 7.4) / pw); x <= HALF; x += pw) {
     g.beginPath();
-    g.moveTo((x + 9) * s, 0);
-    g.lineTo((x + 9) * s, c.height);
+    g.moveTo((x + HALF) * s, 0);
+    g.lineTo((x + HALF) * s, c.height);
     g.stroke();
   }
   for (let z = -2; z <= 12; z += 2) {
@@ -815,7 +824,8 @@ export const FULL_BUILD = {
 // runoff: the run-off tile colour
 // name: the name on the building ('HERO DOME' for the Covered Concept); roofs: one colour for every container
 // roof, or each container's own colour when unset
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false } = {}) {
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false, span = 0 } = {}) {
+  setSpan(span);
   shiftHub(shift);
   const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();
@@ -922,7 +932,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     c.getContext('2d').drawImage(art.logo, 0, 0, 600, 290);
     padLogoTex = tex(c);
   }
-  const hoops = [new PortableHoop(art.roundNavy), new PortableHoop(art.roundNavy)];
+  // in a narrowed hub the mini hoop bases are drawn short so they fit the side run-off (Hero Dome at 17 m)
+  const rimLocal = 0.32 + 0.151 + 0.2286; // PortableHoop board face + rim offset, as in scene.js
+  const miniBase = HALF < 9 ? Math.min(1.45, HALF - 0.04 - (DIM.W / 2 - 0.6 + rimLocal)) : undefined;
+  const hoops = [new PortableHoop(art.roundNavy, miniBase), new PortableHoop(art.roundNavy, miniBase)];
   const finalX = hoops.map((hp, i) => (i ? 1 : -1) * (DIM.W / 2 - 0.6 + hp.rimLocal));
   hoops.forEach((hp, i) => {
     scene.add(hp.group);
@@ -1272,11 +1285,11 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const hoopPaths = [
     storage
       ? // left hoop: out of the left gold container's shutter and along the run-off
-        curve([[-9.4, 9.8], [-8.2, 8.9], [finalX[0], 6.8], [finalX[0], DIM.miniKeyZ]])
+        curve([[-(HALF + 0.4), 9.8], [-(HALF - 0.8), 8.9], [finalX[0], 6.8], [finalX[0], DIM.miniKeyZ]])
       : // left hoop: out of container 2's shutter and across the court to the reception side
         curve([[10.9, 0.25], [8.3, 0.6], [4.5, 2.4], [-2, 4.4], [finalX[0], DIM.miniKeyZ]]),
     // right hoop: out of container 3's shutter and along the run-off
-    curve([[9.4, 9.8], [8.2, 8.9], [finalX[1], 6.8], [finalX[1], DIM.miniKeyZ]]),
+    curve([[HALF + 0.4, 9.8], [HALF - 0.8, 8.9], [finalX[1], 6.8], [finalX[1], DIM.miniKeyZ]]),
   ];
   // p runs 0 (folded in the storage) to 1 (out and up); played backwards to put them away
   const placeHoops = (p) => {
@@ -1293,7 +1306,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       }
     });
   };
-  const floorFrom = new THREE.Vector3(9.4, 1.0, 0.2); // out of storage 1's shutter
+  const floorFrom = new THREE.Vector3(HALF + 0.4, 1.0, 0.2); // out of storage 1's shutter
   const mainPath = curve([[1.6, 22], [0.9, 13.5], [0.3, 5], [0, 0]]);
   const applyFloor = (t) => {
     const B = FULL_BUILD;

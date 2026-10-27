@@ -22,8 +22,8 @@ COURT, KEY, INK, PAPER = "#6e7276", "#a7a9ac", "#334155", "#ffffff"
 HOOP = "#e0531f"
 BLUE = "#2f9bdc"  # racket lines in the multi-sport version
 
-# floor: 18.0 m between the container faces x 12.19 m between the end walls; court 14.8 x 10 m, centred
-FX, FZ0, FZ1 = 9.0, -1.095, 11.095
+# floor: 17.0 m between the container faces x 12.19 m between the end walls; court 14.8 x 10 m, centred
+FX, FZ0, FZ1 = 8.5, -1.095, 11.095
 W, L = 14.8, 10.0
 WHITE_W, GOLD_W = 0.05, 0.04
 BASE_IN = 0.15  # inner edge of the white baseline from the court edge (0.10 inset + 0.05 line)
@@ -133,7 +133,7 @@ MULTI_3X3 = [
     "baseline. No logo.",
 ]
 MULTI_SUPPLIER = [
-    "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
+    "Whole floor 17.00 x 12.19 m (207 m²), indoors under",
     "a fabric canopy, laid on school playground tarmac.",
     "Run-off in the same grey as the court.",
     "Not to official sizes: laid out for 5 to 11-year-olds",
@@ -256,7 +256,7 @@ def build(variant):
     s.add(f'<circle cx="{X(0):.2f}" cy="{Y(basket):.2f}" r="{m(0.2286):.2f}" fill="none" stroke="{HOOP}" stroke-width="0.35"/>')
     for sd in (-1, 1):
         rx = sd * (W / 2 - 0.6)
-        x0, x1 = sorted((sd * 7.51, sd * 8.96))
+        x0, x1 = sorted((sd * 7.5, sd * 8.46))
         s.rect(x0, 4.615, x1, 5.385, fill="#16181b", stroke=WHITE, w=0.015, extra=f'fill-opacity="0.35" {dash}')
         s.line(sd * 7.18, 4.34, sd * 7.18, 5.66, "#16181b", 0.05)
         s.add(f'<circle cx="{X(rx):.2f}" cy="{Y(5.0):.2f}" r="{m(0.2286):.2f}" fill="none" stroke="{HOOP}" stroke-width="0.35"/>')
@@ -264,11 +264,11 @@ def build(variant):
     # ---------------------------------------------------------------- dimensions (metres)
     top = Y(FZ0)
     bot = Y(FZ1)
-    s.dim(X(-FX), top - 9, X(FX), top - 9, "18.00 floor (container face to container face)")
+    s.dim(X(-FX), top - 9, X(FX), top - 9, "17.00 floor (container face to container face)")
     s.dim(X(-FX) - 9, Y(FZ0), X(-FX) - 9, Y(FZ1), "12.19 floor (end wall to end wall)", size=2.3)
     s.dim(X(-W / 2), bot + 7, X(W / 2), bot + 7, "14.80 court")
-    s.dim(X(-FX), bot + 7, X(-W / 2), bot + 7, "1.60")
-    s.dim(X(W / 2), bot + 7, X(FX), bot + 7, "1.60")
+    s.dim(X(-FX), bot + 7, X(-W / 2), bot + 7, "1.10")
+    s.dim(X(W / 2), bot + 7, X(FX), bot + 7, "1.10")
     s.dim(X(FX) + 7, Y(0), X(FX) + 7, Y(L), "10.00 court")
     s.dim(X(FX) + 7, Y(FZ0), X(FX) + 7, Y(0), "1.10")
     s.dim(X(FX) + 7, Y(L), X(FX) + 7, Y(FZ1), "1.10")
@@ -356,7 +356,7 @@ def build(variant):
     y += 6 + len(notes) * 4.2 + 6
     s.text(nx, y, "FOR THE SUPPLIER", size=4, color=NAVY, anchor="start", family="Lilita One", weight="400")
     notes = MULTI_SUPPLIER if multi else [
-        "Whole floor 18.00 x 12.19 m (219 m²), indoors under",
+        "Whole floor 17.00 x 12.19 m (207 m²), indoors under",
         "a fabric canopy, laid on school playground tarmac.",
         "Run-off in the same grey as the court.",
         "Please propose tile type, size and layout, and how",

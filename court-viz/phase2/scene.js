@@ -847,8 +847,10 @@ export class MegaSlam {
 
 export class PortableHoop {
   // Tarmak B900 Box style: wheeled ballast base outside the tiles, board facing across the court.
-  constructor(badge) {
+  // baseLen shortens the base for tight run-off (drawn short in the 17 m Hero Dome; real base 1.45 m)
+  constructor(badge, baseLen = 1.45) {
     this.faceX = 0.32; // board face forward of the base front edge [ASSUMED]
+    this.braceX = -baseLen + 0.25;
     this.rimLocal = this.faceX + 0.151 + 0.2286;
     this.group = new THREE.Group();
     this.out = new THREE.Group();
@@ -859,11 +861,11 @@ export class PortableHoop {
     const tyre = std('#0d0d0e', { roughness: 0.9 });
     // local axes: +x points onto the court (board faces +x). Base 1.45 x 0.77.
     const makeBase = (grp) => {
-      const base = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.3, 0.77, 4, 0.08), body);
-      base.position.set(-0.725, 0.2, 0);
+      const base = new THREE.Mesh(new RoundedBoxGeometry(baseLen, 0.3, 0.77, 4, 0.08), body);
+      base.position.set(-baseLen / 2, 0.2, 0);
       grp.add(base);
       const wGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.07, 18);
-      for (const wx of [-1.3, -0.73, -0.16])
+      for (const wx of [-baseLen + 0.15, -baseLen / 2, -0.16])
         for (const s of [-1, 1]) {
           const w = new THREE.Mesh(wGeo, tyre);
           w.rotation.x = Math.PI / 2;
@@ -875,7 +877,7 @@ export class PortableHoop {
     makeBase(this.folded);
     // ballast filler cap on the base top
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 20), grey);
-    cap.position.set(-1.12, 0.36, 0);
+    cap.position.set(-baseLen + 0.33, 0.36, 0);
     this.out.add(cap);
     // upright near the front of the base, slightly raked, with a rear brace and two arms to the board
     this.mast = new THREE.Group();
@@ -977,7 +979,7 @@ export class PortableHoop {
     const poleTop = [-0.3, rim + 0.35];
     beam(this.pole, ...poleBase, ...poleTop);
     const at = (y) => poleBase[0] + ((poleTop[0] - poleBase[0]) * (y - poleBase[1])) / (poleTop[1] - poleBase[1]);
-    beam(this.brace, -1.2, 0.36, at(1.5), 1.5);
+    beam(this.brace, this.braceX, 0.36, at(1.5), 1.5);
     for (const [arm, dy] of [
       [this.armU, 0.28],
       [this.armL, -0.02],
