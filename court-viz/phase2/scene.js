@@ -847,7 +847,7 @@ export class MegaSlam {
 
 export class PortableHoop {
   // Tarmak B900 Box style: wheeled ballast base outside the tiles, board facing across the court.
-  // baseLen shortens the base for tight run-off (drawn short in the 17 m Hero Dome; real base 1.45 m)
+  // baseLen shortens the base for tight run-off (drawn short in the 17 m Heroes Hub; real base 1.45 m)
   constructor(badge, baseLen = 1.45) {
     this.faceX = 0.32; // board face forward of the base front edge [ASSUMED]
     this.braceX = -baseLen + 0.25;

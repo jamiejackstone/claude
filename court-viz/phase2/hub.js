@@ -822,7 +822,7 @@ export const FULL_BUILD = {
 // layout 'reception': the 40 ft reception on the left (Final Concept). layout 'storage': two 20 ft storage
 // containers on each side, navy at the main hoop end and gold at the entrance end (Covered Concept)
 // runoff: the run-off tile colour
-// name: the name on the building ('HERO DOME' for the Covered Concept); roofs: one colour for every container
+// name: the name on the building ('HEROES HUB' for the Covered Concept); roofs: one colour for every container
 // roof, or each container's own colour when unset
 export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false, span = 0 } = {}) {
   setSpan(span);
@@ -932,7 +932,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     c.getContext('2d').drawImage(art.logo, 0, 0, 600, 290);
     padLogoTex = tex(c);
   }
-  // in a narrowed hub the mini hoop bases are drawn short so they fit the side run-off (Hero Dome at 17 m)
+  // in a narrowed hub the mini hoop bases are drawn short so they fit the side run-off (Heroes Hub at 17 m)
   const rimLocal = 0.32 + 0.151 + 0.2286; // PortableHoop board face + rim offset, as in scene.js
   const miniBase = HALF < 9 ? Math.min(1.45, HALF - 0.04 - (DIM.W / 2 - 0.6 + rimLocal)) : undefined;
   const hoops = [new PortableHoop(art.roundNavy, miniBase), new PortableHoop(art.roundNavy, miniBase)];

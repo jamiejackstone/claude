@@ -71,7 +71,7 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HERO DOME', roofs: '#fba91a', insideToggle: true, span: 17 });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HEROES HUB', roofs: '#fba91a', insideToggle: true, span: 17 });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
@@ -86,7 +86,7 @@ const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) 
 
 async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs, insideToggle = false, pads = false, span = 0 }) {
   const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff, name, roofs, pads, span });
-  // 'HERO DOME' -> 'Hero Dome' for captions
+  // 'HEROES HUB' -> 'Heroes Hub' for captions
   const title = (name ?? 'HOOP HUB').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   let sport = 'basketball';
   let kitAnim = null;
@@ -250,7 +250,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       camera = persp;
       ui.sync();
     },
-    // the Hero Dome swaps Night for Inside / Outside
+    // the Heroes Hub swaps Night for Inside / Outside
     night: insideToggle
       ? undefined
       : () => {
