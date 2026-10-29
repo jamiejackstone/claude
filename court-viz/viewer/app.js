@@ -70,13 +70,14 @@ export async function startViewer({ builders, navTools = false }) {
   hoopsBtn.textContent = 'Mini hoops';
   hoopsBtn.onclick = () => active?.toggleHoops();
   // sports, where the phase has them: these replace Mini hoops
-  const sportBtns = ['basketball', 'pickleball', 'dodgeball'].map((name) => {
-    const b = document.createElement('button');
-    b.textContent = name[0].toUpperCase() + name.slice(1);
-    b.dataset.sport = name;
-    b.onclick = () => active?.setSport(name);
-    return b;
-  });
+  // one sport button that steps through the sports, in the colours of the arena boards (Jamie, 29 Oct 2026)
+  const SPORTS = ['basketball', 'pickleball', 'dodgeball'];
+  const SPORT_COL = { basketball: ['#fba91a', '#14264e'], pickleball: ['#9bd13b', '#14264e'], dodgeball: ['#e63950', '#ffffff'] };
+  const sportBtn = document.createElement('button');
+  sportBtn.onclick = () => {
+    const now = active?.status().sport ?? 'basketball';
+    active?.setSport(SPORTS[(SPORTS.indexOf(now) + 1) % SPORTS.length]);
+  };
   // basketball layouts, where the phase has them: shown beside the Hoops slider while basketball is on
   const courtBtns = [['mini', 'Mini'], ['3x3', '3x3']].map(([name, label]) => {
     const b = document.createElement('button');
@@ -101,7 +102,7 @@ export async function startViewer({ builders, navTools = false }) {
     return b;
   });
   // order: 3D, 2D, Installation, the places, then the sports (Jamie, 29 Oct 2026)
-  bar.append(hoopsBtn, installBtn, nightBtn, ...placeBtns, ...sportBtns);
+  bar.append(hoopsBtn, installBtn, nightBtn, ...placeBtns, sportBtn);
   // the court buttons sit just before the Hoops slider
   $('rim').closest('label')?.before(...courtBtns);
 
@@ -133,10 +134,16 @@ export async function startViewer({ builders, navTools = false }) {
       hoopsBtn.classList.toggle('on', s.hoops);
       hoopsBtn.setAttribute('aria-pressed', String(s.hoops));
       hoopsBtn.hidden = !!active.sports;
-      for (const b of sportBtns) {
-        b.hidden = !active.sports;
-        b.classList.toggle('on', s.sport === b.dataset.sport);
-        b.setAttribute('aria-pressed', String(s.sport === b.dataset.sport));
+      sportBtn.hidden = !active.sports;
+      if (active.sports) {
+        const sp = s.sport ?? 'basketball';
+        const [bg, ink] = SPORT_COL[sp];
+        sportBtn.textContent = `${sp[0].toUpperCase()}${sp.slice(1)} ›`;
+        sportBtn.title = 'Next sport';
+        sportBtn.setAttribute('aria-label', `Sport: ${sp}. Switch to the next sport`);
+        sportBtn.style.background = bg;
+        sportBtn.style.color = ink;
+        sportBtn.style.borderColor = bg;
       }
       installBtn.textContent = s.installing ? '■ Stop' : '▶ Installation';
       nightBtn.hidden = !active.night;
