@@ -1,4 +1,4 @@
-// Heroes Hub concept (the covered Hoop Hub, formerly Hero Dome): the finished covered hub on its own, with the portable MicroArena main hoop, four
+// Heroes Arena concept (the covered Hoop Hub, formerly Hero Dome and Heroes Hub): the finished covered hub on its own, with the portable MicroArena main hoop, four
 // storage containers, the multi-sport floor with a sport switch, the full installation from an empty
 // playground, and zoom and turn buttons for desktop.
 import { startViewer } from './app.js';

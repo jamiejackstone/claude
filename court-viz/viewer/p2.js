@@ -71,7 +71,7 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HEROES HUB', roofs: '#fba91a', insideToggle: true, span: 17 });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HEROES ARENA', roofs: '#fba91a', insideToggle: true, span: 17, arena: true });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
@@ -84,9 +84,9 @@ const KIT = {
 const isInside = (p) => Math.abs(p.x) < HUB.x1 + HUB.cw && p.z > HUB.z0 && p.z < HUB.z1 && p.y < archY(Math.min(Math.abs(p.x), HUB.x1));
 const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
-async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs, insideToggle = false, pads = false, span = 0 }) {
-  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff, name, roofs, pads, span });
-  // 'HEROES HUB' -> 'Heroes Hub' for captions
+async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs, insideToggle = false, pads = false, span = 0, arena = false }) {
+  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff, name, roofs, pads, span, arena });
+  // 'HEROES ARENA' -> 'Heroes Arena' for captions
   const title = (name ?? 'HOOP HUB').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   let sport = 'basketball';
   let kitAnim = null;
@@ -203,7 +203,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       const from = { hoops: hub.state.hoopsT ?? (hub.state.mini ? 1 : 0), nets: hub.state.netsT, balls: hub.state.ballsT, low: hub.state.mainLowT };
       const to = KIT[name];
       const goes = (k) => to[k] < from[k];
-      const plan = { hoops: [goes('hoops') ? 0 : 1.2, HOOPS_TIME], nets: [goes('nets') ? 0 : 2.4, 1.4], balls: [goes('balls') ? 0 : 2.4, 1.6], low: [0, 1.6] };
+      const plan = { hoops: [goes('hoops') ? 0 : 1.2, HOOPS_TIME], nets: [goes('nets') ? 0 : 2.4, 1.4], balls: [goes('balls') ? 0 : 2.4, 1.6], low: [0, arena ? 4.5 : 1.6] };
       kitAnim = { t0: performance.now(), from, to, plan, end: Math.max(...Object.values(plan).map(([d, s]) => d + s)) };
       sport = name;
       hoopsAnim = null;
@@ -250,7 +250,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       camera = persp;
       ui.sync();
     },
-    // the Heroes Hub swaps Night for Inside / Outside
+    // the Heroes Arena swaps Night for Inside / Outside
     night: insideToggle
       ? undefined
       : () => {

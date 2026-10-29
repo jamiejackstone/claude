@@ -98,6 +98,88 @@ function stripe(g, s, W, H, color) {
   g.fillStyle = color;
   g.fillRect(0, (H - 0.67) * s, W * s, 0.25 * s);
 }
+// arena boards: one bright board per brand in the Heroes family, sport colour, ball badge and name
+const BOARD = {
+  hoop: { bg: '#fba91a', ink: '#14264e', word: 'HOOP HEROES' },
+  pickle: { bg: '#9bd13b', ink: '#14264e', word: 'PICKLE HEROES' },
+  dodge: { bg: '#e63950', ink: '#ffffff', word: 'DODGE HEROES' },
+  arena: { bg: '#14264e', ink: '#ffffff', word: 'HEROES ARENA' },
+};
+function boardTexture(kind, w, h) {
+  const s = 220;
+  const c = canvas(Math.round(w * s), Math.round(h * s));
+  const g = c.getContext('2d');
+  const b = BOARD[kind];
+  g.fillStyle = b.bg;
+  g.fillRect(0, 0, c.width, c.height);
+  const r = h * 0.3 * s;
+  const cy = c.height / 2;
+  const word = (x0) => {
+    g.fillStyle = b.ink;
+    g.textAlign = 'left';
+    g.textBaseline = 'middle';
+    fitText(g, b.word, '"Lilita One", sans-serif', h * 0.42 * s, c.width - x0 - 0.25 * s);
+    g.fillText(b.word, x0, cy + 0.02 * s);
+  };
+  if (kind === 'arena') {
+    // the name with the family stripe underneath
+    const sw = c.width - 0.6 * s;
+    ['#fba91a', '#9bd13b', '#e63950'].forEach((col, i) => {
+      g.fillStyle = col;
+      g.fillRect(0.3 * s + (i * sw) / 3, c.height - 0.16 * s, sw / 3, 0.07 * s);
+    });
+    g.fillStyle = b.ink;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    fitText(g, b.word, '"Lilita One", sans-serif', h * 0.46 * s, c.width - 0.5 * s);
+    g.fillText(b.word, c.width / 2, cy - 0.03 * s);
+    return tex(c, { aniso: 8 });
+  }
+  // ball badge on the left, the name beside it
+  const cx = 0.25 * s + r;
+  g.lineWidth = 0.025 * s;
+  g.strokeStyle = '#14264e';
+  g.fillStyle = b.bg;
+  g.beginPath();
+  g.arc(cx, cy, r, 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+  g.save();
+  g.beginPath();
+  g.arc(cx, cy, r, 0, Math.PI * 2);
+  g.clip();
+  if (kind === 'hoop') {
+    g.lineWidth = 0.02 * s;
+    g.beginPath();
+    g.moveTo(cx, cy - r);
+    g.lineTo(cx, cy + r);
+    g.moveTo(cx - r, cy);
+    g.lineTo(cx + r, cy);
+    g.moveTo(cx - r * 0.7, cy - r * 0.75);
+    g.quadraticCurveTo(cx - r * 0.25, cy, cx - r * 0.7, cy + r * 0.75);
+    g.moveTo(cx + r * 0.7, cy - r * 0.75);
+    g.quadraticCurveTo(cx + r * 0.25, cy, cx + r * 0.7, cy + r * 0.75);
+    g.stroke();
+  } else if (kind === 'pickle') {
+    g.fillStyle = '#14264e';
+    for (const [dx, dy] of [[0, -0.55], [-0.42, -0.25], [0.42, -0.25], [0, 0], [-0.42, 0.25], [0.42, 0.25], [0, 0.55]]) {
+      g.beginPath();
+      g.arc(cx + dx * r, cy + dy * r, r * 0.13, 0, Math.PI * 2);
+      g.fill();
+    }
+  } else {
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = r * 0.16;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.arc(cx, cy, r * 0.62, Math.PI * 1.05, Math.PI * 1.45);
+    g.stroke();
+  }
+  g.restore();
+  word(cx + r + 0.18 * s);
+  return tex(c, { aniso: 8 });
+}
+
 // a painted panel laid over a face; normal is '+x' | '-x' | '+z' | '-z'
 function facePanel(w, h, base, draw, { ribs = true, s = 200 } = {}) {
   const c = canvas(Math.round(w * s), Math.round(h * s));
@@ -223,7 +305,7 @@ function endWallShape(notches, flip) {
   return geo;
 }
 
-function endWallTexture(kind, art, name = 'HOOP HUB') {
+function endWallTexture(kind, art, name = 'HOOP HUB', plain = false) {
   // navy up to about 6 m with the gold stripe low down, white fabric above; artwork in the wall's own
   // left-to-right as seen from that side. Returns the map and a mask of the fabric that glows at night.
   const s = 110;
@@ -234,10 +316,20 @@ function endWallTexture(kind, art, name = 'HOOP HUB') {
   const X = (x) => x + HALF; // wall x (-9..9) to panel metres
   g.fillStyle = '#f4f5f6';
   g.fillRect(0, 0, c.width, c.height);
+  // the arena look raises the navy so the name sits on it with room above the roller door
+  const navyTo = plain ? 6.8 : HUB.navyTo;
   g.fillStyle = COL.navy;
-  g.fillRect(0, (H - HUB.navyTo) * s, c.width, HUB.navyTo * s);
-  stripe(g, s, W, H, COL.gold);
-  if (kind === 'entrance-out') {
+  g.fillRect(0, (H - navyTo) * s, c.width, navyTo * s);
+  // arena look: arena boards run along the bottom inside, so the inner walls lose the stripe and the logos;
+  // the only sign is the name, over the door outside and above the main hoop inside
+  if (!(plain && kind.endsWith('-in'))) stripe(g, s, W, H, COL.gold);
+  if (plain) {
+    if (kind === 'entrance-out') {
+      drawText(g, s, H, name, X(0), 6.05, 1.0, COL.gold, 6.4);
+      drawText(g, s, H, 'YOUR HOME COURT', X(0), 5.32, 0.32, '#ffffff', 4);
+    }
+    if (kind === 'slam-in') drawText(g, s, H, name, X(0), 5.4, 0.72, '#ffffff', 5.6);
+  } else if (kind === 'entrance-out') {
     // HOOP HUB above the door, a logo either side
     drawText(g, s, H, name, X(0), 5.5, 1.05, COL.gold, 6.4);
     drawImg(g, s, H, art.logo, X(-6.0), 3.3, 3.0);
@@ -260,7 +352,7 @@ function endWallTexture(kind, art, name = 'HOOP HUB') {
   mg.fillStyle = '#000';
   mg.fillRect(0, 0, 64, m.height);
   mg.fillStyle = '#fff';
-  mg.fillRect(0, 0, 64, (H - HUB.navyTo) * 8);
+  mg.fillRect(0, 0, 64, (H - navyTo) * 8);
   return { map: tex(c, { aniso: 16 }), glow: tex(m) };
 }
 
@@ -822,9 +914,9 @@ export const FULL_BUILD = {
 // layout 'reception': the 40 ft reception on the left (Final Concept). layout 'storage': two 20 ft storage
 // containers on each side, navy at the main hoop end and gold at the entrance end (Covered Concept)
 // runoff: the run-off tile colour
-// name: the name on the building ('HEROES HUB' for the Covered Concept); roofs: one colour for every container
+// name: the name on the building ('HEROES ARENA' for the Covered Concept); roofs: one colour for every container
 // roof, or each container's own colour when unset
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false, span = 0 } = {}) {
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false, span = 0, arena = false } = {}) {
   setSpan(span);
   shiftHub(shift);
   const storage = layout === 'storage';
@@ -932,7 +1024,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     c.getContext('2d').drawImage(art.logo, 0, 0, 600, 290);
     padLogoTex = tex(c);
   }
-  // in a narrowed hub the mini hoop bases are drawn short so they fit the side run-off (Heroes Hub at 17 m)
+  // in a narrowed hub the mini hoop bases are drawn short so they fit the side run-off (Heroes Arena at 17 m)
   const rimLocal = 0.32 + 0.151 + 0.2286; // PortableHoop board face + rim offset, as in scene.js
   const miniBase = HALF < 9 ? Math.min(1.45, HALF - 0.04 - (DIM.W / 2 - 0.6 + rimLocal)) : undefined;
   const hoops = [new PortableHoop(art.roundNavy, miniBase), new PortableHoop(art.roundNavy, miniBase)];
@@ -990,6 +1082,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     // container 3 is navy outside like the rest, gold on the court side and roof (Jamie, 22 Oct 2026)
     c3: { base: COL.navy, courtBase: COL.gold, outer: bigSide(art.logo, COL.gold), endFront: badge(art.roundWhite, COL.gold), court: courtLogo(art.logoWhiteNavy, COL.navy) },
   };
+  if (arena) {
+    // arena look: plain containers with the gold stripe outside; the boards inside carry the brands
+    const plainSide = (g, s, w, h) => stripe(g, s, w, h + 0.16, COL.gold);
+    brand.c2 = { base: COL.navy, outer: plainSide, court: () => {} };
+    brand.c3 = { base: COL.navy, courtBase: COL.gold, outer: plainSide, court: () => {} };
+  }
   // containers: 40 ft reception left (or two more storage containers), 20 ft navy and gold storage right, each
   // storage container with a 2.3 m roller shutter at its corner end, well clear of the portable hoops
   const storeUnit = (side, gold, b, kit) => {
@@ -1111,10 +1209,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
   const { w: rw, h: rh } = HUB.roller;
   const rollerNotch = [-rw / 2, rw / 2, rh];
-  const tEntranceOut = endWallTexture('entrance-out', art, name);
-  const tEntranceIn = endWallTexture('entrance-in', art, name);
-  const tSlamIn = endWallTexture('slam-in', art, name);
-  const tSlamOut = endWallTexture('slam-out', art, name);
+  const tEntranceOut = endWallTexture('entrance-out', art, name, arena);
+  const tEntranceIn = endWallTexture('entrance-in', art, name, arena);
+  const tSlamIn = endWallTexture('slam-in', art, name, arena);
+  const tSlamOut = endWallTexture('slam-out', art, name, arena);
   const entranceWalls = [wallFace(HUB.z1 + 0.005, 1, [rollerNotch], tEntranceOut), wallFace(HUB.z1 - 0.005, -1, [rollerNotch], tEntranceIn)];
   const fe1Notch = [HUB.fe1.x0, HUB.fe1.x1, HUB.fe1.h];
   const slamWalls = [wallFace(HUB.z0 + 0.005, 1, [fe1Notch], tSlamIn), wallFace(HUB.z0 - 0.005, -1, [fe1Notch], tSlamOut)];
@@ -1154,6 +1252,40 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     benches.add(shadowed(bn));
   }
   enclosure.add(benches);
+
+  // arena boards: low, bright brand boards along the container court sides and both end walls
+  const boards = new THREE.Group();
+  if (arena) {
+    const BH = 0.9;
+    const order = ['hoop', 'pickle', 'dodge', 'arena'];
+    let n = 0;
+    const board = (w, x, z, rotY) => {
+      const kind = order[n++ % order.length];
+      const grp = new THREE.Group();
+      grp.add(box(w + 0.04, BH + 0.04, 0.03, std(COL.navy, { roughness: 0.6 }), 0, 0, -0.016));
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(w, BH), std('#ffffff', { map: boardTexture(kind, w, BH), roughness: 0.55 }));
+      face.receiveShadow = true;
+      grp.add(face);
+      grp.position.set(x, 0.08 + BH / 2, z);
+      grp.rotation.y = rotY;
+      boards.add(grp);
+    };
+    // container court sides: the solid stretch of each container, away from its shutter
+    for (const side of [-1, 1])
+      for (const gold of [false, true]) {
+        const { z0, z1 } = gold ? HUB.schoolStore : HUB.hhStore;
+        const [a, b] = gold ? [z0 + 0.12, z1 - 2.46 - 0.12] : [z0 + 2.46 + 0.12, z1 - 0.12];
+        board(b - a, side * (HALF - 0.04), (a + b) / 2, (-side * Math.PI) / 2);
+      }
+    // end walls: clear of the main hoop, the fire exit and the roller door
+    const slam = [[-HALF + 0.12, -4.75], [-4.6, -0.75], [0.75, HUB.fe1.x0 - 0.15], [HUB.fe1.x1 + 0.15, HALF - 0.12]];
+    for (const [a, b] of slam) board(b - a, (a + b) / 2, HUB.z0 + 0.05, 0);
+    const rw = HUB.roller.w / 2 + 0.35;
+    const mid = (-HALF + 0.12 - rw) / 2;
+    const ent = [[-HALF + 0.12, mid - 0.08], [mid + 0.08, -rw], [rw, -mid - 0.08], [-mid + 0.08, HALF - 0.12]];
+    for (const [a, b] of ent) board(b - a, (a + b) / 2, HUB.z1 - 0.05, Math.PI);
+    enclosure.add(boards);
+  }
 
   // sports kit: three children's nets across the middle for pickleball and badminton, and foam balls on the
   // halfway line for dodgeball; each set out only for its sport
@@ -1306,6 +1438,9 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       }
     });
   };
+  // the main hoop's way into the navy container at its end, for the other sports (arena look)
+  const awayPath = curve([[0, 0], [0.6, 1.8], [3.5, 1.5], [HALF - 1.8, 0.4], [HALF - 0.15, 0.25]]);
+  const awayAt = new THREE.Vector3();
   const floorFrom = new THREE.Vector3(HALF + 0.4, 1.0, 0.2); // out of storage 1's shutter
   const mainPath = curve([[1.6, 22], [0.9, 13.5], [0.3, 5], [0, 0]]);
   const applyFloor = (t) => {
@@ -1365,6 +1500,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     for (const sgn of exitSigns) sgn.visible = t >= B.doors;
     for (const l of lamps) l.group.visible = l.group.visible && t >= B.fit;
     benches.visible = t >= B.benches;
+    boards.visible = t >= B.fit; // fitted with the lights, once the walls are in
     if (building) {
       roller.set(ease((t - B.rollerUp) / 2.0));
       units.hhStore.setDoors(ease((t - B.shutters[0]) / 1.6));
@@ -1419,7 +1555,17 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
         b.visible = u > 0;
         b.position.set(0, 0.115 + 2.4 * (1 - land(u)), b.userData.z);
       });
-      if (state.mainLowT > 0) megaSlam.setHeight(THREE.MathUtils.lerp(state.rimFt * FT, 7.5 * FT, ease(state.mainLowT)));
+      if (arena) {
+        // other sports: lowered, folded, then wheeled into the navy container (mainLowT 0 to 1)
+        const a = state.mainLowT;
+        const k = (lo, hi) => ease(THREE.MathUtils.clamp((a - lo) / (hi - lo), 0, 1));
+        megaSlam.setHeight(THREE.MathUtils.lerp(state.rimFt * FT, 7.5 * FT, k(0, 0.2)));
+        megaSlam.setFold(k(0.2, 0.4));
+        awayPath.getPoint(k(0.4, 1), awayAt);
+        megaSlam.group.position.set(awayAt.x, 0, awayAt.z);
+        megaSlam.group.rotation.y = (-Math.PI / 2) * k(0.45, 0.75);
+        megaSlam.group.visible = a < 0.96; // out of sight once it's in the container
+      } else if (state.mainLowT > 0) megaSlam.setHeight(THREE.MathUtils.lerp(state.rimFt * FT, 7.5 * FT, ease(state.mainLowT)));
     } else {
       nets.visible = false;
       for (const b of balls) b.visible = false;

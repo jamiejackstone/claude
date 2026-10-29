@@ -83,7 +83,7 @@ export async function startViewer({ builders, navTools = false }) {
   const nightBtn = document.createElement('button');
   nightBtn.textContent = 'Night';
   nightBtn.onclick = () => active?.night?.();
-  // Inside: where the phase has it (Heroes Hub), flies the camera in through the door and back out
+  // Inside: where the phase has it (Heroes Arena), flies the camera in through the door and back out
   const insideBtn = document.createElement('button');
   insideBtn.textContent = 'Inside';
   insideBtn.onclick = () => active?.insideOut?.();

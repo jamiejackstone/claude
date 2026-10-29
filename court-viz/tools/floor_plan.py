@@ -1,4 +1,4 @@
-"""Draw the Heroes Hub (covered Hoop Hub) floor markings plans for floor tile suppliers: A3 landscape SVGs at 1:75, dimensioned.
+"""Draw the Heroes Arena (covered Hoop Hub) floor markings plans for floor tile suppliers: A3 landscape SVGs at 1:75, dimensioned.
 
 Usage: python3 tools/floor_plan.py --out renders/floor
 Then: node tools/floor_plan.mjs renders/floor   (PDFs and PNGs from the SVGs)
@@ -307,7 +307,7 @@ def build(variant):
     s.dim(X(W / 2 - 0.6), Y(6.6), X(W / 2), Y(6.6), "0.60", size=1.9)
 
     # ---------------------------------------------------------------- title, notes, legend
-    title = "HEROES HUB · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "") + ("" if keys else " · NO KEY FILL")
+    title = "HEROES ARENA · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "") + ("" if keys else " · NO KEY FILL")
     s.text(OX - 6, 20, title, size=9, color=NAVY, anchor="start", family="Lilita One", weight="400")
     s.text(OX - 6, 28, "Example for floor tile suppliers · covered hub floor · scale 1:75 at A3 · dimensions in metres", size=3.4, color=INK, anchor="start")
     sub = (
@@ -373,7 +373,7 @@ def build(variant):
 
     # concept label
     s.add(f'<rect x="{OX - 6:.2f}" y="275" width="52" height="9" rx="1.5" fill="{NAVY}"/>')
-    s.text(OX - 6 + 26, 281.2, "CONCEPT - HEROES HUB", size=3.2, color=WHITE)
+    s.text(OX - 6 + 26, 281.2, "CONCEPT - HEROES ARENA", size=3.2, color=WHITE)
     s.text(410, 281.2, "Concept only · confirm all dimensions on site", size=2.6, color=INK, anchor="end", weight="400")
 
     fonts = (
@@ -395,10 +395,10 @@ if __name__ == "__main__":
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     for variant, name in (
-        ("basketball", "Heroes Hub floor markings plan"),
-        ("multi-sport", "Heroes Hub floor markings plan - multi-sport"),
-        ("multi-sport-3x3", "Heroes Hub floor markings plan - multi-sport with 3x3"),
-        ("multi-sport-3x3-no-keys", "Heroes Hub floor markings plan - multi-sport with 3x3, no key fill"),
+        ("basketball", "Heroes Arena floor markings plan"),
+        ("multi-sport", "Heroes Arena floor markings plan - multi-sport"),
+        ("multi-sport-3x3", "Heroes Arena floor markings plan - multi-sport with 3x3"),
+        ("multi-sport-3x3-no-keys", "Heroes Arena floor markings plan - multi-sport with 3x3, no key fill"),
     ):
         f = out / f"{name}.svg"
         f.write_text(build(variant))

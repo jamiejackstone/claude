@@ -25,7 +25,7 @@ const inlineAssets = {
 
 const VERSIONS = [
   { shell: 'hub.html', entry: 'viewer/main.js', out: 'dist-final/', name: 'Hoop Hub Final Concept' },
-  { shell: 'covered.html', entry: 'viewer/covered.js', out: 'dist-covered/', name: 'Heroes Hub Concept' },
+  { shell: 'covered.html', entry: 'viewer/covered.js', out: 'dist-covered/', name: 'Heroes Arena Concept' },
 ];
 for (const v of VERSIONS) {
   const out = await build({
