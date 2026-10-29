@@ -21,6 +21,7 @@ NAVY, GOLD, WHITE = "#14264e", "#fba91a", "#ffffff"
 COURT, KEY, INK, PAPER = "#6e7276", "#a7a9ac", "#334155", "#ffffff"
 HOOP = "#e0531f"
 BLUE = "#2f9bdc"  # racket lines in the multi-sport version
+RED, GREEN = "#e63950", "#9bd13b"  # brand-colour test: dodgeball red, pickleball green, to match the arena boards
 
 # floor: 17.0 m between the container faces x 12.19 m between the end walls; court 14.8 x 10 m, centred
 FX, FZ0, FZ1 = 8.5, -1.095, 11.095
@@ -146,9 +147,11 @@ MULTI_SUPPLIER = [
 
 
 def build(variant):
+    brand = variant.endswith("-brand")
+    DODGE, RACKET = (RED, GREEN) if brand else (GOLD, BLUE)
     multi = variant.startswith("multi-sport")
     with3 = variant.startswith("multi-sport-3x3")  # the multi-sport floor with the 3x3 key and three-point line back
-    keys = not variant.endswith("no-keys")  # light grey key fills (a comparison sheet leaves them out)
+    keys = "no-keys" not in variant  # light grey key fills (a comparison sheet leaves them out)
     s = Sheet()
     hw, gw = WHITE_W / 2, GOLD_W / 2
     # floor: run-off and court in the same grey, keys lighter
@@ -214,7 +217,7 @@ def build(variant):
     else:
         # dodgeball (gold): the mini court's boundary with a halfway line between the two 14.8 m sides, giving
         # two 7.40 x 10.00 m halves; it also serves as the middle racket court's centre line
-        s.line(0, gw, 0, L - gw, GOLD, GOLD_W)
+        s.line(0, gw, 0, L - gw, DODGE, GOLD_W)
         if with3:
             # 3x3 key and three-point line in gold too, lines only, measured from the gold boundary as the baseline
             hw = gw
@@ -237,12 +240,12 @@ def build(variant):
         # nets across the middle (z 5.0), service lines 1.80 m either side, centre lines to the ends
         rb = RACKET_EDGE
         for x in (-RACKET_X, RACKET_X):
-            s.line(x, rb, x, L - rb, BLUE, RACKET_W)
+            s.line(x, rb, x, L - rb, RACKET, RACKET_W)
         for zc in (5.0 - RACKET_SERVICE, 5.0 + RACKET_SERVICE):
-            s.line(-W / 2 + rb, zc, W / 2 - rb, zc, BLUE, RACKET_W)
+            s.line(-W / 2 + rb, zc, W / 2 - rb, zc, RACKET, RACKET_W)
         for x in (-RACKET_MID, RACKET_MID):
-            s.line(x, rb, x, 5.0 - RACKET_SERVICE, BLUE, RACKET_W)
-            s.line(x, 5.0 + RACKET_SERVICE, x, L - rb, BLUE, RACKET_W)
+            s.line(x, rb, x, 5.0 - RACKET_SERVICE, RACKET, RACKET_W)
+            s.line(x, 5.0 + RACKET_SERVICE, x, L - rb, RACKET, RACKET_W)
         # portable nets and their posts, for reference (not markings)
         s.line(-W / 2 + rb, 5.0, W / 2 - rb, 5.0, "#0f172a", 0.02, extra='stroke-dasharray="1.6 0.9"')
         for x in (-W / 2 + rb, -RACKET_X, RACKET_X, W / 2 - rb):
@@ -307,7 +310,7 @@ def build(variant):
     s.dim(X(W / 2 - 0.6), Y(6.6), X(W / 2), Y(6.6), "0.60", size=1.9)
 
     # ---------------------------------------------------------------- title, notes, legend
-    title = "HEROES ARENA · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "") + ("" if keys else " · NO KEY FILL")
+    title = "HEROES ARENA · FLOOR MARKINGS · BRAND COLOURS TEST" if brand else "HEROES ARENA · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "") + ("" if keys else " · NO KEY FILL") 
     s.text(OX - 6, 20, title, size=9, color=NAVY, anchor="start", family="Lilita One", weight="400")
     s.text(OX - 6, 28, "Example for floor tile suppliers · covered hub floor · scale 1:75 at A3 · dimensions in metres", size=3.4, color=INK, anchor="start")
     sub = (
@@ -323,8 +326,10 @@ def build(variant):
         (COURT, "Court and run-off tiles", "mid grey · #6e7276"),
     ] + ([(KEY, "Keys (3x3 and both mini)" if with3 else "Mini court keys" if multi else "Keys (3x3 and both mini)", "light grey · #a7a9ac")] if keys else []) + [
     ] + ([] if multi else [(WHITE, "3x3 lines", "white · 50 mm wide")]) + [
-        (GOLD, ("Basketball (mini and 3x3) and dodgeball" if with3 else "Mini basketball and dodgeball") if multi else "Mini court lines", "Hoop Heroes gold · #fba91a · 40 mm wide"),
-    ] + ([(BLUE, "Pickleball / badminton", "blue · #2f9bdc · 40 mm wide")] if multi else [])
+        (GOLD, ("Basketball (mini and 3x3)" + ("" if brand else " and dodgeball") if with3 else "Mini basketball" + ("" if brand else " and dodgeball")) if multi else "Mini court lines", "Hoop Heroes gold · #fba91a · 40 mm wide"),
+    ] + ([(RED, "Dodgeball halfway line", "Dodge Heroes red · #e63950 · 40 mm wide")] if brand else []) + (
+        [(GREEN, "Pickleball / badminton", "Pickle Heroes green · #9bd13b · 40 mm wide")] if brand else [(BLUE, "Pickleball / badminton", "blue · #2f9bdc · 40 mm wide")] if multi else []
+    )
     for i, (col, a, b2) in enumerate(rows):
         y = ny + 7 + i * 9
         s.add(f'<rect x="{nx:.2f}" y="{y - 4:.2f}" width="7" height="5.5" rx="1" fill="{col}" stroke="#94a3b8" stroke-width="0.25"/>')
@@ -348,6 +353,8 @@ def build(variant):
         "Logo: Hoop Heroes, about 3.0 x 1.4 m, open end,",
         "left of centre (artwork to be supplied).",
     ]
+    if brand:
+        notes = [n.replace("Dodgeball (gold)", "Dodgeball (red halfway line)").replace("badminton (blue)", "badminton (green)").replace("gold halfway line", "red halfway line") for n in notes]
     if not keys:
         notes = [n.replace(" filled light grey", " (lines only)").replace("Keys 2.75 x 2.50 m,", "Keys 2.75 x 2.50 m (lines only),") for n in notes]
     for i, t in enumerate(notes):
@@ -399,6 +406,7 @@ if __name__ == "__main__":
         ("multi-sport", "Heroes Arena floor markings plan - multi-sport"),
         ("multi-sport-3x3", "Heroes Arena floor markings plan - multi-sport with 3x3"),
         ("multi-sport-3x3-no-keys", "Heroes Arena floor markings plan - multi-sport with 3x3, no key fill"),
+        ("multi-sport-3x3-no-keys-brand", "Heroes Arena floor markings plan - brand colours test"),
     ):
         f = out / f"{name}.svg"
         f.write_text(build(variant))

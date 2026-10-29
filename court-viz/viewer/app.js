@@ -77,6 +77,14 @@ export async function startViewer({ builders, navTools = false }) {
     b.onclick = () => active?.setSport(name);
     return b;
   });
+  // basketball layouts, where the phase has them: shown beside the Hoops slider while basketball is on
+  const courtBtns = [['mini', 'Mini court'], ['3x3', '3x3']].map(([name, label]) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.dataset.court = name;
+    b.onclick = () => active?.setCourt?.(name);
+    return b;
+  });
   const installBtn = document.createElement('button');
   installBtn.onclick = () => active?.install();
   // Night: Phase 2 only, the hub lit up with the canopy glowing
@@ -88,6 +96,8 @@ export async function startViewer({ builders, navTools = false }) {
   insideBtn.textContent = 'Inside';
   insideBtn.onclick = () => active?.insideOut?.();
   bar.append(hoopsBtn, ...sportBtns, installBtn, nightBtn, insideBtn);
+  // the court buttons sit just before the Hoops slider
+  $('rim').closest('label')?.before(...courtBtns);
 
   // captions over the scene: the installation steps with their time estimates
   let captionKey = '';
@@ -131,6 +141,15 @@ export async function startViewer({ builders, navTools = false }) {
       nightBtn.setAttribute('aria-pressed', String(!!s.night));
       installBtn.classList.toggle('on', s.installing);
       installBtn.setAttribute('aria-pressed', String(s.installing));
+      // the hoop height and the court layout only matter for basketball
+      const rimWrap = $('rim').closest('label');
+      const ball = !active.sports || s.sport === 'basketball';
+      if (rimWrap) rimWrap.hidden = !ball;
+      for (const b of courtBtns) {
+        b.hidden = !active.courts || !ball;
+        b.classList.toggle('on', s.court === b.dataset.court);
+        b.setAttribute('aria-pressed', String(s.court === b.dataset.court));
+      }
       $('rim').value = s.rimFt;
       $('rimv').textContent = `${s.rimFt} ft`;
       $('hint').textContent = active.hint;

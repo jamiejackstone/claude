@@ -98,11 +98,11 @@ function stripe(g, s, W, H, color) {
   g.fillStyle = color;
   g.fillRect(0, (H - 0.67) * s, W * s, 0.25 * s);
 }
-// arena boards: one bright board per brand in the Heroes family, sport colour, ball badge and name
+// arena boards: one bright board per sport (sport colour, ball badge, sport name) plus the Heroes Arena board
 const BOARD = {
-  hoop: { bg: '#fba91a', ink: '#14264e', word: 'HOOP HEROES' },
-  pickle: { bg: '#9bd13b', ink: '#14264e', word: 'PICKLE HEROES' },
-  dodge: { bg: '#e63950', ink: '#ffffff', word: 'DODGE HEROES' },
+  hoop: { bg: '#fba91a', ink: '#14264e', word: 'BASKETBALL' },
+  pickle: { bg: '#9bd13b', ink: '#14264e', word: 'PICKLEBALL' },
+  dodge: { bg: '#e63950', ink: '#ffffff', word: 'DODGEBALL' },
   arena: { bg: '#14264e', ink: '#ffffff', word: 'HEROES ARENA' },
 };
 function boardTexture(kind, w, h) {
@@ -449,7 +449,7 @@ class Unit {
       g.add(box(0.16, 0.16, len, frame, x, ch - 0.08, cz));
       g.add(box(0.16, 0.16, len, frame, x, 0.08, cz));
     }
-    if (glazed) this.glaze(z0, z1, faceX, side, brand.art ?? {});
+    if (glazed) this.glaze(z0, z1, faceX, side, brand.art ?? {}, brand.welcome);
     else {
       // court side: ribbed steel with one roller shutter at the corner end, rolling up inside
       const [da, db] = door;
@@ -466,7 +466,7 @@ class Unit {
       g.add(box(cw - 0.3, ch - 0.3, len - 0.3, std('#9ba1a8', { roughness: 0.9, side: THREE.BackSide }), cx, ch / 2, cz));
       g.add(box(cw - 0.32, 0.02, len - 0.32, std('#8a7458', { roughness: 0.85 }), cx, 0.13, cz));
       for (const [i, k] of [0.27, 0.73].entries()) {
-        const r = { balls: ballRack, dodgeball: dodgeCart, rackets: racketShelf }[kit[i]]();
+        const r = { balls: ballRack, dodgeball: dodgeCart, rackets: racketShelf, wheelchairs: sportsChair }[kit[i]]();
         r.rotation.y = Math.PI / 2;
         r.position.set(outerX - side * 0.42, 0.14, da + sw * k);
         g.add(r);
@@ -530,7 +530,7 @@ class Unit {
     this.curtain.visible = open < 0.999;
   }
 
-  glaze(z0, z1, faceX, side, art) {
+  glaze(z0, z1, faceX, side, art, welcome = null) {
     // reception: container wall up to the sill on the court side with windows above and a glazed door onto
     // the court; the public entrance is a door in the outside wall (Jamie, 22 Oct 2026)
     const g = this.group;
@@ -588,14 +588,40 @@ class Unit {
     this.ceil = ceil;
     const wcX0 = outerX - side * 0.06;
     const wcX1 = side * (HALF + 0.65);
+    if (welcome) {
+      // accessible WC across the whole end of the container: 2.3 x 1.6 m, more than the usual 2.2 x 1.5 m,
+      // a 1 m door by the glazing side, grab rails, and frosted glass where it meets the windows
+      const wz = z0 + 1.6;
+      const xIn = faceX + side * 0.06;
+      const doorA = xIn + side * 0.1;
+      const doorB = doorA + side * 1.0;
+      const wcMat = std('#d9dbe0', { roughness: 0.7 });
+      g.add(box(Math.abs(wcX0 - doorB), 2.3, 0.06, wcMat, (wcX0 + doorB) / 2, 1.27, wz));
+      g.add(box(Math.abs(doorA - xIn), 2.3, 0.06, wcMat, (doorA + xIn) / 2, 1.27, wz));
+      g.add(box(1.0, 0.25, 0.06, wcMat, (doorA + doorB) / 2, 2.27, wz));
+      const leaf = box(0.96, 2.0, 0.04, std('#c9ced6', { roughness: 0.6 }), (doorA + doorB) / 2, 1.13, wz + 0.01);
+      g.add(leaf);
+      g.add(box(0.02, 1.9, wz - z0, std('#e8ecf1', { roughness: 0.2, transparent: true, opacity: 0.92 }), faceX + side * 0.09, 1.3, (z0 + wz) / 2));
+      for (const y of [0.75, 0.9]) g.add(box(0.04, 0.04, 0.9, std('#c9ccd0', { metalness: 0.8, roughness: 0.3 }), wcX0 - side * 0.05, y, z0 + 0.6));
+      const wcSign = facePanel(0.62, 0.3, '#ffffff', (cg, s2, w, h) => drawText(cg, s2, h, 'ACCESSIBLE WC', w / 2, h / 2, 0.11, COL.navy, w - 0.08), { ribs: false });
+      g.add(place(wcSign, '+z', (doorA + doorB) / 2, 1.75, wz + 0.04));
+    }
     const wc = new THREE.Group();
+    wc.visible = !welcome;
     const wcMat = std('#d9dbe0', { roughness: 0.7 });
     wc.add(box(Math.abs(wcX1 - wcX0), 2.3, 0.05, wcMat, (wcX0 + wcX1) / 2, 1.27, 0.75));
     wc.add(box(0.05, 2.3, 0.75 - z0, wcMat, wcX1, 1.27, (z0 + 0.75) / 2));
     wc.add(box(0.03, 2.0, 0.75, std('#bfc3ca', { roughness: 0.6 }), wcX1 - side * 0.03, 1.13, 0.0));
     g.add(wc);
     const wcSign = facePanel(0.3, 0.3, '#ffffff', (cg, s2, w, h) => drawText(cg, s2, h, 'WC', w / 2, h / 2, 0.16, COL.navy, 0.26), { ribs: false });
+    wcSign.visible = !welcome;
     g.add(place(wcSign, court, wcX1 - side * 0.05, 1.55, 0));
+    if (welcome) {
+      // a low threshold ramp from the court to the glazed door, so a wheelchair can roll between the two
+      const tr = box(0.5, 0.03, d1 - d0 + 0.2, std('#2b2f35', { roughness: 0.6, metalness: 0.4 }), faceX - side * 0.25, 0.06, (d0 + d1) / 2);
+      tr.rotation.z = side * Math.atan(0.12 / 0.5);
+      g.add(tr);
+    }
     const chairMat = std(COL.navy, { roughness: 0.6 });
     for (const z of [1.6, 2.15, 2.7, 3.25]) {
       g.add(box(0.46, 0.06, 0.46, chairMat, outerX - side * 0.4, 0.58, z));
@@ -603,12 +629,58 @@ class Unit {
       g.add(box(0.4, 0.44, 0.04, std('#2a2d31', { metalness: 0.6 }), outerX - side * 0.4, 0.34, z));
     }
     const dz = 9.2;
-    g.add(box(0.7, 0.04, 1.8, std(COL.gold, { roughness: 0.5 }), outerX - side * 0.5, 0.86, dz));
-    g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz - 0.85));
-    g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz + 0.85));
+    if (welcome) {
+      // check-in counter just inside the entrance, like a small gym: navy front, gold top, a tablet to sign in
+      const cw2 = 0.62;
+      const cxc = outerX - side * (0.12 + cw2 / 2);
+      g.add(box(cw2, 1.0, 1.7, std(COL.navy, { roughness: 0.55 }), cxc, 0.62, dz));
+      g.add(box(cw2 + 0.08, 0.05, 1.78, std(COL.gold, { roughness: 0.4 }), cxc, 1.145, dz));
+      const front = facePanel(1.5, 0.5, null, (cg, s2, w, h) => drawText(cg, s2, h, 'CHECK IN HERE', w / 2, h / 2, 0.2, '#ffffff', w - 0.1), { ribs: false });
+      g.add(place(front, court, cxc - side * (cw2 / 2 + 0.005), 0.72, dz));
+      const tablet = box(0.03, 0.2, 0.28, std('#1b1f27', { roughness: 0.3, metalness: 0.4 }), cxc - side * 0.1, 1.27, dz + 0.3);
+      tablet.rotation.z = side * 0.35;
+      g.add(tablet);
+      // screen on the WC wall, facing the seats: today's sessions
+      const wcMid = outerX - side * 0.7;
+      const screen = facePanel(0.95, 0.55, '#0d1a38', (cg, s2, w, h) => {
+        drawText(cg, s2, h, welcome, w / 2, h - 0.1, 0.09, COL.gold, w - 0.2);
+        const rows = [['4:00', 'Basketball · Rookies'], ['5:00', 'Pickleball · Rising Stars'], ['6:15', 'Dodgeball · Ballers']];
+        rows.forEach(([t, n], i) => {
+          drawText(cg, s2, h, t, 0.12, h - 0.24 - i * 0.1, 0.055, '#ffffff', 0.2);
+          drawText(cg, s2, h, n, 0.56, h - 0.24 - i * 0.1, 0.055, '#d6dcea', 0.68);
+        });
+      }, { ribs: false });
+      const sz = z0 + 1.6 + 0.05;
+      g.add(box(1.0, 0.6, 0.04, std('#16181b', { roughness: 0.3, metalness: 0.4 }), wcMid, 1.65, sz));
+      g.add(place(screen, '+z', wcMid, 1.65, sz + 0.025));
+      // welcome sign above the seats, facing the court
+      const hello = facePanel(2.4, 0.34, null, (cg, s2, w, h) => drawText(cg, s2, h, `WELCOME TO ${welcome}`, w / 2, h / 2, 0.2, COL.navy, w - 0.1), { ribs: false });
+      g.add(place(hello, court, outerX - side * 0.08, 1.95, 2.45));
+      // feature wall: navy below, the three sport colours as a band, along the long outer wall
+      const fz0 = 0.85;
+      const fz1 = z1 - 0.2;
+      const fx = outerX - side * 0.078;
+      g.add(box(0.012, 1.0, fz1 - fz0, std(COL.navy, { roughness: 0.6 }), fx, 0.63, (fz0 + fz1) / 2));
+      ['#fba91a', '#9bd13b', '#e63950'].forEach((col, i) => {
+        const len = (fz1 - fz0) / 3;
+        g.add(box(0.014, 0.07, len, std(col, { roughness: 0.5 }), fx, 1.17, fz0 + len * (i + 0.5)));
+      });
+      // a couple of plants
+      for (const z of [4.4, 7.6]) {
+        g.add(box(0.34, 0.42, 0.34, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.32, 0.33, z));
+        const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(0.32, 1), std('#3f8a3a', { roughness: 0.8, flatShading: true }));
+        leaves.position.set(outerX - side * 0.32, 0.86, z);
+        leaves.castShadow = true;
+        g.add(leaves);
+      }
+    } else {
+      g.add(box(0.7, 0.04, 1.8, std(COL.gold, { roughness: 0.5 }), outerX - side * 0.5, 0.86, dz));
+      g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz - 0.85));
+      g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz + 0.85));
+    }
     g.add(box(0.22, 0.62, 0.6, std('#f6f6f6', { roughness: 0.4 }), faceX + side * 0.45, 0.47, 4.3));
     // the public entrance: a door in the front end, facing the playground, with a step and an ENTRANCE sign
-    const { x0: e0, x1: e1 } = HUB.entranceDoor;
+    const { x0: e0, x1: e1 } = welcome ? { x0: HUB.entranceDoor.x0 - 0.1, x1: HUB.entranceDoor.x1 + 0.1 } : HUB.entranceDoor;
     const door = new THREE.Group();
     const ew = e1 - e0;
     const leafMat = std('#e9ebee', { roughness: 0.45, metalness: 0.3 });
@@ -620,7 +692,18 @@ class Unit {
     door.add(box(0.04, 0.32, 0.04, std('#c9ccd0', { metalness: 0.9, roughness: 0.25 }), ew / 2 - 0.12, 1.1, 0.06));
     door.position.set((e0 + e1) / 2, 0, z1 + 0.03);
     g.add(door);
-    g.add(box(ew + 0.5, 0.11, 0.6, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.055, z1 + 0.3));
+    if (welcome) {
+      // a gentle ramp up to the door (about 1:12) with handrails, for wheelchair users and buggies
+      const rl = 1.6;
+      const ramp = box(ew + 0.5, 0.05, rl, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.075, z1 + rl / 2);
+      ramp.rotation.x = Math.atan(0.13 / rl);
+      g.add(ramp);
+      const rail = std('#c9ccd0', { metalness: 0.8, roughness: 0.3 });
+      for (const x of [e0 - 0.22, e1 + 0.22]) {
+        g.add(box(0.04, 0.04, rl, rail, x, 0.95, z1 + rl / 2));
+        for (const z of [z1 + 0.1, z1 + rl - 0.1]) g.add(box(0.04, 0.9, 0.04, rail, x, 0.5, z));
+      }
+    } else g.add(box(ew + 0.5, 0.11, 0.6, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.055, z1 + 0.3));
     const sign = facePanel(1.1, 0.26, COL.gold, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.17, COL.navy, w - 0.16), { ribs: false });
     g.add(place(sign, '+z', (e0 + e1) / 2, 2.41, z1 + 0.012));
     // ceiling lights inside the reception
@@ -668,6 +751,37 @@ function dodgeCart() {
         b.castShadow = true;
         grp.add(b);
       }
+  return grp;
+}
+function sportsChair() {
+  // a basketball wheelchair parked side-on: cambered wheels, low seat, small front casters
+  const grp = new THREE.Group();
+  const frame = std('#1b1f27', { roughness: 0.4, metalness: 0.6 });
+  const tyre = std('#0d0d0e', { roughness: 0.9 });
+  const rim = std('#c3c7cc', { roughness: 0.35, metalness: 0.7 });
+  grp.add(box(0.42, 0.05, 0.42, std(COL.navy, { roughness: 0.7 }), 0, 0.5, 0));
+  grp.add(box(0.42, 0.22, 0.04, std(COL.navy, { roughness: 0.7 }), 0, 0.66, -0.2));
+  grp.add(box(0.46, 0.03, 0.5, frame, 0, 0.44, 0.05));
+  for (const sx of [-1, 1]) {
+    const w = new THREE.Group();
+    const t = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.022, 10, 36), tyre);
+    const r = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.008, 6, 36), rim);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 12), rim);
+    hub.rotation.x = Math.PI / 2;
+    w.add(t, r, hub);
+    w.rotation.y = Math.PI / 2;
+    w.rotation.x = 0;
+    w.rotation.z = sx * 0.28; // camber
+    w.position.set(sx * 0.3, 0.3, -0.04);
+    grp.add(w);
+  }
+  for (const sx of [-1, 1]) {
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 12), tyre);
+    c.rotation.z = Math.PI / 2;
+    c.position.set(sx * 0.16, 0.035, 0.3);
+    grp.add(c);
+  }
+  grp.traverse((m) => m.isMesh && (m.castShadow = true));
   return grp;
 }
 function racketShelf() {
@@ -884,30 +998,31 @@ export const BUILD = {
   end: 35,
 };
 
-// the full installation for the covered-only version: containers delivered, floor laid out of storage 1,
-// hoops wheeled into place, then the canopy, end walls and fit-out
+// the full installation for the covered-only version, one stage a day: containers craned in and set to the span,
+// canopy over, end walls, then the floor laid under cover out of storage, fit-out, and the hoops out last
+// (Jamie, 29 Oct 2026)
 export const FULL_BUILD = {
   units: [0.8, 2.2, 3.6, 5.0],
   drop: 2.6,
-  shutters: [7.2, 20.6],
-  floor: 8.4,
+  rails: 7.2,
+  ribs: 7.6,
+  ribGap: 0.55,
+  fabric: 12.4,
+  fabricDur: 4.6,
+  wallsSlam: 18.0,
+  wallsEntrance: 19.2,
+  doors: 21.0,
+  rollerUp: 22.0,
+  shutters: [24.0, 40.0],
+  floor: 25.0,
   floorSpan: 11.6,
   flight: 0.9,
-  main: 21.0, // the portable main hoop wheeled in folded from the entrance end, then unfolded and raised
+  fit: 37.6,
+  benches: 38.4,
+  main: 40.6,
   mainTravel: 5.0,
-  hoops: 21.4,
+  hoops: 40.6, // the hoops come out of storage once everything else is done
   hoopTravel: 6.0,
-  rails: 28.2,
-  ribs: 28.6,
-  ribGap: 0.55,
-  fabric: 33.4,
-  fabricDur: 4.6,
-  wallsSlam: 38.6,
-  wallsEntrance: 39.8,
-  doors: 41.6,
-  fit: 43.8,
-  rollerUp: 43.8,
-  benches: 44.6,
   end: 50,
 };
 
@@ -1087,6 +1202,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     const plainSide = (g, s, w, h) => stripe(g, s, w, h + 0.16, COL.gold);
     brand.c2 = { base: COL.navy, outer: plainSide, court: () => {} };
     brand.c3 = { base: COL.navy, courtBase: COL.gold, outer: plainSide, court: () => {} };
+    // the entrance end kept clean, no QR panel (Jamie, 29 Oct 2026)
+    brand.reception = { base: COL.navy, art: {}, outer: plainSide, endFront: (g, s2, w, h) => stripe(g, s2, w, h + 0.16, COL.gold), welcome: name };
   }
   // containers: 40 ft reception left (or two more storage containers), 20 ft navy and gold storage right, each
   // storage container with a 2.3 m roller shutter at its corner end, well clear of the portable hoops
@@ -1120,8 +1237,9 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
           leftGold: storeUnit(-1, true, { ...brand.c3, endFront: qrPanel }, ['rackets', 'rackets']),
         }
       : { reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true, brand: brand.reception }) }),
-    hhStore: storeUnit(1, false, brand.c2),
-    schoolStore: storeUnit(1, true, brand.c3),
+    // with the reception on the left, the right-hand stores hold the other sports' kit too
+    hhStore: storeUnit(1, false, brand.c2, arena && !storage ? ['balls', 'dodgeball'] : undefined),
+    schoolStore: storeUnit(1, true, brand.c3, arena && !storage ? ['wheelchairs', 'rackets'] : undefined),
   };
   for (const un of Object.values(units)) scene.add(un.group);
 
@@ -1243,9 +1361,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
 
   // parents' benches along the reception windows, or with storage either side of the roller door
   const benches = new THREE.Group();
-  for (const [a, b] of storage ? HUB.storageBenches : HUB.benches) {
+  const doorBenches = storage || arena;
+  for (const [a, b] of doorBenches ? HUB.storageBenches : HUB.benches) {
     const bn = bench();
-    if (storage) {
+    if (doorBenches) {
       bn.rotation.y = Math.PI / 2;
       bn.position.set((a + b) / 2, 0, HUB.z1 - 0.45);
     } else bn.position.set(-HALF + 0.5, 0, (a + b) / 2);
@@ -1271,7 +1390,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       boards.add(grp);
     };
     // container court sides: the solid stretch of each container, away from its shutter
-    for (const side of [-1, 1])
+    for (const side of storage ? [-1, 1] : [1])
       for (const gold of [false, true]) {
         const { z0, z1 } = gold ? HUB.schoolStore : HUB.hhStore;
         const [a, b] = gold ? [z0 + 0.12, z1 - 2.46 - 0.12] : [z0 + 2.46 + 0.12, z1 - 0.12];
@@ -1419,28 +1538,57 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       ? // left hoop: out of the left gold container's shutter and along the run-off
         curve([[-(HALF + 0.4), 9.8], [-(HALF - 0.8), 8.9], [finalX[0], 6.8], [finalX[0], DIM.miniKeyZ]])
       : // left hoop: out of container 2's shutter and across the court to the reception side
-        curve([[10.9, 0.25], [8.3, 0.6], [4.5, 2.4], [-2, 4.4], [finalX[0], DIM.miniKeyZ]]),
+        curve([[HALF + 1.9, 0.25], [HALF - 0.7, 0.6], [4.5, 2.4], [-2, 4.4], [finalX[0], DIM.miniKeyZ]]),
     // right hoop: out of container 3's shutter and along the run-off
     curve([[HALF + 0.4, 9.8], [HALF - 0.8, 8.9], [finalX[1], 6.8], [finalX[1], DIM.miniKeyZ]]),
   ];
+  // 3x3 (arena look): the first portable hoop stands where the main hoop was, its board face 1.2 m inside the
+  // baseline and the rim at full height; it faces down the court, so it turns a quarter as it arrives
+  const spot3 = new THREE.Vector3(0, 0, DIM.boardZ10 - hoops[0].faceX);
+  const from3 = hoopPaths[0].points[0];
+  const path3 = curve([[from3.x, from3.z], [HALF - 0.7, 0.6], [2.5, 1.4], [0, spot3.z]]);
+  const swap3 = curve([[finalX[0], DIM.miniKeyZ], [finalX[0] + 1.6, 3.6], [-1.6, 1.8], [0, spot3.z]]);
+  // one hoop along a path: p runs 0 (folded in the storage) to 1 (out and up)
+  const placeOne = (hp, p, path, turn = 0) => {
+    const u = ease(p / 0.72);
+    path.getPoint(u, tmp);
+    hp.group.visible = true;
+    hp.group.position.set(tmp.x, 0, tmp.z);
+    if (turn) hp.group.rotation.y = turn * ease((u - 0.6) / 0.4);
+    const up = ease((p - 0.8) / 0.2);
+    hp.setFolded(up <= 0);
+    if (up > 0) {
+      hp.setHeight(portableRim());
+      hp.setUnfold(up);
+    }
+  };
   // p runs 0 (folded in the storage) to 1 (out and up); played backwards to put them away
   const placeHoops = (p) => {
+    if (arena && state.court3 >= 0.5) {
+      placeOne(hoops[0], p, path3, -Math.PI / 2);
+      hoops[1].group.visible = false;
+      return;
+    }
     hoops.forEach((hp, i) => {
-      const u = ease((p - i * 0.06) / 0.72);
-      hoopPaths[i].getPoint(u, tmp);
-      hp.group.visible = true;
-      hp.group.position.set(tmp.x, 0, tmp.z);
-      const up = ease((p - 0.8) / 0.2);
-      hp.setFolded(up <= 0);
-      if (up > 0) {
-        hp.setHeight(portableRim());
-        hp.setUnfold(up);
-      }
+      hp.group.rotation.y = i ? Math.PI : 0;
+      placeOne(hp, p - i * 0.06, hoopPaths[i]);
     });
   };
-  // the main hoop's way into the navy container at its end, for the other sports (arena look)
-  const awayPath = curve([[0, 0], [0.6, 1.8], [3.5, 1.5], [HALF - 1.8, 0.4], [HALF - 0.15, 0.25]]);
-  const awayAt = new THREE.Vector3();
+  // mini court to 3x3 (c 0 to 1): the far hoop goes back into storage, the near one rolls to the 3x3 spot
+  const placeCourt = (c) => {
+    placeOne(hoops[1], 1 - THREE.MathUtils.clamp(c / 0.55, 0, 1), hoopPaths[1]);
+    hoops[1].group.rotation.y = Math.PI;
+    if (c >= 0.999) hoops[1].group.visible = false;
+    const u = ease(THREE.MathUtils.clamp((c - 0.35) / 0.65, 0, 1));
+    swap3.getPoint(u, tmp);
+    const hp = hoops[0];
+    hp.group.visible = true;
+    hp.group.position.set(tmp.x, 0, tmp.z);
+    hp.group.rotation.y = (-Math.PI / 2) * u;
+    hp.setFolded(false);
+    hp.setHeight(portableRim());
+    hp.setUnfold(1);
+  };
   const floorFrom = new THREE.Vector3(HALF + 0.4, 1.0, 0.2); // out of storage 1's shutter
   const mainPath = curve([[1.6, 22], [0.9, 13.5], [0.3, 5], [0, 0]]);
   const applyFloor = (t) => {
@@ -1514,7 +1662,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
 
   // netsT and ballsT run 0 (away) to 1 (set out); mainLowT lowers the main hoop to its lowest for other sports
-  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null, netsT: 0, ballsT: 0, mainLowT: 0 };
+  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0 };
   const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
   const apply = (next = {}) => {
     Object.assign(state, next);
@@ -1522,8 +1670,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     megaSlam.setPadding(COL.navy, padLogoTex);
     // mini hoops: out and up, put away in containers 2 and 3, or hoopsT part way between
     if (state.hoopsT !== null) placeHoops(state.hoopsT);
+    else if (arena && state.court3 > 0 && state.mini) placeCourt(state.court3);
     else
       hoops.forEach((hp, i) => {
+        hp.group.rotation.y = i ? Math.PI : 0;
         hp.group.visible = state.mini;
         hp.group.position.set(finalX[i], 0, DIM.miniKeyZ);
         hp.setFolded(false);
@@ -1544,6 +1694,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     setNight(state.night && state.build === null);
     for (const l of lamps) l.spot.visible = !state.cutaway;
     applyBuild(state.build ?? Infinity, state.build !== null);
+    if (arena) megaSlam.group.visible = false;
     labels.visible = state.cutaway && state.build === null;
     if (state.build === null) {
       // sports kit: nets rise out of the floor, balls drop onto the halfway line one after another
@@ -1556,15 +1707,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
         b.position.set(0, 0.115 + 2.4 * (1 - land(u)), b.userData.z);
       });
       if (arena) {
-        // other sports: lowered, folded, then wheeled into the navy container (mainLowT 0 to 1)
-        const a = state.mainLowT;
-        const k = (lo, hi) => ease(THREE.MathUtils.clamp((a - lo) / (hi - lo), 0, 1));
-        megaSlam.setHeight(THREE.MathUtils.lerp(state.rimFt * FT, 7.5 * FT, k(0, 0.2)));
-        megaSlam.setFold(k(0.2, 0.4));
-        awayPath.getPoint(k(0.4, 1), awayAt);
-        megaSlam.group.position.set(awayAt.x, 0, awayAt.z);
-        megaSlam.group.rotation.y = (-Math.PI / 2) * k(0.45, 0.75);
-        megaSlam.group.visible = a < 0.96; // out of sight once it's in the container
+        // no big main hoop in the arena: 3x3 uses a portable hoop instead
       } else if (state.mainLowT > 0) megaSlam.setHeight(THREE.MathUtils.lerp(state.rimFt * FT, 7.5 * FT, ease(state.mainLowT)));
     } else {
       nets.visible = false;
@@ -1590,8 +1733,12 @@ export const SHOTS = {
   end: { label: 'Main hoop end', pos: [3.2, 2.1, 9.9], target: [-0.4, 1.6, -1.0], fov: 50, state: {} },
   // detail for signing off the storage shutters
   door: { label: 'Entrance end', pos: [1.2, 2.2, 1.0], target: [0, 1.3, 11.0], fov: 56, state: {} },
+  recIn: { label: 'Reception counter', pos: [-9.0, 1.55, 5.6], target: [-10.4, 1.0, 9.6], fov: 60, state: {} },
+  recSeat: { label: 'Reception seats', pos: [-9.0, 1.6, 6.6], target: [-10.2, 1.4, 1.2], fov: 60, state: {} },
   s3: { label: 'Storage left', pos: [5.5, 2.4, 9.8], target: [-7.5, 1.2, 3.0], fov: 50, state: {} },
-  kitA: { label: 'Dodgeball kit', pos: [-5.4, 1.5, 3.0], target: [-10.4, 0.9, 0.2], fov: 46, state: {} },
-  kitB: { label: 'Racket kit', pos: [-5.4, 1.5, 7.2], target: [-10.4, 0.9, 9.8], fov: 46, state: { mini: false } },
+  kitA: { label: 'Basketball and dodgeball kit', pos: [4.6, 1.5, 1.9], target: [10.4, 0.9, 1.9], fov: 46, state: { mini: false } },
+  kitB: { label: 'Wheelchairs and rackets', pos: [4.6, 1.5, 8.1], target: [10.4, 0.9, 8.1], fov: 46, state: { mini: false } },
+  wc: { label: 'Accessible WC', pos: [-9.4, 1.6, 4.2], target: [-9.8, 1.2, -1.0], fov: 60, state: {} },
+  ramp: { label: 'Entrance ramp', pos: [-6.2, 1.7, 16.0], target: [-9.8, 0.8, 11.0], fov: 46, state: {} },
   s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: {} },
 };

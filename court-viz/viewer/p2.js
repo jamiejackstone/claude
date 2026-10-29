@@ -31,28 +31,30 @@ const KEYS = [
   [BUILD.end, [-13.5, 3.4, 27.5], [0.6, 2.6, 6.0]],
 ];
 
-// the covered-only version: the whole hub from an empty playground, with the portable main hoop
+// the covered-only version: the whole arena from an empty playground, a day at a time
 export const FULL_STEPS = [
-  [0, 'Step 1 of 6 · Containers delivered and craned into place', 'About ½ day'],
-  [7.2, 'Step 2 of 6 · Floor laid out of storage', 'About 3 hours with a team of three'],
-  [21.0, 'Step 3 of 6 · Hoops wheeled into position', 'About 30 minutes'],
-  [28.2, 'Step 4 of 6 · Canopy frames up and fabric pulled over', 'About 1½ days'],
-  [38.6, 'Step 5 of 6 · End walls, roller door and fire exit', 'About 1 day'],
-  [43.6, 'Step 6 of 6 · Fit-out: lights, reception and storage', 'About 2 days'],
+  [0, 'Day 1 · Containers craned in and set out to the canopy span', 'About ½ day'],
+  [7.2, 'Days 1–2 · Canopy frames up and fabric pulled over', 'About 1½ days'],
+  [18.0, 'Day 3 · End walls, roller door and fire exit', 'About 1 day'],
+  [24.0, 'Day 4 · Court floor laid under cover, out of storage', 'About 3 hours with a team of three'],
+  [37.4, 'Days 4–5 · Fit-out: lights, boards, reception, kit stored', 'About 1½ days'],
+  [40.6, 'Ready · Hoops out of storage', 'Hoops, nets and balls live in the containers'],
 ];
-export const FULL_DONE = (title) => [`${title} ready to open`, 'About 5½ days on site in total · estimate'];
+export const FULL_DONE = (title) => [`${title} ready to open`, 'About 5 days on site in total · estimate'];
 const FULL_KEYS = [
   [0, [-12, 15, 27], [0, 1, 4.5]],
-  // the floor going down, from high over the front
-  [7.2, [-14, 13, 24], [1, 0, 4.5]],
-  [14.0, [-4, 16, 23], [0.5, 0, 4.5]],
-  [20.6, [8, 11, 24], [0, 0.5, 4.5]],
-  // hoops coming in
-  [27.4, [-10, 7, 24], [0, 1.5, 4]],
-  [33.2, [-15, 12, 27], [0, 3, 5]],
-  [38.4, [5, 8.5, 31], [0, 3.5, 5]],
-  [43.4, [-6, 3.6, 24], [0, 2.4, 6]],
-  [47.0, [-9.5, 4.8, 28], [0, 3, 6]],
+  // canopy going over
+  [7.2, [-15, 12, 27], [0, 3, 5]],
+  [12.4, [-14, 10, 26], [0, 3, 5]],
+  [18.0, [5, 8.5, 31], [0, 3.5, 5]],
+  // in through the roller door to watch the floor go down under cover
+  [22.4, [-1.5, 3.0, 21], [0, 1.6, 6]],
+  [25.0, [0, 5.6, 10.6], [0, 0, 2.6]],
+  [31.0, [-5, 5.4, 10.4], [1.5, 0, 3]],
+  [37.0, [-6, 4.4, 10.4], [2, 0.6, 3.5]],
+  // hoops out
+  [40.6, [0, 3.0, 10.4], [0, 1.4, 4]],
+  [46.0, [-6, 3.6, 24], [0, 2.4, 6]],
   [FULL_BUILD.end, [-13.5, 3.4, 27.5], [0.6, 2.6, 6.0]],
 ];
 
@@ -71,7 +73,7 @@ function cameraPath(keys) {
 }
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
-export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'storage', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HEROES ARENA', roofs: '#fba91a', insideToggle: true, span: 17, arena: true });
+export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'reception', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HEROES ARENA', roofs: '#fba91a', insideToggle: true, span: 17, arena: true });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
@@ -90,6 +92,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
   const title = (name ?? 'HOOP HUB').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   let sport = 'basketball';
   let kitAnim = null;
+  let courtAnim = null;
   const B = hub.BUILD;
   const STEPS = fullBuild ? FULL_STEPS : P2_STEPS;
   const DONE = fullBuild ? FULL_DONE(title) : P2_DONE;
@@ -193,10 +196,21 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       night: hub.state.night,
       rimFt: hub.state.rimFt,
       sport,
+      court: hub.state.court3 >= 0.5 ? '3x3' : 'mini',
       inside: camera === persp && isInside(persp.position),
     }),
     sports: sports ? Object.keys(KIT) : null,
+    // basketball layouts in the arena: two hoops across the mini court, or one at full height for 3x3
+    courts: arena ? ['mini', '3x3'] : null,
     // switch sport: what is out goes away first (hoops roll back into storage, nets drop, balls go), then the
+    // mini court or 3x3: the far hoop goes away and the near one rolls to the main hoop's spot, or back
+    setCourt(name) {
+      if (buildT0 !== null || !arena || sport !== 'basketball' || kitAnim) return;
+      const to = name === '3x3' ? 1 : 0;
+      if (to === hub.state.court3 && !courtAnim) return;
+      courtAnim = { t0: performance.now(), from: hub.state.court3, to, dur: 3.2 };
+      ui.sync();
+    },
     // new sport's kit comes out
     setSport(name) {
       if (buildT0 !== null || name === sport || !KIT[name]) return;
@@ -244,7 +258,8 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       // the installation finishes set out for basketball
       kitAnim = null;
       sport = 'basketball';
-      hub.apply({ night: false, cutaway: false, mini: true, hoopsT: null, netsT: 0, ballsT: 0, mainLowT: 0 });
+      hub.apply({ night: false, cutaway: false, mini: true, hoopsT: null, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0 });
+      courtAnim = null;
       buildT0 = performance.now();
       controls.enabled = false;
       camera = persp;
@@ -286,6 +301,14 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
         const done = e > kitAnim.end;
         hub.apply({ hoopsT: done ? null : v.hoops, netsT: v.nets, ballsT: v.balls, mainLowT: v.low });
         if (done) kitAnim = null;
+      }
+      if (courtAnim) {
+        const k = Math.min(1, (now - courtAnim.t0) / 1000 / courtAnim.dur);
+        hub.apply({ court3: courtAnim.from + (courtAnim.to - courtAnim.from) * k });
+        if (k >= 1) {
+          courtAnim = null;
+          ui.sync();
+        }
       }
       if (hoopsAnim) {
         const p = hoopsAnim.p();
