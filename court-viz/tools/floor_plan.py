@@ -4,7 +4,7 @@ Usage: python3 tools/floor_plan.py --out renders/floor
 Then: node tools/floor_plan.mjs renders/floor   (PDFs and PNGs from the SVGs)
 
 Two versions: 'basketball' (3x3 with a grey key, the mini court across, the logo) and 'multi-sport' (no 3x3
-key fill or logo, so the mini court reads as the main court, plus a gold dodgeball halfway line and blue
+key fill or logo, so the mini court reads as the main court, plus a red dodgeball halfway line and green
 lines for three children's pickleball and badminton courts).
 
 The 3x3 markings are drawn to FIBA measurements from the inner edge of the white baseline (key 4.9 x 5.8 m,
@@ -21,7 +21,7 @@ NAVY, GOLD, WHITE = "#14264e", "#fba91a", "#ffffff"
 COURT, KEY, INK, PAPER = "#6e7276", "#a7a9ac", "#334155", "#ffffff"
 HOOP = "#e0531f"
 BLUE = "#2f9bdc"  # racket lines in the multi-sport version
-RED, GREEN = "#e63950", "#9bd13b"  # brand-colour test: dodgeball red, pickleball green, to match the arena boards
+RED, GREEN = "#e63950", "#9bd13b"  # multi-sport: dodgeball red, pickleball green, to match the arena boards
 
 # floor: 17.0 m between the container faces x 12.19 m between the end walls; court 14.8 x 10 m, centred
 FX, FZ0, FZ1 = 8.5, -1.095, 11.095
@@ -147,7 +147,7 @@ MULTI_SUPPLIER = [
 
 
 def build(variant):
-    brand = variant.endswith("-brand")
+    brand = variant.startswith("multi-sport")  # brand-coloured lines on the multi-sport floor (Jamie, 29 Oct 2026)
     DODGE, RACKET = (RED, GREEN) if brand else (GOLD, BLUE)
     multi = variant.startswith("multi-sport")
     with3 = variant.startswith("multi-sport-3x3")  # the multi-sport floor with the 3x3 key and three-point line back
@@ -310,7 +310,7 @@ def build(variant):
     s.dim(X(W / 2 - 0.6), Y(6.6), X(W / 2), Y(6.6), "0.60", size=1.9)
 
     # ---------------------------------------------------------------- title, notes, legend
-    title = "HEROES ARENA · FLOOR MARKINGS · BRAND COLOURS TEST" if brand else "HEROES ARENA · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "") + ("" if keys else " · NO KEY FILL") 
+    title = "HEROES ARENA · FLOOR MARKINGS PLAN" + (" · MULTI-SPORT WITH 3x3" if with3 else " · MULTI-SPORT" if multi else "") + ("" if keys else " · NO KEY FILL") 
     s.text(OX - 6, 20, title, size=9, color=NAVY, anchor="start", family="Lilita One", weight="400")
     s.text(OX - 6, 28, "Example for floor tile suppliers · covered hub floor · scale 1:75 at A3 · dimensions in metres", size=3.4, color=INK, anchor="start")
     sub = (
@@ -406,7 +406,6 @@ if __name__ == "__main__":
         ("multi-sport", "Heroes Arena floor markings plan - multi-sport"),
         ("multi-sport-3x3", "Heroes Arena floor markings plan - multi-sport with 3x3"),
         ("multi-sport-3x3-no-keys", "Heroes Arena floor markings plan - multi-sport with 3x3, no key fill"),
-        ("multi-sport-3x3-no-keys-brand", "Heroes Arena floor markings plan - brand colours test"),
     ):
         f = out / f"{name}.svg"
         f.write_text(build(variant))

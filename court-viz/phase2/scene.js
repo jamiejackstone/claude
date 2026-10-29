@@ -186,8 +186,9 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
   }
 
   if (multi) {
-    // dodgeball halfway line
-    stroke(COL.gold, gw, () => {
+    // dodgeball halfway line in Dodge Heroes red, racket courts in Pickle Heroes green, to match the arena boards
+    // (Jamie, 29 Oct 2026)
+    stroke('#e63950', gw, () => {
       g.moveTo(X(0), Z(gh));
       g.lineTo(X(0), Z(L - gh));
     });
@@ -212,10 +213,10 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
       g.lineTo(X(cx3), Z(gw));
     });
     // racket courts: inner sidelines at ±2.60, service lines 1.80 m either side of the net, centre lines
-    const blue = '#2f9bdc';
+    const green = '#9bd13b';
     const rw = 0.04;
     const mid = (W / 2 - gh + 2.6) / 2;
-    stroke(blue, rw, () => {
+    stroke(green, rw, () => {
       for (const x of [-2.6, 2.6]) {
         g.moveTo(X(x), Z(gh));
         g.lineTo(X(x), Z(L - gh));

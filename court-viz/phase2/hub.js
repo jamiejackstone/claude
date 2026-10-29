@@ -617,7 +617,8 @@ class Unit {
     wcSign.visible = !welcome;
     g.add(place(wcSign, court, wcX1 - side * 0.05, 1.55, 0));
     if (welcome) {
-      // a low threshold ramp from the court to the glazed door, so a wheelchair can roll between the two
+      // level access: a low threshold ramp from the court to the glazed door, the wheelchair route between
+      // reception and court; the public goes in by the step or through the roller door (Jamie, 29 Oct 2026)
       const tr = box(0.5, 0.03, d1 - d0 + 0.2, std('#2b2f35', { roughness: 0.6, metalness: 0.4 }), faceX - side * 0.25, 0.06, (d0 + d1) / 2);
       tr.rotation.z = side * Math.atan(0.12 / 0.5);
       g.add(tr);
@@ -692,19 +693,11 @@ class Unit {
     door.add(box(0.04, 0.32, 0.04, std('#c9ccd0', { metalness: 0.9, roughness: 0.25 }), ew / 2 - 0.12, 1.1, 0.06));
     door.position.set((e0 + e1) / 2, 0, z1 + 0.03);
     g.add(door);
-    if (welcome) {
-      // a gentle ramp up to the door (about 1:12) with handrails, for wheelchair users and buggies
-      const rl = 1.6;
-      const ramp = box(ew + 0.5, 0.05, rl, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.075, z1 + rl / 2);
-      ramp.rotation.x = Math.atan(0.13 / rl);
-      g.add(ramp);
-      const rail = std('#c9ccd0', { metalness: 0.8, roughness: 0.3 });
-      for (const x of [e0 - 0.22, e1 + 0.22]) {
-        g.add(box(0.04, 0.04, rl, rail, x, 0.95, z1 + rl / 2));
-        for (const z of [z1 + 0.1, z1 + rl - 0.1]) g.add(box(0.04, 0.9, 0.04, rail, x, 0.5, z));
-      }
-    } else g.add(box(ew + 0.5, 0.11, 0.6, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.055, z1 + 0.3));
-    const sign = facePanel(1.1, 0.26, COL.gold, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.17, COL.navy, w - 0.16), { ribs: false });
+    g.add(box(ew + 0.5, 0.11, 0.6, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.055, z1 + 0.3));
+    // the arena's entrance sign is plain white lettering, like the strap line (Jamie, 29 Oct 2026)
+    const sign = welcome
+      ? facePanel(1.1, 0.26, null, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.15, '#ffffff', w - 0.16), { ribs: false })
+      : facePanel(1.1, 0.26, COL.gold, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.17, COL.navy, w - 0.16), { ribs: false });
     g.add(place(sign, '+z', (e0 + e1) / 2, 2.41, z1 + 0.012));
     // ceiling lights inside the reception
     for (const z of [1.2, 5.0, 9.0]) {
@@ -1199,8 +1192,14 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
   if (arena) {
     // arena look: plain containers with the gold stripe outside; the boards inside carry the brands
-    const plainSide = (g, s, w, h) => stripe(g, s, w, h + 0.16, COL.gold);
-    brand.c2 = { base: COL.navy, outer: plainSide, court: () => {} };
+    // the containers' outer sides carry the name and strap line, as on the front, but no logos (Jamie, 29 Oct 2026)
+    const plainSide = (g, s, w, h) => {
+      stripe(g, s, w, h + 0.16, COL.gold);
+      drawText(g, s, h, name, w / 2, 1.6, 0.62, COL.gold, Math.min(w - 0.8, 7));
+      drawText(g, s, h, 'YOUR HOME COURT', w / 2, 1.04, 0.2, '#ffffff', Math.min(w - 0.8, 3));
+    };
+    // one name per side: the far storage container just has the stripe
+    brand.c2 = { base: COL.navy, outer: (g, s2, w, h) => stripe(g, s2, w, h + 0.16, COL.gold), court: () => {} };
     brand.c3 = { base: COL.navy, courtBase: COL.gold, outer: plainSide, court: () => {} };
     // the entrance end kept clean, no QR panel (Jamie, 29 Oct 2026)
     brand.reception = { base: COL.navy, art: {}, outer: plainSide, endFront: (g, s2, w, h) => stripe(g, s2, w, h + 0.16, COL.gold), welcome: name };
@@ -1739,6 +1738,5 @@ export const SHOTS = {
   kitA: { label: 'Basketball and dodgeball kit', pos: [4.6, 1.5, 1.9], target: [10.4, 0.9, 1.9], fov: 46, state: { mini: false } },
   kitB: { label: 'Wheelchairs and rackets', pos: [4.6, 1.5, 8.1], target: [10.4, 0.9, 8.1], fov: 46, state: { mini: false } },
   wc: { label: 'Accessible WC', pos: [-9.4, 1.6, 4.2], target: [-9.8, 1.2, -1.0], fov: 60, state: {} },
-  ramp: { label: 'Entrance ramp', pos: [-6.2, 1.7, 16.0], target: [-9.8, 0.8, 11.0], fov: 46, state: {} },
   s1: { label: 'Storage open', pos: [-5.5, 2.4, 9.8], target: [7.5, 1.2, 3.0], fov: 50, state: {} },
 };
