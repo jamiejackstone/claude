@@ -1,0 +1,491 @@
+<title>Heroes Arena</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Montserrat:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  // the website's own Tailwind theme (website/tailwind.config.js), so this draft ports straight into the site
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Montserrat', 'Arial', 'sans-serif'], display: ['"Lilita One"', 'Impact', 'sans-serif'] },
+        colors: {
+          brand: { orange: '#fba91a', dark: '#14264e', gray: '#334155', light: '#F8FAFC' },
+          sport: { basketball: '#fba91a', pickleball: '#9bd13b', dodgeball: '#e63950', community: '#00bb7f' },
+        },
+        boxShadow: { sticker: '4px 4px 0px rgba(0,0,0,0.1)', 'sticker-hover': '6px 6px 0px rgba(0,0,0,0.15)' },
+      },
+    },
+  };
+</script>
+<style>
+  /* Layout: one long page in the site's style, navy bands for the big moments, light bands for detail */
+  :root {
+    --navy: #14264e;
+    --gold: #fba91a;
+    --ink: #334155;
+    --paper: #f8fafc;
+    --white: #ffffff;
+    color-scheme: light;
+  }
+  body { background: var(--paper); color: var(--ink); font-family: Montserrat, Arial, sans-serif; }
+  .gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1, h2, h3 { text-wrap: balance; }
+  .sticky-top { top: env(safe-area-inset-top, 0px); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--navy); }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] .chev { transform: rotate(45deg); }
+  .tt { font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+  html { scroll-behavior: smooth; }
+</style>
+
+<!-- Preview banner: draft only, comes off when it moves into the website -->
+<div class="bg-brand-orange text-brand-dark text-center text-sm font-bold py-2 gutter">
+  Draft preview of hoopheroes.co.uk/heroes-arena · unlisted, shared by link only · the form doesn't send anything yet
+</div>
+
+<header class="sticky sticky-top z-50 bg-brand-dark/95 backdrop-blur border-b-4 border-brand-orange">
+  <div class="gutter">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4 py-3">
+      <a href="#top" class="flex items-center gap-3 min-w-0">
+        <img src="img/logo.png" alt="Hoop Heroes" class="h-9 w-auto">
+        <span class="hidden sm:inline font-display text-white text-xl tracking-wide uppercase">Heroes <span class="text-brand-orange">Arena</span></span>
+      </a>
+      <nav class="flex items-center gap-1 sm:gap-2 text-sm font-bold">
+        <a href="#arena" class="hidden md:inline px-3 py-2 text-white/90 hover:text-brand-orange">The Arena</a>
+        <a href="#schools" class="hidden md:inline px-3 py-2 text-white/90 hover:text-brand-orange">For schools</a>
+        <a href="#downloads" class="hidden md:inline px-3 py-2 text-white/90 hover:text-brand-orange">Downloads</a>
+        <a href="#enquire" class="bg-brand-orange text-brand-dark px-4 py-2 rounded-full border-2 border-brand-dark shadow-sticker hover:shadow-sticker-hover whitespace-nowrap">Register interest</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- Hero -->
+  <section class="bg-brand-dark text-white">
+    <div class="gutter">
+      <div class="max-w-6xl mx-auto py-12 md:py-16 grid md:grid-cols-12 gap-8 md:gap-10 items-center">
+        <div class="md:col-span-5 min-w-0">
+          <p class="text-brand-orange font-bold uppercase tracking-widest text-xs mb-3">A Hoop Heroes project · concept</p>
+          <h1 class="font-display uppercase leading-none text-5xl sm:text-6xl lg:text-7xl text-brand-orange">Heroes Arena</h1>
+          <p class="font-display uppercase tracking-wider text-white text-lg mt-2">Your home court</p>
+          <p class="mt-6 text-lg leading-relaxed text-white/90">A covered, all-weather sports arena on your school playground. Free to your school, run by Hoop Heroes: your pupils have it all day, and we bring the community in after school, at weekends and in the holidays.</p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="#enquire" class="bg-brand-orange text-brand-dark font-bold px-6 py-3 rounded-full border-2 border-white shadow-sticker">Register your school's interest</a>
+            <a href="https://claude.ai/artifact/8vA8bnSnsFfczJXxV82EhW" target="_blank" rel="noopener" class="bg-transparent text-white font-bold px-6 py-3 rounded-full border-2 border-white/70 hover:border-brand-orange hover:text-brand-orange">Take the 3D tour ↗</a>
+          </div>
+        </div>
+        <div class="md:col-span-7 min-w-0">
+          <img src="img/outside.jpg" alt="Concept render of the Heroes Arena on a school playground: a white arched canopy on navy containers, Heroes Arena over the open roller door" class="w-full rounded-3xl border-4 border-brand-orange shadow-sticker aspect-[16/9] object-cover">
+          <p class="text-white/60 text-xs mt-2">Concept image. Final design subject to planning.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sound familiar -->
+  <section class="gutter">
+    <div class="max-w-6xl mx-auto py-14 md:py-20">
+      <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl">Sound familiar?</h2>
+      <div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white border-4 border-brand-dark rounded-3xl shadow-sticker p-6">
+          <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#14264e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15h10.5a3.5 3.5 0 0 0 .4-6.98A5.5 5.5 0 0 0 7.2 7.1 4 4 0 0 0 7 15Z M8.5 18l-1 2.5 M12.5 18l-1 2.5 M16.5 18l-1 2.5"/></svg>
+          <h3 class="font-display uppercase text-brand-dark text-2xl mt-3">Rain stops PE</h3>
+          <p class="mt-2 leading-relaxed">Outdoor lessons get cancelled, and winter clubs are cut short by the dark.</p>
+        </div>
+        <div class="bg-white border-4 border-brand-dark rounded-3xl shadow-sticker p-6">
+          <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#14264e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <h3 class="font-display uppercase text-brand-dark text-2xl mt-3">The hall is never free</h3>
+          <p class="mt-2 leading-relaxed">Assemblies, lunch, clubs and PE all fight for one space.</p>
+        </div>
+        <div class="bg-white border-4 border-brand-dark rounded-3xl shadow-sticker p-6">
+          <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#14264e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 8.3a2.8 2.8 0 0 0-5.3 1.2V14c0 1.3-.6 2.2-1.7 2.7H16 M8 12.5h5"/></svg>
+          <h3 class="font-display uppercase text-brand-dark text-2xl mt-3">No budget to build</h3>
+          <p class="mt-2 leading-relaxed">New facilities cost tens of thousands, and PE funding can't pay for buildings.</p>
+        </div>
+        <div class="bg-white border-4 border-brand-dark rounded-3xl shadow-sticker p-6">
+          <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#14264e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5z M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5 M22 9v6"/></svg>
+          <h3 class="font-display uppercase text-brand-dark text-2xl mt-3">PE confidence varies</h3>
+          <p class="mt-2 leading-relaxed">Not every teacher feels sure teaching PE, and specialist coaches cost money.</p>
+        </div>
+      </div>
+      <p class="mt-10 font-bold text-brand-dark text-2xl md:text-3xl">What if all four went away, without costing your school a penny?</p>
+    </div>
+  </section>
+
+  <!-- What it is -->
+  <section id="arena" class="bg-white border-y-4 border-brand-dark gutter scroll-mt-20">
+    <div class="max-w-6xl mx-auto py-14 md:py-20 grid lg:grid-cols-2 gap-10 items-start">
+      <div class="min-w-0">
+        <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl">What goes on your playground</h2>
+        <ul class="mt-6 space-y-3 text-lg leading-relaxed">
+          <li><b class="text-brand-dark">Footprint:</b> about 22 × 12 m (270 m², 2,900 sq ft), roughly the size of a tennis court</li>
+          <li><b class="text-brand-dark">Covered, enclosed and LED lit</b>, with a 14.8 × 10 m court</li>
+          <li><b class="text-brand-dark">Sound system</b> for music, dance and fitness</li>
+          <li><b class="text-brand-dark">Dedicated, secure storage</b> for all the kit</li>
+          <li><b class="text-brand-dark">Reception and viewing area</b> with an accessible WC, step-free onto the court</li>
+          <li><b class="text-brand-dark">No digging or building work:</b> it sits on your playground</li>
+          <li><b class="text-brand-dark">About a week to install</b>, in the school holidays</li>
+          <li><b class="text-brand-dark">Fully removable</b>, playground made good</li>
+        </ul>
+      </div>
+      <div class="grid grid-cols-2 gap-4 min-w-0">
+        <img src="img/door.jpg" alt="The Heroes Arena from the outside, roller door down" class="col-span-2 w-full rounded-3xl border-4 border-brand-dark aspect-[16/9] object-cover">
+        <img src="img/threes.jpg" alt="Inside the Arena: children playing 3x3 on one hoop under the big Heroes Arena sign" class="w-full rounded-2xl border-4 border-brand-dark aspect-[4/3] object-cover">
+        <img src="img/inside-door.jpg" alt="Inside the Arena looking back to the open roller door, with sport boards along the walls" class="w-full rounded-2xl border-4 border-brand-dark aspect-[4/3] object-cover">
+      </div>
+    </div>
+  </section>
+
+  <!-- 3D tour -->
+  <section class="bg-brand-dark text-white gutter">
+    <div class="max-w-6xl mx-auto py-14 md:py-16 grid md:grid-cols-2 gap-10 items-center">
+      <div class="min-w-0 order-2 md:order-1">
+        <h2 class="font-display uppercase text-brand-orange text-4xl md:text-5xl">Walk round it in 3D</h2>
+        <p class="mt-4 text-lg leading-relaxed text-white/90">Step outside, stand courtside or sit in the reception. Switch between basketball, pickleball and dodgeball, and watch the whole install happen day by day.</p>
+        <a href="https://claude.ai/artifact/8vA8bnSnsFfczJXxV82EhW" target="_blank" rel="noopener" class="inline-block mt-6 bg-brand-orange text-brand-dark font-bold px-6 py-3 rounded-full border-2 border-white shadow-sticker">Open the 3D tour ↗</a>
+        <p class="text-white/60 text-sm mt-3">Works on a phone, tablet or computer.</p>
+      </div>
+      <img src="img/topdown.jpg" alt="Top-down plan of the Arena: reception on the left, the court in the middle, storage on the right" class="order-1 md:order-2 w-full rounded-3xl border-4 border-brand-orange aspect-[16/9] object-cover min-w-0">
+    </div>
+  </section>
+
+  <!-- Sports -->
+  <section class="gutter">
+    <div class="max-w-6xl mx-auto py-14 md:py-20">
+      <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl">One space, many sports</h2>
+      <p class="mt-4 text-lg leading-relaxed max-w-3xl"><b class="text-brand-dark">Basketball is our flagship.</b> Roll the hoops away and the same court hosts pickleball and dodgeball, plus dance, fitness and martial arts. Every sport has its own colour, on the court lines and the boards round the walls.</p>
+      <div class="mt-8 grid md:grid-cols-3 gap-5">
+        <figure class="bg-white border-4 border-brand-dark rounded-3xl shadow-sticker overflow-hidden">
+          <img src="img/mini.jpg" alt="Children playing mini basketball across the court" class="w-full aspect-[16/10] object-cover">
+          <figcaption class="p-5"><p class="font-display uppercase text-2xl" style="color:#c98300">Basketball</p><p class="mt-1">Mini court across the width, or 3x3 on one hoop.</p></figcaption>
+        </figure>
+        <figure class="bg-white border-4 border-brand-dark rounded-3xl shadow-sticker overflow-hidden">
+          <img src="img/pickle.jpg" alt="Children playing pickleball either side of low nets" class="w-full aspect-[16/10] object-cover">
+          <figcaption class="p-5"><p class="font-display uppercase text-2xl" style="color:#5e8a1a">Pickleball</p><p class="mt-1">Three junior courts with portable nets.</p></figcaption>
+        </figure>
+        <figure class="bg-white border-4 border-brand-dark rounded-3xl shadow-sticker overflow-hidden">
+          <img src="img/dodge.jpg" alt="Two teams of children playing dodgeball with soft foam balls" class="w-full aspect-[16/10] object-cover">
+          <figcaption class="p-5"><p class="font-display uppercase text-2xl" style="color:#c42a40">Dodgeball</p><p class="mt-1">Soft foam balls, for all ages.</p></figcaption>
+        </figure>
+      </div>
+      <div class="mt-5 grid md:grid-cols-5 gap-5 items-center bg-white border-4 border-brand-dark rounded-3xl shadow-sticker p-5">
+        <img src="img/wheelchair.jpg" alt="Wheelchair basketball, 3x3 on one hoop, with sports wheelchairs" class="md:col-span-2 w-full rounded-2xl aspect-[16/9] object-cover">
+        <div class="md:col-span-3 min-w-0">
+          <h3 class="font-display uppercase text-brand-dark text-2xl">Built for everyone</h3>
+          <p class="mt-2 leading-relaxed">Level, step-free access onto the court, an accessible WC in the reception, and sports wheelchairs kept in the storage, so wheelchair basketball is part of the week, not an add-on.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- A week -->
+  <section class="bg-white border-y-4 border-brand-dark gutter">
+    <div class="max-w-6xl mx-auto py-14 md:py-20">
+      <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl">A week at the Heroes Arena</h2>
+      <p class="mt-3 text-sm">Example term-time week. Sessions and times to be confirmed.</p>
+      <div class="mt-6 overflow-x-auto">
+        <table class="w-full min-w-[760px] border-separate border-spacing-1.5 text-sm">
+          <thead>
+            <tr class="text-left text-brand-dark">
+              <th class="w-28"></th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+            </tr>
+          </thead>
+          <tbody class="align-top">
+            <tr>
+              <th class="text-left text-brand-dark pr-2">Morning</th>
+              <td class="border-2 border-brand-dark rounded-lg p-2 bg-white">Breakfast All Stars</td>
+              <td class="border-2 border-brand-dark rounded-lg p-2 bg-white">Breakfast All Stars</td>
+              <td class="border-2 border-brand-dark rounded-lg p-2 bg-white">Breakfast All Stars</td>
+              <td class="border-2 border-brand-dark rounded-lg p-2 bg-white">Breakfast All Stars</td>
+              <td class="border-2 border-brand-dark rounded-lg p-2 bg-white">Breakfast All Stars</td>
+              <td class="rounded-lg p-2 bg-sport-basketball text-brand-dark">Basketball sessions</td>
+              <td class="rounded-lg p-2 bg-sport-basketball text-brand-dark">Basketball leagues</td>
+            </tr>
+            <tr>
+              <th class="text-left text-brand-dark pr-2">Daytime</th>
+              <td class="rounded-lg p-2 bg-[#cfdcee] text-brand-dark font-bold">Your school</td>
+              <td class="rounded-lg p-2 bg-[#cfdcee] text-brand-dark font-bold">Your school</td>
+              <td class="rounded-lg p-2 bg-[#cfdcee] text-brand-dark font-bold">Your school</td>
+              <td class="rounded-lg p-2 bg-[#cfdcee] text-brand-dark font-bold">Your school</td>
+              <td class="rounded-lg p-2 bg-[#cfdcee] text-brand-dark font-bold">Your school</td>
+              <td class="rounded-lg p-2 bg-sport-pickleball text-brand-dark">Family Pickleball</td>
+              <td class="rounded-lg p-2 bg-sport-dodgeball text-white">Open Play</td>
+            </tr>
+            <tr>
+              <th class="text-left text-brand-dark pr-2">After school</th>
+              <td class="rounded-lg p-2 bg-sport-basketball text-brand-dark">Rookies, Rising Stars</td>
+              <td class="rounded-lg p-2 bg-sport-pickleball text-brand-dark">Rookies, Rising Stars</td>
+              <td class="rounded-lg p-2 bg-sport-basketball text-brand-dark">Rookies, Rising Stars</td>
+              <td class="rounded-lg p-2 bg-sport-dodgeball text-white">Rookies, Rising Stars</td>
+              <td class="rounded-lg p-2 bg-sport-dodgeball text-white">Dodgeball Night</td>
+              <td class="rounded-lg p-2 bg-brand-dark text-white">Hero Parties</td>
+              <td class="rounded-lg p-2 bg-brand-dark text-white">Hero Parties</td>
+            </tr>
+            <tr>
+              <th class="text-left text-brand-dark pr-2">Evening</th>
+              <td class="rounded-lg p-2 bg-sport-basketball text-brand-dark">Rising Stars, Ballers</td>
+              <td class="rounded-lg p-2 bg-sport-pickleball text-brand-dark">Rising Stars, Ballers</td>
+              <td class="rounded-lg p-2 bg-sport-community text-brand-dark">Girls-only sessions</td>
+              <td class="rounded-lg p-2 bg-sport-dodgeball text-white">Rising Stars, Ballers</td>
+              <td class="rounded-lg p-2 bg-sport-basketball text-brand-dark">League and pickup</td>
+              <td class="rounded-lg p-2 bg-sport-community text-brand-dark">SEND and wheelchair</td>
+              <td class="rounded-lg p-2 bg-sport-community text-brand-dark">Over-40s basketball</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-4 text-sm">Holidays: Hero Camp, 7:30am to 5:30pm. Rookies 5–7 · Rising Stars 8–11 · Ballers 12–15.</p>
+    </div>
+  </section>
+
+  <!-- For schools -->
+  <section id="schools" class="gutter scroll-mt-20">
+    <div class="max-w-6xl mx-auto py-14 md:py-20">
+      <p class="text-brand-dark font-bold uppercase tracking-widest text-xs">For head teachers and governors</p>
+      <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl mt-2">Done for you, from day one</h2>
+      <div class="mt-8 grid lg:grid-cols-3 gap-6 items-start">
+        <ul class="lg:col-span-2 grid sm:grid-cols-2 gap-x-8 gap-y-4 leading-relaxed">
+          <li><b class="text-brand-dark block">The Arena, installed</b>Covered, lit and enclosed. Free.</li>
+          <li><b class="text-brand-dark block">The school day is yours</b>PE, break, lunch and clubs, on your timetable.</li>
+          <li><b class="text-brand-dark block">Kit for every sport</b>Hoops, nets and balls, stored on site.</li>
+          <li><b class="text-brand-dark block">Upkeep and insurance</b>Maintenance, inspections and safety checks.</li>
+          <li><b class="text-brand-dark block">After-school clubs</b>Run, staffed and booked by us. No office admin.</li>
+          <li><b class="text-brand-dark block">Holiday camps</b>For your families, with funded places for eligible pupils.</li>
+          <li><b class="text-brand-dark block">Planning and paperwork</b>Planning, consents and a pack for your governors.</li>
+          <li><b class="text-brand-dark block">Safeguarding first</b>DBS-checked, Basketball England accredited coaches.</li>
+          <li><b class="text-brand-dark block">Optional: PE lesson support and teacher CPD</b>The only things you'd ever pay for, from your PE and sport funding.</li>
+        </ul>
+        <div class="bg-brand-orange border-4 border-brand-dark rounded-3xl shadow-sticker p-8 text-center text-brand-dark">
+          <p class="font-display text-8xl leading-none">£0</p>
+          <p class="font-bold uppercase mt-2">to build, run or maintain</p>
+          <p class="mt-4 text-sm leading-relaxed">A covered sports arena worth over £50,000. We fund it because we run our own sessions there outside school hours.</p>
+        </div>
+      </div>
+
+      <div class="mt-14 grid lg:grid-cols-2 gap-10">
+        <div class="min-w-0">
+          <h3 class="font-display uppercase text-brand-dark text-3xl">What your site needs</h3>
+          <dl class="mt-5 space-y-4 leading-relaxed">
+            <div class="border-l-8 border-brand-orange pl-4"><dt class="font-bold text-brand-dark">Space</dt><dd>A flat, hard area of about 22 × 12 m, such as a playground, MUGA or car park, with a little room around it.</dd></div>
+            <div class="border-l-8 border-brand-orange pl-4"><dt class="font-bold text-brand-dark">Surface</dt><dd>Tarmac or concrete, roughly level. No digging or foundations: the containers sit on top.</dd></div>
+            <div class="border-l-8 border-brand-orange pl-4"><dt class="font-bold text-brand-dark">Height</dt><dd>About 8 m clear overhead: no cables, and any trees trimmed back.</dd></div>
+            <div class="border-l-8 border-brand-orange pl-4"><dt class="font-bold text-brand-dark">Access</dt><dd>Room for a lorry and a small crane on install day, and a route families can use out of hours without going through the school.</dd></div>
+            <div class="border-l-8 border-brand-orange pl-4"><dt class="font-bold text-brand-dark">Power, water and drainage</dt><dd>A power supply nearby, on our own meter, and a water and drain connection for the WC, or we use a self-contained unit.</dd></div>
+          </dl>
+        </div>
+        <div class="min-w-0">
+          <h3 class="font-display uppercase text-brand-dark text-3xl">The agreement, in plain English</h3>
+          <dl class="mt-5 space-y-4 leading-relaxed">
+            <div class="border-l-8 border-brand-dark pl-4"><dt class="font-bold text-brand-dark">How long</dt><dd>5 years, with the option to renew for another 5 if it's working for you.</dd></div>
+            <div class="border-l-8 border-brand-dark pl-4"><dt class="font-bold text-brand-dark">Your way out</dt><dd>A break clause: 12 months' notice, any time after year 3.</dd></div>
+            <div class="border-l-8 border-brand-dark pl-4"><dt class="font-bold text-brand-dark">Annual review</dt><dd>The school day is yours. Each year we review how it's going and agree the next timetable together.</dd></div>
+            <div class="border-l-8 border-brand-dark pl-4"><dt class="font-bold text-brand-dark">Cost and responsibility</dt><dd>None to you. We insure, maintain and inspect it, and pay for our electricity on its own meter.</dd></div>
+            <div class="border-l-8 border-brand-dark pl-4"><dt class="font-bold text-brand-dark">At the end, and no surprises</dt><dd>We remove everything and make good your playground, at our cost. Nothing is binding until planning and your governors' or trust's consent are in place.</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <h3 class="font-display uppercase text-brand-dark text-3xl mt-14">Your questions, answered</h3>
+      <div class="mt-5 grid md:grid-cols-2 gap-4">
+        <details class="bg-white border-4 border-brand-dark rounded-2xl p-5"><summary class="flex justify-between gap-4 font-bold text-brand-dark text-lg">Do we need planning permission?<span class="chev transition-transform text-2xl leading-none">+</span></summary><p class="mt-3 leading-relaxed">Yes, and our team handles all of it: drawings, application and fees, at our cost.</p></details>
+        <details class="bg-white border-4 border-brand-dark rounded-2xl p-5"><summary class="flex justify-between gap-4 font-bold text-brand-dark text-lg">Will it disrupt the school?<span class="chev transition-transform text-2xl leading-none">+</span></summary><p class="mt-3 leading-relaxed">We install in the school holidays. No digging, no concrete, no building work.</p></details>
+        <details class="bg-white border-4 border-brand-dark rounded-2xl p-5"><summary class="flex justify-between gap-4 font-bold text-brand-dark text-lg">Who uses it, and when?<span class="chev transition-transform text-2xl leading-none">+</span></summary><p class="mt-3 leading-relaxed">Your school, all day. We run sessions in the evenings, at weekends and in the holidays.</p></details>
+        <details class="bg-white border-4 border-brand-dark rounded-2xl p-5"><summary class="flex justify-between gap-4 font-bold text-brand-dark text-lg">Who is responsible out of hours?<span class="chev transition-transform text-2xl leading-none">+</span></summary><p class="mt-3 leading-relaxed">We are: our staff and our insurance, with separate access agreed with your DSL and kept apart from school buildings.</p></details>
+        <details class="bg-white border-4 border-brand-dark rounded-2xl p-5"><summary class="flex justify-between gap-4 font-bold text-brand-dark text-lg">What's the catch?<span class="chev transition-transform text-2xl leading-none">+</span></summary><p class="mt-3 leading-relaxed">None. We fund it because we use it outside school hours. Everyone wins.</p></details>
+        <details class="bg-white border-4 border-brand-dark rounded-2xl p-5"><summary class="flex justify-between gap-4 font-bold text-brand-dark text-lg">What if it doesn't work out?<span class="chev transition-transform text-2xl leading-none">+</span></summary><p class="mt-3 leading-relaxed">We take it away and make good your playground, at our cost.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Community -->
+  <section class="bg-white border-y-4 border-brand-dark gutter">
+    <div class="max-w-6xl mx-auto py-14 md:py-20">
+      <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl">Good for your whole community</h2>
+      <p class="mt-4 text-lg leading-relaxed max-w-3xl">Outside school hours, the Arena opens sport to people who often miss out.</p>
+      <ul class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <li class="border-4 border-brand-dark rounded-2xl p-5"><b class="font-display uppercase text-brand-dark text-xl block">SEND sessions</b>Calm, adapted sessions for children with additional needs.</li>
+        <li class="border-4 border-brand-dark rounded-2xl p-5"><b class="font-display uppercase text-brand-dark text-xl block">Wheelchair basketball</b>A level, covered court that works for wheelchair users.</li>
+        <li class="border-4 border-brand-dark rounded-2xl p-5"><b class="font-display uppercase text-brand-dark text-xl block">Girls-only sessions</b>A space where girls build confidence in sport.</li>
+        <li class="border-4 border-brand-dark rounded-2xl p-5"><b class="font-display uppercase text-brand-dark text-xl block">Over-40s</b>Parents and grown-ups back on court.</li>
+        <li class="border-4 border-brand-dark rounded-2xl p-5"><b class="font-display uppercase text-brand-dark text-xl block">Free community sessions</b>Open sessions so every family can give it a go.</li>
+        <li class="border-4 border-brand-dark rounded-2xl p-5"><b class="font-display uppercase text-brand-dark text-xl block">Funded holiday places</b>Free camp places for pupils who need them most.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Road to opening + about -->
+  <section class="gutter">
+    <div class="max-w-6xl mx-auto py-14 md:py-20">
+      <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl">The road to opening</h2>
+      <ol class="mt-8 grid sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <li class="bg-white border-4 border-brand-dark rounded-2xl shadow-sticker p-5"><span class="font-display text-4xl text-brand-dark">1</span><b class="font-display uppercase text-brand-dark text-xl block mt-1">Discovery call</b><span class="block mt-1 text-sm leading-relaxed">Twenty minutes: your school, your site and what you'd love it to do.</span></li>
+        <li class="bg-white border-4 border-brand-dark rounded-2xl shadow-sticker p-5"><span class="font-display text-4xl text-brand-dark">2</span><b class="font-display uppercase text-brand-dark text-xl block mt-1">Site visit</b><span class="block mt-1 text-sm leading-relaxed">Thirty minutes on your playground: space, access and power.</span></li>
+        <li class="bg-white border-4 border-brand-dark rounded-2xl shadow-sticker p-5"><span class="font-display text-4xl text-brand-dark">3</span><b class="font-display uppercase text-brand-dark text-xl block mt-1">Agree in principle</b><span class="block mt-1 text-sm leading-relaxed">A short, non-binding letter, with a pack for your governors.</span></li>
+        <li class="bg-white border-4 border-brand-dark rounded-2xl shadow-sticker p-5"><span class="font-display text-4xl text-brand-dark">4</span><b class="font-display uppercase text-brand-dark text-xl block mt-1">Planning and consents</b><span class="block mt-1 text-sm leading-relaxed">Our team prepares, submits and pays for everything.</span></li>
+        <li class="bg-white border-4 border-brand-dark rounded-2xl shadow-sticker p-5"><span class="font-display text-4xl text-brand-dark">5</span><b class="font-display uppercase text-brand-dark text-xl block mt-1">Install</b><span class="block mt-1 text-sm leading-relaxed">About a week, in the school holidays.</span></li>
+        <li class="bg-brand-dark border-4 border-brand-dark rounded-2xl shadow-sticker p-5 text-white"><span class="font-display text-4xl text-brand-orange">6</span><b class="font-display uppercase text-xl block mt-1">Open</b><span class="block mt-1 text-sm leading-relaxed text-white/85">Your Heroes Arena, ready for your pupils and community.</span></li>
+      </ol>
+      <p class="mt-4 text-sm">Every step depends on planning permission and the landowner's consent.</p>
+
+      <div class="mt-14 bg-brand-dark text-white rounded-3xl border-4 border-brand-dark shadow-sticker p-8 md:p-10">
+        <div class="flex flex-wrap items-baseline justify-between gap-4">
+          <h2 class="font-display uppercase text-3xl md:text-4xl">Who are Hoop Heroes?</h2>
+          <p class="font-display uppercase text-brand-orange text-xl">One Arena per area</p>
+        </div>
+        <div class="mt-6 grid sm:grid-cols-3 gap-6">
+          <div><p class="font-display text-brand-orange text-6xl leading-none tt">400+</p><p class="mt-2 text-white/85">children aged 5 to 15 playing with us every week</p></div>
+          <div><p class="font-display text-brand-orange text-6xl leading-none tt">10</p><p class="mt-2 text-white/85">towns across Bucks, Oxfordshire, Herts and Berkshire</p></div>
+          <div><p class="font-display text-brand-orange text-6xl leading-none tt">2018</p><p class="mt-2 text-white/85">the year Hoop Heroes began</p></div>
+        </div>
+        <p class="mt-6 font-bold">Every coach DBS checked and Basketball England safeguarding accredited. Fully insured.</p>
+        <p class="mt-2 text-white/85">We place one Heroes Arena in each area, and we're choosing our first founding school for 2027.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Downloads -->
+  <section id="downloads" class="bg-white border-y-4 border-brand-dark gutter scroll-mt-20">
+    <div class="max-w-6xl mx-auto py-14 md:py-16">
+      <h2 class="font-display uppercase text-brand-dark text-4xl md:text-5xl">Downloads</h2>
+      <p class="mt-3">For your governors, your team, or anyone helping to make it happen.</p>
+      <div class="mt-6 grid sm:grid-cols-3 gap-4">
+        <div class="border-4 border-brand-dark rounded-2xl p-5 flex flex-col gap-2">
+          <b class="font-display uppercase text-brand-dark text-xl">Schools pitch deck</b>
+          <span class="text-sm">The full presentation, 17 pages · PDF</span>
+          <span class="mt-auto inline-block self-start bg-brand-light border-2 border-dashed border-brand-dark text-brand-dark font-bold text-sm px-4 py-2 rounded-full">Download link goes live with the page</span>
+        </div>
+        <div class="border-4 border-brand-dark rounded-2xl p-5 flex flex-col gap-2">
+          <b class="font-display uppercase text-brand-dark text-xl">Floor markings plan</b>
+          <span class="text-sm">Court layout in brand colours, A3 · PDF</span>
+          <span class="mt-auto inline-block self-start bg-brand-light border-2 border-dashed border-brand-dark text-brand-dark font-bold text-sm px-4 py-2 rounded-full">Download link goes live with the page</span>
+        </div>
+        <div class="border-4 border-brand-dark rounded-2xl p-5 flex flex-col gap-2">
+          <b class="font-display uppercase text-brand-dark text-xl">Concept images</b>
+          <span class="text-sm">12 high-resolution renders · ZIP</span>
+          <span class="mt-auto inline-block self-start bg-brand-light border-2 border-dashed border-brand-dark text-brand-dark font-bold text-sm px-4 py-2 rounded-full">Download link goes live with the page</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Enquiry -->
+  <section id="enquire" class="bg-brand-dark text-white gutter scroll-mt-20">
+    <div class="max-w-3xl mx-auto py-14 md:py-20">
+      <h2 class="font-display uppercase text-brand-orange text-4xl md:text-5xl">Register your interest</h2>
+      <p class="mt-3 text-white/90 text-lg">Tell us a little about your school and we'll be in touch to book a 20-minute discovery call. Nothing is binding.</p>
+
+      <div class="mt-8 flex flex-wrap gap-2" role="tablist" aria-label="Who is enquiring">
+        <button type="button" id="tab-school" role="tab" aria-selected="true" aria-controls="form-school" class="tab px-5 py-2 rounded-full border-2 border-brand-orange font-bold bg-brand-orange text-brand-dark">I'm at a school</button>
+        <button type="button" id="tab-refer" role="tab" aria-selected="false" aria-controls="form-refer" class="tab px-5 py-2 rounded-full border-2 border-brand-orange font-bold text-brand-orange">I know a school</button>
+      </div>
+
+      <form id="form-school" role="tabpanel" aria-labelledby="tab-school" class="mt-6 bg-white text-brand-gray rounded-3xl border-4 border-brand-orange p-6 md:p-8 grid sm:grid-cols-2 gap-4" novalidate>
+        <label class="sm:col-span-2 grid gap-1 font-bold text-brand-dark text-sm">School name<input id="f-school" name="school" required class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Your name<input id="f-name" name="name" required autocomplete="name" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Your role
+          <select id="f-role" name="role" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2 bg-white">
+            <option>Head teacher</option><option>Deputy or assistant head</option><option>School business manager</option><option>PE lead</option><option>Governor or trustee</option><option>Other</option>
+          </select>
+        </label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Email<input id="f-email" name="email" type="email" required autocomplete="email" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Phone<input id="f-phone" name="phone" type="tel" autocomplete="tel" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">School postcode<input id="f-postcode" name="postcode" required autocomplete="postal-code" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2 uppercase"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">A flat area of about 22 × 12 m?
+          <select id="f-space" name="space" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2 bg-white">
+            <option>Yes, I think so</option><option>Not sure</option><option>Probably not</option>
+          </select>
+        </label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">How did you hear about us?
+          <select id="f-heard" name="heard" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2 bg-white">
+            <option>A Hoop Heroes family</option><option>Hoop Heroes got in touch</option><option>Another school</option><option>Social media</option><option>Other</option>
+          </select>
+        </label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Referred by (optional)<input id="f-referrer" name="referrer" placeholder="Family or person's name" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="sm:col-span-2 grid gap-1 font-bold text-brand-dark text-sm">Anything else? (optional)<textarea id="f-notes" name="notes" rows="3" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></textarea></label>
+        <label class="sm:col-span-2 flex gap-3 items-start text-sm"><input id="f-consent" name="consent" type="checkbox" required class="mt-1 w-5 h-5 accent-[#14264e]"><span>I'm happy for Hoop Heroes to contact me about the Heroes Arena. We never share your details.</span></label>
+        <p class="sm:col-span-2 text-sm font-bold text-[#c42a40]" id="school-error" hidden></p>
+        <button type="submit" class="sm:col-span-2 justify-self-start bg-brand-orange text-brand-dark font-bold px-6 py-3 rounded-full border-2 border-brand-dark shadow-sticker">Send my enquiry</button>
+        <p class="sm:col-span-2 bg-[#e8f7ef] border-2 border-[#00bb7f] text-brand-dark rounded-xl p-4 font-bold" id="school-done" hidden>Preview only: on the live page this goes straight to our team, tagged "Heroes Arena enquiry", and you get a confirmation email.</p>
+      </form>
+
+      <form id="form-refer" role="tabpanel" aria-labelledby="tab-refer" class="mt-6 bg-white text-brand-gray rounded-3xl border-4 border-brand-orange p-6 md:p-8 grid sm:grid-cols-2 gap-4" novalidate hidden>
+        <p class="sm:col-span-2 text-brand-dark">Is your child's school a good fit? Tell us and we'll do the rest. We'll only mention your name if you say so.</p>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Your name<input id="r-name" name="name" required autocomplete="name" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Your email<input id="r-email" name="email" type="email" required autocomplete="email" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">The school's name<input id="r-school" name="school" required class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="grid gap-1 font-bold text-brand-dark text-sm">Town<input id="r-town" name="town" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="sm:col-span-2 grid gap-1 font-bold text-brand-dark text-sm">Who should we speak to? (optional)<input id="r-contact" name="contact" placeholder="For example, the head teacher's name" class="font-normal border-2 border-brand-dark rounded-xl px-3 py-2"></label>
+        <label class="sm:col-span-2 flex gap-3 items-start text-sm"><input id="r-mention" name="mention" type="checkbox" class="mt-1 w-5 h-5 accent-[#14264e]"><span>You can mention that I suggested it.</span></label>
+        <p class="sm:col-span-2 text-sm font-bold text-[#c42a40]" id="refer-error" hidden></p>
+        <button type="submit" class="sm:col-span-2 justify-self-start bg-brand-orange text-brand-dark font-bold px-6 py-3 rounded-full border-2 border-brand-dark shadow-sticker">Suggest this school</button>
+        <p class="sm:col-span-2 bg-[#e8f7ef] border-2 border-[#00bb7f] text-brand-dark rounded-xl p-4 font-bold" id="refer-done" hidden>Preview only: on the live page this goes to our team, tagged "Heroes Arena referral".</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Partners -->
+  <section class="gutter">
+    <div class="max-w-6xl mx-auto py-12 grid md:grid-cols-2 gap-8 items-start">
+      <div class="min-w-0">
+        <h2 class="font-display uppercase text-brand-dark text-3xl">Partners, suppliers and funders</h2>
+        <p class="mt-3 leading-relaxed">Building, supplying, funding or simply interested in what we're doing? We'd love to hear from you.</p>
+      </div>
+      <ul class="grid gap-3 min-w-0">
+        <li class="bg-white border-4 border-brand-dark rounded-2xl p-4"><b class="text-brand-dark">Jamie Stone</b>, Founder<br><span class="select-all">jamie@hoopheroes.co.uk</span></li>
+        <li class="bg-white border-4 border-brand-dark rounded-2xl p-4"><b class="text-brand-dark">Christie Lothamer</b>, Schools and Heroes Arena Lead<br><span class="select-all">christie@hoopheroes.co.uk</span></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="bg-brand-dark text-white/80 gutter">
+  <div class="max-w-6xl mx-auto py-8 flex flex-wrap items-center justify-between gap-4 text-sm">
+    <img src="img/logo.png" alt="Hoop Heroes" class="h-8 w-auto">
+    <p>Heroes Arena is a concept, subject to planning and consents. Images are concept renders. © Hoop Heroes Region 1 Limited</p>
+  </div>
+</footer>
+
+<script>
+  // tabs: school enquiry or a family suggesting their school
+  const tabs = { school: document.getElementById('tab-school'), refer: document.getElementById('tab-refer') };
+  const panels = { school: document.getElementById('form-school'), refer: document.getElementById('form-refer') };
+  function show(which) {
+    for (const k of ['school', 'refer']) {
+      const on = k === which;
+      tabs[k].setAttribute('aria-selected', String(on));
+      tabs[k].classList.toggle('bg-brand-orange', on);
+      tabs[k].classList.toggle('text-brand-dark', on);
+      tabs[k].classList.toggle('text-brand-orange', !on);
+      panels[k].hidden = !on;
+    }
+  }
+  tabs.school.addEventListener('click', () => show('school'));
+  tabs.refer.addEventListener('click', () => show('refer'));
+
+  // preview submit: check the required fields, then say what the live page will do
+  function wire(form, errId, doneId) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const err = document.getElementById(errId);
+      const missing = [...form.querySelectorAll('[required]')].filter((el) => (el.type === 'checkbox' ? !el.checked : !el.value.trim()) || (el.type === 'email' && !/^\S+@\S+\.\S+$/.test(el.value)));
+      if (missing.length) {
+        err.textContent = 'Please fill in the highlighted fields' + (missing.some((m) => m.type === 'checkbox') ? ' and tick the box' : '') + '.';
+        err.hidden = false;
+        missing.forEach((m) => m.classList.add('border-[#c42a40]'));
+        missing[0].focus();
+        return;
+      }
+      err.hidden = true;
+      form.querySelectorAll('[required]').forEach((m) => m.classList.remove('border-[#c42a40]'));
+      document.getElementById(doneId).hidden = false;
+    });
+  }
+  wire(panels.school, 'school-error', 'school-done');
+  wire(panels.refer, 'refer-error', 'refer-done');
+</script>
