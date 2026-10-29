@@ -1,43 +1,41 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, Check, X } from 'lucide-react';
+import {
+  CONSENT_STORAGE_KEY,
+  loadPixel,
+  pushDataLayerEvent,
+  trackPageView,
+  updateGoogleConsent,
+} from '../lib/metaPixel';
+
+function bannerShouldShow(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return !window.localStorage.getItem(CONSENT_STORAGE_KEY);
+  } catch {
+    return true;
+  }
+}
 
 export const CookieConsent: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    // Check if user has already made a choice
-    const consent = localStorage.getItem('hoop_heroes_cookie_consent');
-    if (!consent) {
-      // Add a small delay for smooth entrance animation
-      const timer = setTimeout(() => setIsVisible(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  const [isVisible, setIsVisible] = useState(() => bannerShouldShow());
 
   const handleAccept = () => {
-    localStorage.setItem('hoop_heroes_cookie_consent', 'accepted');
+    localStorage.setItem(CONSENT_STORAGE_KEY, 'accepted');
     setIsVisible(false);
-    
-    // GTM Consent Logic
-    if (typeof window !== 'undefined' && (window as any).dataLayer) {
-      (window as any).dataLayer.push({ 'event': 'cookie_consent_accepted' });
-    }
-
-    // Meta Pixel Consent Logic: Trigger first PageView on acceptance
-    if (typeof window !== 'undefined' && (window as any).fbq) {
-      (window as any).fbq('track', 'PageView');
-    }
+    updateGoogleConsent(true);
+    loadPixel();
+    trackPageView();
+    pushDataLayerEvent('cookie_consent_accepted');
   };
 
   const handleReject = () => {
-    localStorage.setItem('hoop_heroes_cookie_consent', 'rejected');
+    localStorage.setItem(CONSENT_STORAGE_KEY, 'rejected');
     setIsVisible(false);
-    // GTM Logic: Tracking cookies should remain disabled
-    if (typeof window !== 'undefined' && (window as any).dataLayer) {
-      (window as any).dataLayer.push({ 'event': 'cookie_consent_rejected' });
-    }
+    updateGoogleConsent(false);
+    pushDataLayerEvent('cookie_consent_rejected');
   };
 
   if (!isVisible) return null;
@@ -78,9 +76,9 @@ export const CookieConsent: React.FC = () => {
                 </button>
                 <button
                     onClick={handleReject}
-                    className="w-full px-6 py-3 rounded-xl border-2 border-slate-300 text-slate-500 font-bold uppercase text-xs hover:bg-slate-50 hover:text-brand-dark hover:border-brand-dark transition-all text-center flex items-center justify-center gap-2"
+                    className="w-full px-6 py-4 rounded-xl bg-white border-2 border-brand-dark text-brand-dark font-display uppercase text-xl shadow-sticker hover:shadow-sticker-hover hover:-translate-y-1 hover:bg-brand-orange transition-all text-center flex items-center justify-center gap-2"
                 >
-                    <X size={16} /> Reject Non-Essential
+                    <X size={20} /> Reject Non-Essential
                 </button>
             </div>
         </div>
