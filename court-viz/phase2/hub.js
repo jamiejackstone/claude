@@ -1440,13 +1440,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   }
   enclosure.add(benches);
 
-  // arena boards: low, bright brand boards along the container court sides and both end walls
+  // arena boards: low, bright sport boards on the back wall only (none on the containers or the roller-door
+  // wall, Jamie, 29 Oct 2026)
   const boards = new THREE.Group();
   if (arena) {
     const BH = 0.9;
-    const order = ['hoop', 'pickle', 'dodge', 'arena'];
-    let n = 0;
-    const board = (w, x, z, rotY, kind = order[n++ % order.length]) => {
+    const board = (w, x, z, rotY, kind) => {
       const grp = new THREE.Group();
       grp.add(box(w + 0.04, BH + 0.04, 0.03, std(COL.navy, { roughness: 0.6 }), 0, 0, -0.016));
       const face = new THREE.Mesh(new THREE.PlaneGeometry(w, BH), std('#ffffff', { map: boardTexture(kind, w, BH), roughness: 0.55 }));
@@ -1456,24 +1455,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       grp.rotation.y = rotY;
       boards.add(grp);
     };
-    // container court sides: the solid stretch of each container, away from its shutter
-    for (const side of storage ? [-1, 1] : [1])
-      for (const gold of [false, true]) {
-        const { z0, z1 } = gold ? HUB.schoolStore : HUB.hhStore;
-        const [a, b] = gold ? [z0 + 0.12, z1 - 2.46 - 0.12] : [z0 + 2.46 + 0.12, z1 - 0.12];
-        board(b - a, side * (HALF - 0.04), (a + b) / 2, (-side * Math.PI) / 2);
-      }
-    // end walls: clear of the main hoop, the fire exit and the roller door
     // back wall: basketball, pickleball and dodgeball, evenly spaced and centred under the name, in the same
     // order as the colour bar beneath it (Jamie, 29 Oct 2026)
     const s0 = -6.2;
     const gap = 0.6;
     const bw = (-2 * s0 - 2 * gap) / 3;
     ['hoop', 'pickle', 'dodge'].forEach((kind, i) => board(bw, s0 + bw / 2 + i * (bw + gap), HUB.z0 + 0.05, 0, kind));
-    const rw = HUB.roller.w / 2 + 0.35;
-    const mid = (-HALF + 0.12 - rw) / 2;
-    const ent = [[-HALF + 0.12, mid - 0.08], [mid + 0.08, -rw], [rw, -mid - 0.08], [-mid + 0.08, HALF - 0.12]];
-    for (const [a, b] of ent) board(b - a, (a + b) / 2, HUB.z1 - 0.05, Math.PI);
     enclosure.add(boards);
   }
 
