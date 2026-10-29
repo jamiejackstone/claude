@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import { makePeople } from './people.js';
 import { COL, DIM, FT, canvas, tex, std, shadowed, buildCourt, buildSurroundings, cloudDome, corrugation, loadImage, fitText, MegaSlam, PortableHoop, ballRack, rimAndNet, boardDecal } from './scene.js';
 
 export const HUB = {
@@ -633,10 +634,40 @@ class Unit {
       g.add(tr);
     }
     const chairMat = std(COL.navy, { roughness: 0.6 });
-    for (const z of [1.6, 2.15, 2.7, 3.25]) {
-      g.add(box(0.46, 0.06, 0.46, chairMat, outerX - side * 0.4, 0.58, z));
-      g.add(box(0.06, 0.45, 0.46, chairMat, outerX - side * 0.16, 0.83, z));
-      g.add(box(0.4, 0.44, 0.04, std('#2a2d31', { metalness: 0.6 }), outerX - side * 0.4, 0.34, z));
+    // seats: in the arena, a long row on the outer wall, with cafe tables along the windows (Jamie, 29 Oct 2026)
+    const legMat = std('#2a2d31', { metalness: 0.6 });
+    const seat = (wallX, dir, z) => {
+      g.add(box(0.46, 0.06, 0.46, chairMat, wallX + dir * 0.4, 0.58, z));
+      g.add(box(0.06, 0.45, 0.46, chairMat, wallX + dir * 0.16, 0.83, z));
+      g.add(box(0.4, 0.44, 0.04, legMat, wallX + dir * 0.4, 0.34, z));
+    };
+    const outerRow = welcome ? Array.from({ length: 12 }, (_, i) => 1.0 + i * 0.55) : [1.6, 2.15, 2.7, 3.25];
+    for (const z of outerRow) seat(outerX, -side, z);
+    if (welcome) {
+      // cafe tables all along the windows, two chairs each in the sport colours, clear of the WC door and the
+      // court door, so parents can sit and watch (Jamie, 29 Oct 2026)
+      const tableTop = std('#ffffff', { roughness: 0.4 });
+      const tableLeg = std(COL.navy, { roughness: 0.5, metalness: 0.4 });
+      const tx = faceX + side * 0.5;
+      [[2.1, ['#fba91a', '#9bd13b']], [3.65, ['#e63950', '#fba91a']], [5.2, ['#9bd13b', '#e63950']]].forEach(([tz, cols]) => {
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 28), tableTop);
+        top.position.set(tx, 0.86, tz);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.72, 10), tableLeg);
+        leg.position.set(tx, 0.49, tz);
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.03, 20), tableLeg);
+        foot.position.set(tx, 0.145, tz);
+        for (const m of [top, leg, foot]) {
+          m.castShadow = true;
+          g.add(m);
+        }
+        cols.forEach((col, k) => {
+          const dz2 = k ? 0.48 : -0.48;
+          const cm = std(col, { roughness: 0.55 });
+          g.add(box(0.4, 0.04, 0.38, cm, tx, 0.58, tz + dz2));
+          g.add(box(0.4, 0.4, 0.04, cm, tx, 0.8, tz + dz2 * 1.42));
+          for (const [ox, oz] of [[-0.17, -0.15], [0.17, -0.15], [-0.17, 0.15], [0.17, 0.15]]) g.add(box(0.025, 0.44, 0.025, tableLeg, tx + ox, 0.35, tz + dz2 + oz));
+        });
+      });
     }
     const dz = 9.2;
     if (welcome) {
@@ -650,19 +681,6 @@ class Unit {
       const tablet = box(0.03, 0.2, 0.28, std('#1b1f27', { roughness: 0.3, metalness: 0.4 }), cxc - side * 0.1, 1.27, dz + 0.3);
       tablet.rotation.z = side * 0.35;
       g.add(tablet);
-      // screen on the WC wall, facing the seats: today's sessions
-      const wcMid = outerX - side * 0.7;
-      const screen = facePanel(0.95, 0.55, '#0d1a38', (cg, s2, w, h) => {
-        drawText(cg, s2, h, welcome, w / 2, h - 0.1, 0.09, COL.gold, w - 0.2);
-        const rows = [['4:00', 'Basketball · Rookies'], ['5:00', 'Pickleball · Rising Stars'], ['6:15', 'Dodgeball · Ballers']];
-        rows.forEach(([t, n], i) => {
-          drawText(cg, s2, h, t, 0.12, h - 0.24 - i * 0.1, 0.055, '#ffffff', 0.2);
-          drawText(cg, s2, h, n, 0.56, h - 0.24 - i * 0.1, 0.055, '#d6dcea', 0.68);
-        });
-      }, { ribs: false });
-      const sz = z0 + 1.6 + 0.05;
-      g.add(box(1.0, 0.6, 0.04, std('#16181b', { roughness: 0.3, metalness: 0.4 }), wcMid, 1.65, sz));
-      g.add(place(screen, '+z', wcMid, 1.65, sz + 0.025));
       // welcome sign above the seats, facing the court
       const hello = facePanel(2.4, 0.34, null, (cg, s2, w, h) => drawText(cg, s2, h, `WELCOME TO ${welcome}`, w / 2, h / 2, 0.2, COL.navy, w - 0.1), { ribs: false });
       g.add(place(hello, court, outerX - side * 0.08, 1.95, 2.45));
@@ -721,37 +739,6 @@ class Unit {
         drawText(cg, s2, h, 'Example week · weekends: sessions, leagues and Hero Parties', w / 2, 0.05, 0.035, '#d6dcea', w - 0.4);
       }, { ribs: false, s: 400 });
       g.add(place(timetable, court, outerX - side * 0.09, 1.86, 5.9));
-      // cafe tables by the windows, so parents can sit and watch the court; chairs in the sport colours
-      const tableTop = std('#ffffff', { roughness: 0.4 });
-      const tableLeg = std(COL.navy, { roughness: 0.5, metalness: 0.4 });
-      [[4.95, ['#fba91a', '#9bd13b']], [6.3, ['#e63950', '#fba91a']]].forEach(([tz, cols]) => {
-        const tx = faceX + side * 0.5;
-        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 28), tableTop);
-        top.position.set(tx, 0.86, tz);
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.72, 10), tableLeg);
-        leg.position.set(tx, 0.49, tz);
-        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.03, 20), tableLeg);
-        foot.position.set(tx, 0.145, tz);
-        for (const m of [top, leg, foot]) {
-          m.castShadow = true;
-          g.add(m);
-        }
-        cols.forEach((col, k) => {
-          const dz2 = k ? 0.48 : -0.48;
-          const cm = std(col, { roughness: 0.55 });
-          g.add(box(0.4, 0.04, 0.38, cm, tx, 0.58, tz + dz2));
-          g.add(box(0.4, 0.4, 0.04, cm, tx, 0.8, tz + dz2 * 1.42));
-          for (const [ox, oz] of [[-0.17, -0.15], [0.17, -0.15], [-0.17, 0.15], [0.17, 0.15]]) g.add(box(0.025, 0.44, 0.025, tableLeg, tx + ox, 0.35, tz + dz2 + oz));
-        });
-      });
-      // a couple of plants
-      for (const z of [4.4, 7.6]) {
-        g.add(box(0.34, 0.42, 0.34, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.32, 0.33, z));
-        const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(0.32, 1), std('#3f8a3a', { roughness: 0.8, flatShading: true }));
-        leaves.position.set(outerX - side * 0.32, 0.86, z);
-        leaves.castShadow = true;
-        g.add(leaves);
-      }
     } else {
       g.add(box(0.7, 0.04, 1.8, std(COL.gold, { roughness: 0.5 }), outerX - side * 0.5, 0.86, dz));
       g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz - 0.85));
@@ -1106,6 +1093,9 @@ export const FULL_BUILD = {
 export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false, span = 0, arena = false } = {}) {
   setSpan(span);
   shiftHub(shift);
+  // the arena's fire exit sits in the corner, leaving the back wall clear for the boards under the name
+  // (Jamie, 29 Oct 2026)
+  if (arena && !HUB.fe1.corner) HUB.fe1 = { x0: HALF - 1.4, x1: HALF - 0.4, h: 2.1, corner: true };
   const storage = layout === 'storage';
   RectAreaLightUniformsLib.init();
   const art = {};
@@ -1476,11 +1466,11 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
         board(b - a, side * (HALF - 0.04), (a + b) / 2, (-side * Math.PI) / 2);
       }
     // end walls: clear of the main hoop, the fire exit and the roller door
-    // back wall: basketball, pickleball and dodgeball, evenly spaced left of the fire exit, in the same order
-    // as the colour bar under the name (Jamie, 29 Oct 2026)
-    const s0 = -HALF + 0.12;
+    // back wall: basketball, pickleball and dodgeball, evenly spaced and centred under the name, in the same
+    // order as the colour bar beneath it (Jamie, 29 Oct 2026)
+    const s0 = -6.2;
     const gap = 0.6;
-    const bw = (HUB.fe1.x0 - 0.15 - s0 - 2 * gap) / 3;
+    const bw = (-2 * s0 - 2 * gap) / 3;
     ['hoop', 'pickle', 'dodge'].forEach((kind, i) => board(bw, s0 + bw / 2 + i * (bw + gap), HUB.z0 + 0.05, 0, kind));
     const rw = HUB.roller.w / 2 + 0.35;
     const mid = (-HALF + 0.12 - rw) / 2;
@@ -1745,7 +1735,10 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   };
 
   // netsT and ballsT run 0 (away) to 1 (set out); mainLowT lowers the main hoop to its lowest for other sports
-  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0 };
+  // scale figures for the stills: people names a set (basketball, 3x3, wheelchair, pickleball, dodgeball)
+  const people = makePeople({ half: HALF, cw: HUB.cw, chair: sportsChair });
+  scene.add(people.group);
+  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0, people: null };
   const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
   const apply = (next = {}) => {
     Object.assign(state, next);
@@ -1779,6 +1772,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     applyBuild(state.build ?? Infinity, state.build !== null);
     if (arena) megaSlam.group.visible = false;
     labels.visible = state.cutaway && state.build === null;
+    people.show(state.build === null && !state.cutaway ? state.people : null);
     if (state.build === null) {
       // sports kit: nets rise out of the floor, balls drop onto the halfway line one after another
       const n = ease(state.netsT);

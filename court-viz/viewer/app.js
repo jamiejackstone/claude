@@ -100,7 +100,8 @@ export async function startViewer({ builders, navTools = false }) {
     b.onclick = () => active?.goTo?.(place);
     return b;
   });
-  bar.append(hoopsBtn, ...sportBtns, installBtn, nightBtn, ...placeBtns);
+  // order: 3D, 2D, Installation, the places, then the sports (Jamie, 29 Oct 2026)
+  bar.append(hoopsBtn, installBtn, nightBtn, ...placeBtns, ...sportBtns);
   // the court buttons sit just before the Hoops slider
   $('rim').closest('label')?.before(...courtBtns);
 
