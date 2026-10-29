@@ -1802,6 +1802,7 @@ export const SHOTS = {
   end: { label: 'Main hoop end', pos: [3.2, 2.1, 9.9], target: [-0.4, 1.6, -1.0], fov: 50, state: {} },
   // detail for signing off the storage shutters
   door: { label: 'Entrance end', pos: [1.2, 2.2, 1.0], target: [0, 1.3, 11.0], fov: 56, state: {} },
+  wide: { label: 'Whole court', pos: [-6.4, 4.8, 10.7], target: [1.8, 0.4, 2.6], fov: 62, state: {} },
   rec: { label: 'Reception', pos: [-9.05, 1.7, 10.4], target: [-10.0, 1.15, 0.6], fov: 64, state: {} },
   recIn: { label: 'Reception counter', pos: [-9.0, 1.55, 5.6], target: [-10.4, 1.0, 9.6], fov: 60, state: {} },
   recSeat: { label: 'Reception seats', pos: [-9.0, 1.6, 6.6], target: [-10.2, 1.4, 1.2], fov: 60, state: {} },
