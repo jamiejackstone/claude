@@ -338,6 +338,7 @@ function endWallTexture(kind, art, name = 'HOOP HUB', plain = false) {
         g.fillStyle = col;
         g.fillRect((X(-tw / 2) + (i * tw) / 3) * s, (H - 4.86) * s, (tw / 3) * s, 0.14 * s);
       });
+      drawText(g, s, H, 'YOUR HOME COURT', X(0), 4.32, 0.38, '#ffffff', tw); // the strap line under the bar
     }
   } else if (kind === 'entrance-out') {
     // HOOP HUB above the door, a logo either side
@@ -1310,6 +1311,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     schoolStore: storeUnit(1, true, brand.c3, arena && !storage ? ['wheelchairs', 'rackets'] : undefined),
   };
   for (const un of Object.values(units)) scene.add(un.group);
+  if (arena && !storage) {
+    // EQUIPMENT STORE in white on the navy store's court side, beside its shutter (Jamie, 29 Oct 2026)
+    const { z0 } = HUB.hhStore;
+    const sign = facePanel(3.0, 0.56, null, (g, s2, w, h) => drawText(g, s2, h, 'EQUIPMENT STORE', w / 2, h / 2, 0.38, '#ffffff', w - 0.1), { ribs: false });
+    units.hhStore.group.add(place(sign, '-x', HALF - 0.035, 1.75, (z0 + 2.46 + HUB.hhStore.z1) / 2 - 0.2));
+  }
 
   // 2D labels: small tags along each container, shown only in the 2D view
   const labels = new THREE.Group();
