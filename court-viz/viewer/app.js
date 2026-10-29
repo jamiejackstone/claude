@@ -91,9 +91,9 @@ export async function startViewer({ builders, navTools = false }) {
   const nightBtn = document.createElement('button');
   nightBtn.textContent = 'Night';
   nightBtn.onclick = () => active?.night?.();
-  // Outside / Courtside / Reception: where the phase has them (Heroes Arena), each takes the camera to that
+  // Outside / Inside / Reception: where the phase has them (Heroes Arena), each takes the camera to that
   // place and resets the view
-  const placeBtns = [['outside', 'Outside'], ['courtside', 'Courtside'], ['reception', 'Reception']].map(([place, label]) => {
+  const placeBtns = [['outside', 'Outside'], ['courtside', 'Inside'], ['reception', 'Reception']].map(([place, label]) => {
     const b = document.createElement('button');
     b.textContent = label;
     b.dataset.place = place;
@@ -152,7 +152,7 @@ export async function startViewer({ builders, navTools = false }) {
       // the hoop height and the court layout only matter for basketball
       const rimWrap = $('rim').closest('label');
       const ball = !active.sports || s.sport === 'basketball';
-      if (rimWrap) rimWrap.hidden = !ball;
+      if (rimWrap) rimWrap.hidden = !ball || !!active.hideRim;
       for (const b of courtBtns) {
         b.hidden = !active.courts || !ball;
         b.classList.toggle('on', s.court === b.dataset.court);

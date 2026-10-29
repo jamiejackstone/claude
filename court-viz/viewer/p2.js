@@ -214,7 +214,9 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
     }),
     sports: sports ? Object.keys(KIT) : null,
     // basketball layouts in the arena: two hoops across the mini court, or one at full height for 3x3
-    courts: arena ? ['mini', '3x3'] : null,
+    // Mini court / 3x3 and the hoop height are hidden in the arena for now (Jamie, 29 Oct 2026): it opens on the mini court
+    courts: null,
+    hideRim: arena,
     // switch sport: what is out goes away first (hoops roll back into storage, nets drop, balls go), then the
     // mini court or 3x3: the far hoop goes away and the near one rolls to the main hoop's spot, or back
     setCourt(name) {
@@ -286,7 +288,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
           hub.apply({ night: !hub.state.night });
           ui.sync();
         },
-    // Outside / Courtside / Reception: jump the camera to that place, resetting the view
+    // Outside / Inside / Reception: jump the camera to that place, resetting the view
     places: insideToggle ? Object.keys(PLACES) : null,
     goTo: (place) => {
       if (buildT0 !== null || fly) return;
