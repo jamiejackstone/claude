@@ -78,7 +78,7 @@ export async function startViewer({ builders, navTools = false }) {
     return b;
   });
   // basketball layouts, where the phase has them: shown beside the Hoops slider while basketball is on
-  const courtBtns = [['mini', 'Mini court'], ['3x3', '3x3']].map(([name, label]) => {
+  const courtBtns = [['mini', 'Mini'], ['3x3', '3x3']].map(([name, label]) => {
     const b = document.createElement('button');
     b.textContent = label;
     b.dataset.court = name;
@@ -91,11 +91,16 @@ export async function startViewer({ builders, navTools = false }) {
   const nightBtn = document.createElement('button');
   nightBtn.textContent = 'Night';
   nightBtn.onclick = () => active?.night?.();
-  // Inside: where the phase has it (Heroes Arena), flies the camera in through the door and back out
-  const insideBtn = document.createElement('button');
-  insideBtn.textContent = 'Inside';
-  insideBtn.onclick = () => active?.insideOut?.();
-  bar.append(hoopsBtn, ...sportBtns, installBtn, nightBtn, insideBtn);
+  // Outside / Courtside / Reception: where the phase has them (Heroes Arena), each takes the camera to that
+  // place and resets the view
+  const placeBtns = [['outside', 'Outside'], ['courtside', 'Courtside'], ['reception', 'Reception']].map(([place, label]) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.dataset.place = place;
+    b.onclick = () => active?.goTo?.(place);
+    return b;
+  });
+  bar.append(hoopsBtn, ...sportBtns, installBtn, nightBtn, ...placeBtns);
   // the court buttons sit just before the Hoops slider
   $('rim').closest('label')?.before(...courtBtns);
 
@@ -134,9 +139,11 @@ export async function startViewer({ builders, navTools = false }) {
       }
       installBtn.textContent = s.installing ? '■ Stop' : '▶ Installation';
       nightBtn.hidden = !active.night;
-      insideBtn.hidden = !active.insideOut;
-      insideBtn.classList.toggle('on', !!s.inside);
-      insideBtn.setAttribute('aria-pressed', String(!!s.inside));
+      for (const b of placeBtns) {
+        b.hidden = !active.places;
+        b.classList.toggle('on', s.place === b.dataset.place);
+        b.setAttribute('aria-pressed', String(s.place === b.dataset.place));
+      }
       nightBtn.classList.toggle('on', !!s.night);
       nightBtn.setAttribute('aria-pressed', String(!!s.night));
       installBtn.classList.toggle('on', s.installing);

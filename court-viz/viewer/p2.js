@@ -83,6 +83,9 @@ const KIT = {
 };
 
 // is a camera position inside the hub (under the canopy or in a container)?
+// which of the three places the camera is in: outside, courtside (under the canopy) or in the reception
+const placeOf = (p) => (!isInside(p) ? 'outside' : p.x < -HUB.x1 ? 'reception' : 'courtside');
+const PLACES = { outside: '1', courtside: '2', reception: 'rec' };
 const isInside = (p) => Math.abs(p.x) < HUB.x1 + HUB.cw && p.z > HUB.z0 && p.z < HUB.z1 && p.y < archY(Math.min(Math.abs(p.x), HUB.x1));
 const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
@@ -102,7 +105,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
   let hoopsAnim = null;
   let buildT0 = null;
   let fly = null;
-  let wasInside = false;
+  let wasPlace = 'outside';
 
   // Inside / Outside: fly between the outside (3D) view and the inside view, through the roller door
   function flyTo(id) {
@@ -119,6 +122,16 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
     const t0 = controls.target.clone();
     const p1 = new THREE.Vector3(...s.pos);
     const t1 = new THREE.Vector3(...s.target);
+    if (placeOf(p0) === 'reception' || placeOf(p1) === 'reception') {
+      // no flying through walls into the reception: cut straight there
+      persp.position.copy(p1);
+      controls.target.copy(t1);
+      setFov(s.fov);
+      persp.lookAt(t1);
+      controls.update();
+      ui.sync();
+      return;
+    }
     const pts = [p0];
     if (isInside(p0) !== isInside(p1)) {
       const out = isInside(p0) ? p1 : p0;
@@ -197,7 +210,7 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       rimFt: hub.state.rimFt,
       sport,
       court: hub.state.court3 >= 0.5 ? '3x3' : 'mini',
-      inside: camera === persp && isInside(persp.position),
+      place: camera === persp ? placeOf(persp.position) : null,
     }),
     sports: sports ? Object.keys(KIT) : null,
     // basketball layouts in the arena: two hoops across the mini court, or one at full height for 3x3
@@ -273,12 +286,12 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
           hub.apply({ night: !hub.state.night });
           ui.sync();
         },
-    insideOut: insideToggle
-      ? () => {
-          if (buildT0 !== null || fly) return;
-          flyTo(camera === persp && isInside(persp.position) ? '1' : '2');
-        }
-      : undefined,
+    // Outside / Courtside / Reception: jump the camera to that place, resetting the view
+    places: insideToggle ? Object.keys(PLACES) : null,
+    goTo: (place) => {
+      if (buildT0 !== null || fly) return;
+      flyTo(PLACES[place]);
+    },
     setRim(ft) {
       hub.apply({ rimFt: ft });
     },
@@ -318,10 +331,10 @@ async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame
       }
       if (fly) fly(now);
       else controls.update();
-      // keep the Inside button true when the visitor zooms through the door themselves
-      const inside = camera === persp && isInside(persp.position);
-      if (insideToggle && inside !== wasInside) {
-        wasInside = inside;
+      // keep the place buttons true when the visitor zooms through the door themselves
+      const place = camera === persp ? placeOf(persp.position) : null;
+      if (insideToggle && place !== wasPlace) {
+        wasPlace = place;
         ui.sync();
       }
     },

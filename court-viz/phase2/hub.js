@@ -328,7 +328,16 @@ function endWallTexture(kind, art, name = 'HOOP HUB', plain = false) {
       drawText(g, s, H, name, X(0), 6.05, 1.0, COL.gold, 6.4);
       drawText(g, s, H, 'YOUR HOME COURT', X(0), 5.32, 0.32, '#ffffff', 4);
     }
-    if (kind === 'slam-in') drawText(g, s, H, name, X(0), 5.4, 0.72, '#ffffff', 5.6);
+    if (kind === 'slam-in') {
+      // the back wall: the name big, with the three sport colours as a bar beneath it, in the boards' order
+      // (Jamie, 29 Oct 2026)
+      drawText(g, s, H, name, X(0), 5.65, 1.1, '#ffffff', 8);
+      const tw = g.measureText(name).width / s;
+      ['#fba91a', '#9bd13b', '#e63950'].forEach((col, i) => {
+        g.fillStyle = col;
+        g.fillRect((X(-tw / 2) + (i * tw) / 3) * s, (H - 4.86) * s, (tw / 3) * s, 0.14 * s);
+      });
+    }
   } else if (kind === 'entrance-out') {
     // HOOP HUB above the door, a logo either side
     drawText(g, s, H, name, X(0), 5.5, 1.05, COL.gold, 6.4);
@@ -666,6 +675,75 @@ class Unit {
         const len = (fz1 - fz0) / 3;
         g.add(box(0.014, 0.07, len, std(col, { roughness: 0.5 }), fx, 1.17, fz0 + len * (i + 0.5)));
       });
+      // a big timetable on the long wall, Monday to Friday, in the sport colours (an example week, as the deck)
+      const SPORT = { b: ['#fba91a', COL.navy], p: ['#9bd13b', COL.navy], d: ['#e63950', '#ffffff'], c: ['#00bb7f', COL.navy] };
+      const days = [
+        ['MON', 'b', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'b'], ['Rising Stars, Ballers', 'b']]],
+        ['TUE', 'p', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'p'], ['Rising Stars, Ballers', 'p']]],
+        ['WED', 'b', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'b'], ['Girls-only sessions', 'c']]],
+        ['THU', 'd', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'd'], ['Rising Stars, Ballers', 'd']]],
+        ['FRI', 'b', [['Breakfast Hoops', 'b'], ['Dodgeball Night', 'd'], ['League and pickup', 'b']]],
+      ];
+      const lead = { b: 'BASKETBALL', p: 'PICKLEBALL', d: 'DODGEBALL' };
+      const ttW = 3.9;
+      const ttH = 1.08;
+      const timetable = facePanel(ttW, ttH, COL.navy, (cg, s2, w, h) => {
+        const rect = (x, yTop, rw, rh, col) => {
+          cg.fillStyle = col;
+          cg.beginPath();
+          cg.roundRect(x * s2, (h - yTop) * s2, rw * s2, rh * s2, 0.025 * s2);
+          cg.fill();
+        };
+        drawText(cg, s2, h, `THIS WEEK AT ${welcome}`, w / 2, h - 0.09, 0.09, '#ffffff', w - 0.4);
+        ['#fba91a', '#9bd13b', '#e63950'].forEach((col, i) => {
+          cg.fillStyle = col;
+          cg.fillRect((w / 2 - 0.6 + i * 0.4) * s2, (h - 0.16) * s2, 0.4 * s2, 0.014 * s2);
+        });
+        const lx = 0.06;
+        const lw = 0.5;
+        const cw2 = (w - lx - lw - 0.06) / 5;
+        const rows = ['MORNING', 'AFTER SCHOOL', 'EVENING'];
+        rows.forEach((r, j) => {
+          drawText(cg, s2, h, r, lx + lw / 2, h - 0.42 - j * 0.2, 0.045, '#d6dcea', lw - 0.04);
+        });
+        days.forEach(([d, sp, cells], i) => {
+          const x = lx + lw + i * cw2;
+          const [bg, ink] = SPORT[sp];
+          rect(x + 0.015, h - 0.2, cw2 - 0.03, 0.11, bg);
+          drawText(cg, s2, h, `${d} · ${lead[sp]}`, x + cw2 / 2, h - 0.255, 0.045, ink, cw2 - 0.07);
+          cells.forEach(([t, k], j) => {
+            const [cb, ci] = SPORT[k];
+            const yTop = h - 0.335 - j * 0.2;
+            rect(x + 0.015, yTop, cw2 - 0.03, 0.17, cb);
+            drawText(cg, s2, h, t, x + cw2 / 2, yTop - 0.085, 0.042, ci, cw2 - 0.08);
+          });
+        });
+        drawText(cg, s2, h, 'Example week · weekends: sessions, leagues and Hero Parties', w / 2, 0.05, 0.035, '#d6dcea', w - 0.4);
+      }, { ribs: false, s: 400 });
+      g.add(place(timetable, court, outerX - side * 0.09, 1.86, 5.9));
+      // cafe tables by the windows, so parents can sit and watch the court; chairs in the sport colours
+      const tableTop = std('#ffffff', { roughness: 0.4 });
+      const tableLeg = std(COL.navy, { roughness: 0.5, metalness: 0.4 });
+      [[4.95, ['#fba91a', '#9bd13b']], [6.3, ['#e63950', '#fba91a']]].forEach(([tz, cols]) => {
+        const tx = faceX + side * 0.5;
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 28), tableTop);
+        top.position.set(tx, 0.86, tz);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.72, 10), tableLeg);
+        leg.position.set(tx, 0.49, tz);
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.03, 20), tableLeg);
+        foot.position.set(tx, 0.145, tz);
+        for (const m of [top, leg, foot]) {
+          m.castShadow = true;
+          g.add(m);
+        }
+        cols.forEach((col, k) => {
+          const dz2 = k ? 0.48 : -0.48;
+          const cm = std(col, { roughness: 0.55 });
+          g.add(box(0.4, 0.04, 0.38, cm, tx, 0.58, tz + dz2));
+          g.add(box(0.4, 0.4, 0.04, cm, tx, 0.8, tz + dz2 * 1.42));
+          for (const [ox, oz] of [[-0.17, -0.15], [0.17, -0.15], [-0.17, 0.15], [0.17, 0.15]]) g.add(box(0.025, 0.44, 0.025, tableLeg, tx + ox, 0.35, tz + dz2 + oz));
+        });
+      });
       // a couple of plants
       for (const z of [4.4, 7.6]) {
         g.add(box(0.34, 0.42, 0.34, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.32, 0.33, z));
@@ -679,7 +757,7 @@ class Unit {
       g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz - 0.85));
       g.add(box(0.66, 0.72, 0.05, std(COL.gold, { roughness: 0.6 }), outerX - side * 0.5, 0.48, dz + 0.85));
     }
-    g.add(box(0.22, 0.62, 0.6, std('#f6f6f6', { roughness: 0.4 }), faceX + side * 0.45, 0.47, 4.3));
+    if (!welcome) g.add(box(0.22, 0.62, 0.6, std('#f6f6f6', { roughness: 0.4 }), faceX + side * 0.45, 0.47, 4.3));
     // the public entrance: a door in the front end, facing the playground, with a step and an ENTRANCE sign
     const { x0: e0, x1: e1 } = welcome ? { x0: HUB.entranceDoor.x0 - 0.1, x1: HUB.entranceDoor.x1 + 0.1 } : HUB.entranceDoor;
     const door = new THREE.Group();
@@ -693,10 +771,11 @@ class Unit {
     door.add(box(0.04, 0.32, 0.04, std('#c9ccd0', { metalness: 0.9, roughness: 0.25 }), ew / 2 - 0.12, 1.1, 0.06));
     door.position.set((e0 + e1) / 2, 0, z1 + 0.03);
     g.add(door);
-    g.add(box(ew + 0.5, 0.11, 0.6, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.055, z1 + 0.3));
-    // the arena's entrance sign is plain white lettering, like the strap line (Jamie, 29 Oct 2026)
+    // the arena's entrance is level, with no step (Jamie, 29 Oct 2026)
+    if (!welcome) g.add(box(ew + 0.5, 0.11, 0.6, std('#9a9da1', { roughness: 0.9 }), (e0 + e1) / 2, 0.055, z1 + 0.3));
+    // the arena's entrance sign is plain gold lettering, like the name (Jamie, 29 Oct 2026)
     const sign = welcome
-      ? facePanel(1.1, 0.26, null, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.15, '#ffffff', w - 0.16), { ribs: false })
+      ? facePanel(1.1, 0.26, null, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.15, COL.gold, w - 0.16), { ribs: false })
       : facePanel(1.1, 0.26, COL.gold, (cg, s2, w, h) => drawText(cg, s2, h, 'ENTRANCE', w / 2, h / 2, 0.17, COL.navy, w - 0.16), { ribs: false });
     g.add(place(sign, '+z', (e0 + e1) / 2, 2.41, z1 + 0.012));
     // ceiling lights inside the reception
@@ -1198,11 +1277,13 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
       drawText(g, s, h, name, w / 2, 1.6, 0.62, COL.gold, Math.min(w - 0.8, 7));
       drawText(g, s, h, 'YOUR HOME COURT', w / 2, 1.04, 0.2, '#ffffff', Math.min(w - 0.8, 3));
     };
+    // the gold stripe runs round every container end too, so the arena reads as one building (Jamie, 29 Oct 2026)
+    const endStripe = (g, s2, w, h) => stripe(g, s2, w, h + 0.16, COL.gold);
     // one name per side: the far storage container just has the stripe
-    brand.c2 = { base: COL.navy, outer: (g, s2, w, h) => stripe(g, s2, w, h + 0.16, COL.gold), court: () => {} };
-    brand.c3 = { base: COL.navy, courtBase: COL.gold, outer: plainSide, court: () => {} };
+    brand.c2 = { base: COL.navy, outer: endStripe, endFront: endStripe, endBack: endStripe, court: () => {} };
+    brand.c3 = { base: COL.navy, courtBase: COL.gold, outer: plainSide, endFront: endStripe, endBack: endStripe, court: () => {} };
     // the entrance end kept clean, no QR panel (Jamie, 29 Oct 2026)
-    brand.reception = { base: COL.navy, art: {}, outer: plainSide, endFront: (g, s2, w, h) => stripe(g, s2, w, h + 0.16, COL.gold), welcome: name };
+    brand.reception = { base: COL.navy, art: {}, outer: plainSide, endFront: endStripe, endBack: endStripe, welcome: name };
   }
   // containers: 40 ft reception left (or two more storage containers), 20 ft navy and gold storage right, each
   // storage container with a 2.3 m roller shutter at its corner end, well clear of the portable hoops
@@ -1377,8 +1458,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     const BH = 0.9;
     const order = ['hoop', 'pickle', 'dodge', 'arena'];
     let n = 0;
-    const board = (w, x, z, rotY) => {
-      const kind = order[n++ % order.length];
+    const board = (w, x, z, rotY, kind = order[n++ % order.length]) => {
       const grp = new THREE.Group();
       grp.add(box(w + 0.04, BH + 0.04, 0.03, std(COL.navy, { roughness: 0.6 }), 0, 0, -0.016));
       const face = new THREE.Mesh(new THREE.PlaneGeometry(w, BH), std('#ffffff', { map: boardTexture(kind, w, BH), roughness: 0.55 }));
@@ -1396,8 +1476,12 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
         board(b - a, side * (HALF - 0.04), (a + b) / 2, (-side * Math.PI) / 2);
       }
     // end walls: clear of the main hoop, the fire exit and the roller door
-    const slam = [[-HALF + 0.12, -4.75], [-4.6, -0.75], [0.75, HUB.fe1.x0 - 0.15], [HUB.fe1.x1 + 0.15, HALF - 0.12]];
-    for (const [a, b] of slam) board(b - a, (a + b) / 2, HUB.z0 + 0.05, 0);
+    // back wall: basketball, pickleball and dodgeball, evenly spaced left of the fire exit, in the same order
+    // as the colour bar under the name (Jamie, 29 Oct 2026)
+    const s0 = -HALF + 0.12;
+    const gap = 0.6;
+    const bw = (HUB.fe1.x0 - 0.15 - s0 - 2 * gap) / 3;
+    ['hoop', 'pickle', 'dodge'].forEach((kind, i) => board(bw, s0 + bw / 2 + i * (bw + gap), HUB.z0 + 0.05, 0, kind));
     const rw = HUB.roller.w / 2 + 0.35;
     const mid = (-HALF + 0.12 - rw) / 2;
     const ent = [[-HALF + 0.12, mid - 0.08], [mid + 0.08, -rw], [rw, -mid - 0.08], [-mid + 0.08, HALF - 0.12]];
@@ -1732,6 +1816,7 @@ export const SHOTS = {
   end: { label: 'Main hoop end', pos: [3.2, 2.1, 9.9], target: [-0.4, 1.6, -1.0], fov: 50, state: {} },
   // detail for signing off the storage shutters
   door: { label: 'Entrance end', pos: [1.2, 2.2, 1.0], target: [0, 1.3, 11.0], fov: 56, state: {} },
+  rec: { label: 'Reception', pos: [-9.05, 1.7, 10.4], target: [-10.0, 1.15, 0.6], fov: 64, state: {} },
   recIn: { label: 'Reception counter', pos: [-9.0, 1.55, 5.6], target: [-10.4, 1.0, 9.6], fov: 60, state: {} },
   recSeat: { label: 'Reception seats', pos: [-9.0, 1.6, 6.6], target: [-10.2, 1.4, 1.2], fov: 60, state: {} },
   s3: { label: 'Storage left', pos: [5.5, 2.4, 9.8], target: [-7.5, 1.2, 3.0], fov: 50, state: {} },
