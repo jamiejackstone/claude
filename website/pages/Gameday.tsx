@@ -13,8 +13,8 @@ export const Gameday: React.FC = () => {
     registrationCloses: 'when full',
     description: 'Experience the fast-paced excitement of 3x3 basketball with our small internal mini-tournament',
     registrationUrl: 'https://goteamup.com/p/6822945-hoop-heroes/courses/139859/',
-    isLive: true,
-    registrationOpen: true
+    isLive: false,
+    registrationOpen: false
   });
 
   const REGISTRATION_URL = withTrackedParams(settings.registrationUrl);
