@@ -694,15 +694,14 @@ class Unit {
         g.add(box(0.014, 0.07, len, std(col, { roughness: 0.5 }), fx, 1.17, fz0 + len * (i + 0.5)));
       });
       // a big timetable on the long wall, Monday to Friday, in the sport colours (an example week, as the deck)
-      const SPORT = { b: ['#fba91a', COL.navy], p: ['#9bd13b', COL.navy], d: ['#e63950', '#ffffff'], c: ['#00bb7f', COL.navy] };
+      const SPORT = { b: ['#fba91a', COL.navy], p: ['#9bd13b', COL.navy], d: ['#e63950', '#ffffff'], c: ['#00bb7f', COL.navy], a: ['#ffffff', COL.navy] };
       const days = [
-        ['MON', 'b', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'b'], ['Rising Stars, Ballers', 'b']]],
-        ['TUE', 'p', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'p'], ['Rising Stars, Ballers', 'p']]],
-        ['WED', 'b', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'b'], ['Girls-only sessions', 'c']]],
-        ['THU', 'd', [['Breakfast Hoops', 'b'], ['Rookies, Rising Stars', 'd'], ['Rising Stars, Ballers', 'd']]],
-        ['FRI', 'b', [['Breakfast Hoops', 'b'], ['Dodgeball Night', 'd'], ['League and pickup', 'b']]],
+        ['MON', [['Breakfast All Stars', 'a'], ['Rookies, Rising Stars', 'b'], ['Rising Stars, Ballers', 'b']]],
+        ['TUE', [['Breakfast All Stars', 'a'], ['Rookies, Rising Stars', 'p'], ['Rising Stars, Ballers', 'p']]],
+        ['WED', [['Breakfast All Stars', 'a'], ['Rookies, Rising Stars', 'b'], ['Girls-only sessions', 'c']]],
+        ['THU', [['Breakfast All Stars', 'a'], ['Rookies, Rising Stars', 'd'], ['Rising Stars, Ballers', 'd']]],
+        ['FRI', [['Breakfast All Stars', 'a'], ['Dodgeball Night', 'd'], ['League and pickup', 'b']]],
       ];
-      const lead = { b: 'BASKETBALL', p: 'PICKLEBALL', d: 'DODGEBALL' };
       const ttW = 3.9;
       const ttH = 1.08;
       const timetable = facePanel(ttW, ttH, COL.navy, (cg, s2, w, h) => {
@@ -724,11 +723,10 @@ class Unit {
         rows.forEach((r, j) => {
           drawText(cg, s2, h, r, lx + lw / 2, h - 0.42 - j * 0.2, 0.045, '#d6dcea', lw - 0.04);
         });
-        days.forEach(([d, sp, cells], i) => {
+        days.forEach(([d, cells], i) => {
           const x = lx + lw + i * cw2;
-          const [bg, ink] = SPORT[sp];
-          rect(x + 0.015, h - 0.2, cw2 - 0.03, 0.11, bg);
-          drawText(cg, s2, h, `${d} · ${lead[sp]}`, x + cw2 / 2, h - 0.255, 0.045, ink, cw2 - 0.07);
+          // the day only: no lead sport, which read as confusing (Jamie, 29 Oct 2026)
+          drawText(cg, s2, h, d, x + cw2 / 2, h - 0.255, 0.06, '#ffffff', cw2 - 0.07);
           cells.forEach(([t, k], j) => {
             const [cb, ci] = SPORT[k];
             const yTop = h - 0.335 - j * 0.2;
