@@ -5,7 +5,7 @@ from openpyxl.utils import get_column_letter as CL
 from openpyxl.chart import BarChart, Reference
 from openpyxl.comments import Comment
 
-OUT = '/tmp/claude-0/-home-user-claude/2e9593c9-8253-5edb-b8a0-36677906ecc4/scratchpad/finance/Heroes Arena 3-year model v0.1 DRAFT.xlsx'
+OUT = '/tmp/claude-0/-home-user-claude/2e9593c9-8253-5edb-b8a0-36677906ecc4/scratchpad/finance/Heroes Arena 3-year model v0.2 DRAFT.xlsx'
 F = 'Arial'
 NAVY, GOLD = '14264E', 'FBA91A'
 f_base = Font(name=F, size=10)
@@ -160,7 +160,7 @@ p('gc2', 'Share paid by grants, Year 2', '% of cost', [0.25, 0.5, 0.75], 'Desk e
 p('gc3', 'Share paid by grants, Year 3', '% of cost', [0.5, 0.75, 1.0], 'Desk estimate', PCT)
 
 sec('Arena running costs')
-p('fin', 'Supplier finance (canopy and containers)', '£/month', 900, 'Indicative: Zappshelter, Peter Laird, 26 Oct 2026, 5 years, no deposit. Coverage and VAT to confirm', GBP)
+p('fin', 'Supplier finance (Zappshelter package)', '£/month', 2000, 'Indicative: Zappshelter, Peter Laird, 29 Oct 2026: about £2,000 + VAT a month over 5 years (about £3,000 over 3) for the £87,343 + VAT package. Containers not included. VAT treatment to confirm', GBP)
 p('finm', 'Finance term', 'months', 60, 'Indicative, as above')
 p('run', 'Running: insurance, power, maintenance, fabric fund', '£/month', [1000, 1000, 750], 'Desk estimate: HHOS 2.0 £6k–£12k a year', GBP)
 p('heat', 'Heating, per winter (Nov to Mar)', '£/winter', [9500, 7550, 7550], 'Desk estimate: £5.6k–£9.5k per winter (options paper v1.0); to re-estimate', GBP)
@@ -275,7 +275,7 @@ mrow(41, 'Total direct costs', lambda c, p: f'=SUM({c}32:{c}40)', bold=True, fil
 mrow(43, 'Contribution after direct costs', lambda c, p: f'={c}29-{c}41', bold=True, key='contrib')
 
 header(45, 'ARENA COSTS')
-mrow(46, 'Supplier finance (canopy and containers)', lambda c, p: f'={L("fin")}*({c}3<={L("finm")})', key='a_fin')
+mrow(46, 'Supplier finance (Zappshelter package)', lambda c, p: f'={L("fin")}*({c}3<={L("finm")})', key='a_fin')
 mrow(47, 'Running: insurance, power, maintenance', lambda c, p: f'={L("run")}', key='a_run')
 mrow(48, 'Heating (winter months)', lambda c, p: f'={L("heat")}/SUM(Assumptions!$E${cal0}:$E${cal1})*{CAL("E", c)}', key='a_heat')
 mrow(49, 'Rent to the school', lambda c, p: f'={L("rent")}', key='a_rent')
@@ -376,11 +376,10 @@ B['A2'] = 'Ex VAT unless stated. A floor, not a budget: formal quotes still need
 for c, t in zip('ABCDE', ['Item', 'Low £', 'High £', 'Middle £', 'Source / label']):
     B[f'{c}4'] = t; B[f'{c}4'].font = f_sec; B[f'{c}4'].fill = fill_sec
 items = [
-    ('Canopy, 17 m span, supply and install', 30000, 36399, 'Indicative £30k (Zappshelter 16 Oct, 14 m open-ended); high = desk scale-up to 17 m'),
-    ('Containers: 40 ft reception + 2 × 20 ft stores', 7000, 12000, 'Desk estimate (used containers; cost sheet v6.6 has 4 × 20 ft at £3.5k–£6.2k)'),
+    ('Zappshelter package: 17 × 12.2 m canopy, branded covers, end walls, roller door, fire door, install', 87343, 87343, 'Quote: Zappshelter, Peter Laird, 29 Oct 2026 (includes container mounting kit and plant hire)'),
+    ('Containers: 40 ft reception + 2 × 20 ft stores', 8600, 12000, 'Indicative low: Zappshelter 29 Oct, 2 × 40 ft at about £4,300 each delivered (rental option £112/month each). High: desk estimate for converted units'),
     ('Reception fit-out and accessible WC', 12000, 20000, 'Placeholder: unpriced (new spec, 29 Oct 2026)'),
-    ('End walls, roller door and fire exit', 8000, 15000, 'Placeholder: unpriced in cost sheet v6.6'),
-    ('Court tiles 14.8 × 10 m', 6403, 8425, 'List price (gym-flooring.com), cost sheet v6.6'),
+    ('Court tiles, custom multi-sport, 15.0 × 10.2 m', 6250, 6250, 'Quote: Net World Sports Q00129975, 28 Oct 2026 (logo, edging, basketball, pickleball and badminton lines). Shipping to confirm'),
     ('Run-off tiles', 2552, 3358, 'Desk estimate, cost sheet v6.6'),
     ('Three movable hoops', 4000, 4000, 'Jamie assumption, 28 Oct 2026'),
     ('LED lighting and electrics', 3650, 6650, 'Electrician £650 (desk) + lighting placeholder £3k–£6k'),
@@ -404,7 +403,7 @@ for c, t in zip('ABCDE', ['Paid for by', 'Low £', 'High £', 'Middle £', 'Sour
     B[f'{c}{r}'] = t; B[f'{c}{r}'].font = f_sec; B[f'{c}{r}'].fill = fill_sec
 r += 1; f0 = r
 fund = [
-    ('Supplier finance (canopy and containers)', 38600, 38600, 'Indicative: Zappshelter budget £38.6k + VAT, ~£900/month over 5 years (in the model)'),
+    ('Supplier finance (Zappshelter package)', 87343, 87343, 'Indicative: Zappshelter HP, about £2,000 + VAT a month over 5 years (in the model)'),
     ('Grants via a CIC', 0, 0, 'None for Arena #1: it runs through the Ltd (Jamie, 29 Oct 2026). A CIC is considered for Arenas #2 and #3'),
     ('Sponsorship (boards, kit)', 0, 5000, 'Desk estimate: local business sponsors on the arena boards'),
 ]
@@ -431,7 +430,7 @@ heads = ['Route', 'What it pays for', 'Who applies', 'Typical size', 'Status']
 for i, t in enumerate(heads):
     c = FR.cell(row=4, column=i + 1, value=t); c.font = f_sec; c.fill = fill_sec
 routes = [
-    ('Supplier finance (Zappshelter HP or lease)', 'Canopy and containers', 'Hoop Heroes Ltd (or CIC)', '~£900/month over 5 years', 'Indicative; terms, VAT and guarantee to confirm'),
+    ('Supplier finance (Zappshelter HP or lease)', 'Canopy, covers, end walls, doors, install', 'Hoop Heroes Ltd (or CIC)', '~£2,000 + VAT/month over 5 years, or ~£3,000 over 3', 'Indicative (29 Oct 2026); terms, VAT and guarantee to confirm'),
     ('National Lottery Awards for All', 'Community sessions, kit, small capital', 'CIC', 'Up to £20,000', 'To verify; not open to profit-making companies'),
     ('Sport England Movement Fund', 'Projects getting inactive groups active, incl. kit', 'CIC', 'Up to £15,000 (often crowdfund-matched)', 'To verify'),
     ('Holiday Activities and Food (Buckinghamshire Council)', 'Free holiday places for eligible children', 'Hoop Heroes Ltd as approved provider', 'Per place per day', 'To verify rate and provider route'),
@@ -461,7 +460,7 @@ for c, w in zip('ABCDE', [42, 40, 30, 30, 40]):
 
 # ---------------- Read me ----------------
 RM = wb.create_sheet('Read me', 0)
-RM['A1'] = 'Heroes Arena 3-year model, v0.1 DRAFT (29 Oct 2026)'; RM['A1'].font = f_h
+RM['A1'] = 'Heroes Arena 3-year model, v0.2 DRAFT (30 Oct 2026)'; RM['A1'].font = f_h
 lines = [
     'Internal. Not for schools. A desk model for discussion, not a forecast, quote or advice.',
     '',
