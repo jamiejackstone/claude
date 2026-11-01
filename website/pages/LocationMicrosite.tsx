@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
+import { trackWaitlistLead } from '../lib/metaPixel';
 import { directionsUrl, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
@@ -255,6 +256,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
         if (response.ok) {
             console.log('Lead submitted to server successfully');
             setIsWaitlistSubmitted(true);
+            trackWaitlistLead();
         } else {
             const errorData = await response.json();
             console.error('Server submission error:', errorData);

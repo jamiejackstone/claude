@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, useParams, Navigate, Link as RouterLink } from 'react-router-dom';
 import { captureLandingClickIds, pathWithTrackedParams, TRACKED_PARAMS } from './lib/clickTracking';
+import { trackPageView } from './lib/metaPixel';
 import { LOCATIONS } from './constants';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -14,17 +15,14 @@ import { AccidentReport } from './pages/AccidentReport';
 import { Gameday } from './pages/Gameday';
 import { GoRedirect } from './pages/GoRedirect';
 
-// Meta Pixel Route Tracker
+// One Meta PageView per pathname, and only after consent. Search-only updates
+// (stored click ids written back onto the URL) stay on the same page.
 const MetaPixelTracker = () => {
-  const location = useLocation();
+  const { pathname } = useLocation();
 
   useEffect(() => {
-    // Check if user has accepted cookies before firing
-    const consent = localStorage.getItem('hoop_heroes_cookie_consent');
-    if (consent === 'accepted' && typeof window !== 'undefined' && (window as any).fbq) {
-      (window as any).fbq('track', 'PageView');
-    }
-  }, [location]);
+    trackPageView(pathname);
+  }, [pathname]);
 
   return null;
 };
