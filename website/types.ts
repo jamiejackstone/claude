@@ -74,6 +74,14 @@ export interface LocationData {
   name: string; // e.g., "Bristol", "Manchester South"
   slug: string;
   address: string;
+  /** Structured PostalAddress for JSON-LD. Visitors still see `address`. */
+  postalAddress?: {
+    streetAddress: string;
+    addressLocality: string;
+    addressRegion: string;
+    postalCode: string;
+    addressCountry: string;
+  };
   coordinates: { lat: number; lng: number }; // Mock coordinates
   phone: string;
   email: string;

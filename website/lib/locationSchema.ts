@@ -15,11 +15,21 @@ export interface SchemaSession {
   comingSoon?: boolean;
 }
 
+export interface SchemaPostalAddress {
+  streetAddress: string;
+  addressLocality: string;
+  addressRegion: string;
+  postalCode: string;
+  addressCountry: string;
+}
+
 export interface SchemaLocation {
   name: string;
   slug: string;
   address: string;
   classes: SchemaSession[];
+  coordinates?: { lat: number; lng: number };
+  postalAddress?: SchemaPostalAddress;
 }
 
 interface BookableSession extends SchemaSession {
@@ -80,23 +90,43 @@ export function buildLocationJsonLd(location: SchemaLocation): Record<string, un
   // Weekly classes are recurring sessions, not dated Events. Class dates are
   // not in this repo, so do not emit Event markup (Google requires startDate).
 
+  const area = location.postalAddress?.addressLocality ?? location.name;
   const description = ages
-    ? `Youth basketball classes for ages ${ages.min}-${ages.max} in ${location.name}.`
-    : `Youth basketball classes in ${location.name}.`;
+    ? `Youth basketball classes for ages ${ages.min}-${ages.max} in ${area}.`
+    : `Youth basketball classes in ${area}.`;
+
+  const address = location.postalAddress
+    ? {
+        '@type': 'PostalAddress',
+        streetAddress: location.postalAddress.streetAddress,
+        addressLocality: location.postalAddress.addressLocality,
+        addressRegion: location.postalAddress.addressRegion,
+        postalCode: location.postalAddress.postalCode,
+        addressCountry: location.postalAddress.addressCountry,
+      }
+    : {
+        '@type': 'PostalAddress',
+        streetAddress: location.address,
+        addressCountry: 'GB',
+      };
 
   const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'SportsActivityLocation',
-    name: `Hoop Heroes ${location.name}`,
+    name: location.name,
     url: `https://www.hoopheroes.co.uk/location/${location.slug}`,
     description,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: location.address,
-      addressCountry: 'GB',
-    },
+    address,
     openingHoursSpecification,
   };
+
+  if (location.coordinates) {
+    data.geo = {
+      '@type': 'GeoCoordinates',
+      latitude: location.coordinates.lat,
+      longitude: location.coordinates.lng,
+    };
+  }
 
   if (ages) {
     data.audience = {
