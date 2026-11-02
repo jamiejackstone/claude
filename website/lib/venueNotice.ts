@@ -1,4 +1,4 @@
-import type { LocationData, TemporaryVenue, TemporaryVenueTime } from '../types.ts';
+import type { LocationData, LocationNotice, TemporaryVenue, TemporaryVenueTime } from '../types.ts';
 
 /** Calendar date in Europe/London as YYYY-MM-DD. */
 export function londonDate(now: Date = new Date()): string {
@@ -29,6 +29,15 @@ export function activeTemporaryVenues(
 ): TemporaryVenue[] {
   if (!venues?.length) return [];
   return venues.filter((venue) => isWithinLondonWindow(venue.showFrom, venue.showUntil, now));
+}
+
+/** Location-page text notices inside their Europe/London window. */
+export function getActiveLocationNotices(
+  location: Pick<LocationData, 'notices'>,
+  now: Date = new Date(),
+): LocationNotice[] {
+  if (!location.notices?.length) return [];
+  return location.notices.filter((notice) => isWithinLondonWindow(notice.showFrom, notice.showUntil, now));
 }
 
 /** Banner, box and booking-widget venue ids all come from this window. */

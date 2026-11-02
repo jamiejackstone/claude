@@ -69,6 +69,13 @@ export interface TemporaryVenue {
   teamupVenueIds?: string[];
 }
 
+/** Short location-page notice. Inclusive YYYY-MM-DD window, Europe/London. */
+export interface LocationNotice {
+  text: string;
+  showFrom: string;
+  showUntil: string;
+}
+
 export interface LocationData {
   id: string;
   name: string; // e.g., "Bristol", "Manchester South"
@@ -104,6 +111,8 @@ export interface LocationData {
   googleMapsUrl?: string; // Custom Google Maps link for directions
   tempVenueNotice?: string; // Optional temporary venue change notice
   temporaryVenues?: TemporaryVenue[];
+  /** Dated text notices. Same Europe/London window as temporary venues. */
+  notices?: LocationNotice[];
 }
 
 export interface Feature {

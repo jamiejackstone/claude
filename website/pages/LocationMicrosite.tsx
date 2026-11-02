@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
 import { trackWaitlistLead } from '../lib/metaPixel';
-import { directionsUrl, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
+import { directionsUrl, getActiveLocationNotices, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
 import { LocationData, TemporaryVenue } from '../types';
@@ -13,7 +13,7 @@ interface LocationMicrositeProps {
   forcedId?: string;
 }
 
-function LocationTicker({ text, href }: { text: string; href?: string }) {
+export function LocationTicker({ text, href }: { text: string; href?: string }) {
   const ticker = (
     <div className="bg-brand-orange border-4 border-brand-dark rounded-2xl shadow-sticker overflow-hidden flex items-stretch h-14 motion-reduce:h-auto relative z-30">
       <div className="bg-brand-dark text-white px-4 flex items-center gap-2 shrink-0 border-r-2 border-brand-dark relative z-10">
@@ -275,6 +275,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
   }
 
   const now = new Date();
+  const locationNotices = getActiveLocationNotices(location, now);
   const temporaryVenues = getActiveTemporaryVenues(location, now);
   const bookingWidgetUrl = getBookingWidgetUrl(location, now);
 
@@ -441,6 +442,9 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
         <div className="lg:col-span-8 space-y-6">
           
           {location.newsTicker && <LocationTicker text={location.newsTicker} />}
+          {locationNotices.map((notice) => (
+            <LocationTicker key={`${notice.showFrom}-${notice.showUntil}-${notice.text}`} text={notice.text} />
+          ))}
           {temporaryVenues.map((venue, index) => (
             <LocationTicker key={`${venue.venueName}-ticker`} text={venue.tickerText} href={`#${temporaryVenueAnchorId(index)}`} />
           ))}

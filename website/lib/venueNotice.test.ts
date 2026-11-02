@@ -1,11 +1,12 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LOCATIONS } from '../constants.ts';
-import { TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
+import { LocationTicker, TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
 import { DayOfWeek } from '../types.ts';
 import {
   activeTemporaryVenues,
   directionsUrl,
+  getActiveLocationNotices,
   getActiveTemporaryVenues,
   getBookingWidgetUrl,
   isWithinLondonWindow,
@@ -323,5 +324,53 @@ assertEqual(
   holmerBaseWidgetUrl,
   '25 Nov uses the original base widget url',
 );
+
+const sandhurst = LOCATIONS.find((location) => location.slug === 'sandhurst');
+assert(sandhurst, 'Sandhurst location exists');
+if (!sandhurst) throw new Error('Sandhurst location exists');
+
+const sandhurstNotice = 'No sessions Sun 15 Nov (hall unavailable). Back Sun 22 Nov.';
+assertEqual(sandhurst.notices, [
+  {
+    text: sandhurstNotice,
+    showFrom: '2026-11-02',
+    showUntil: '2026-11-15',
+  },
+], 'Sandhurst notice is the hall closure, 2-15 Nov 2026 inclusive');
+assert(/^[ -~]+$/.test(sandhurstNotice), 'Sandhurst notice copy is plain ASCII');
+assert(!sandhurst.temporaryVenues?.length, 'Sandhurst has no temporary venue');
+assertEqual(
+  sandhurst.bookingWidgetUrl,
+  'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=66611',
+  'the notice does not change the Sandhurst TeamUp venue',
+);
+assert(
+  LOCATIONS.filter((location) => location.slug !== 'sandhurst').every((location) => !location.notices?.length),
+  'only Sandhurst has a dated text notice',
+);
+assertEqual(
+  getActiveLocationNotices(sandhurst, new Date('2026-11-15T12:00:00Z')).map((notice) => notice.text),
+  [sandhurstNotice],
+  'Sandhurst notice is visible on 15 Nov 2026 Europe/London',
+);
+assertEqual(
+  getActiveLocationNotices(sandhurst, new Date('2026-11-15T23:30:00Z')).map((notice) => notice.text),
+  [sandhurstNotice],
+  'Sandhurst notice is visible through the end of 15 Nov 2026 Europe/London',
+);
+assertEqual(
+  getActiveLocationNotices(sandhurst, new Date('2026-11-16T00:00:00Z')),
+  [],
+  'Sandhurst notice is hidden from 16 Nov 2026 00:00 Europe/London',
+);
+assertEqual(
+  getActiveLocationNotices(sandhurst, new Date('2026-11-02T00:00:00Z')).map((notice) => notice.text),
+  [sandhurstNotice],
+  'Sandhurst notice is visible from 2 Nov 2026 Europe/London',
+);
+const sandhurstNoticeHtml = renderToStaticMarkup(
+  React.createElement(LocationTicker, { text: sandhurstNotice }),
+);
+assert(sandhurstNoticeHtml.includes(sandhurstNotice), 'the location banner renders the Sandhurst notice text');
 
 console.log('venueNotice tests passed');
