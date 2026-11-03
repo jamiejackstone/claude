@@ -40,6 +40,22 @@ export function getActiveLocationNotices(
   return location.notices.filter((notice) => isWithinLondonWindow(notice.showFrom, notice.showUntil, now));
 }
 
+/** Active notices for the UPDATE banner. Unset placement stays here. */
+export function getActiveBannerNotices(
+  location: Pick<LocationData, 'notices'>,
+  now: Date = new Date(),
+): LocationNotice[] {
+  return getActiveLocationNotices(location, now).filter((notice) => notice.placement !== 'schedule');
+}
+
+/** Active notices for the top of the Class Schedule section. */
+export function getActiveScheduleNotices(
+  location: Pick<LocationData, 'notices'>,
+  now: Date = new Date(),
+): LocationNotice[] {
+  return getActiveLocationNotices(location, now).filter((notice) => notice.placement === 'schedule');
+}
+
 /** Banner, box and booking-widget venue ids all come from this window. */
 export function getActiveTemporaryVenues(
   location: Pick<LocationData, 'temporaryVenues'>,

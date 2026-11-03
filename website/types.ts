@@ -74,6 +74,8 @@ export interface LocationNotice {
   text: string;
   showFrom: string;
   showUntil: string;
+  /** Defaults to the UPDATE banner. `schedule` renders at the top of Class Schedule. */
+  placement?: 'banner' | 'schedule';
 }
 
 export interface LocationData {

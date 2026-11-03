@@ -1,12 +1,14 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LOCATIONS } from '../constants.ts';
-import { LocationTicker, TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
+import { ClassScheduleDetails, TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
 import { DayOfWeek } from '../types.ts';
 import {
   activeTemporaryVenues,
   directionsUrl,
+  getActiveBannerNotices,
   getActiveLocationNotices,
+  getActiveScheduleNotices,
   getActiveTemporaryVenues,
   getBookingWidgetUrl,
   isWithinLondonWindow,
@@ -329,15 +331,17 @@ const sandhurst = LOCATIONS.find((location) => location.slug === 'sandhurst');
 assert(sandhurst, 'Sandhurst location exists');
 if (!sandhurst) throw new Error('Sandhurst location exists');
 
-const sandhurstNotice = 'No sessions Sun 15 Nov (hall unavailable). Back Sun 22 Nov.';
+const sandhurstNotice = "Sunday 15 November: no sessions (the sports hall isn't available). We're back as normal on Sunday 22 November.";
 assertEqual(sandhurst.notices, [
   {
     text: sandhurstNotice,
     showFrom: '2026-11-02',
     showUntil: '2026-11-15',
+    placement: 'schedule',
   },
 ], 'Sandhurst notice is the hall closure, 2-15 Nov 2026 inclusive');
 assert(/^[ -~]+$/.test(sandhurstNotice), 'Sandhurst notice copy is plain ASCII');
+assert(sandhurstNotice.includes("isn't") && sandhurstNotice.includes("We're"), 'apostrophes are plain ASCII');
 assert(!sandhurst.temporaryVenues?.length, 'Sandhurst has no temporary venue');
 assertEqual(
   sandhurst.bookingWidgetUrl,
@@ -349,28 +353,74 @@ assert(
   'only Sandhurst has a dated text notice',
 );
 assertEqual(
-  getActiveLocationNotices(sandhurst, new Date('2026-11-15T12:00:00Z')).map((notice) => notice.text),
+  getActiveScheduleNotices(sandhurst, new Date('2026-11-15T12:00:00Z')).map((notice) => notice.text),
   [sandhurstNotice],
   'Sandhurst notice is visible on 15 Nov 2026 Europe/London',
 );
 assertEqual(
-  getActiveLocationNotices(sandhurst, new Date('2026-11-15T23:30:00Z')).map((notice) => notice.text),
+  getActiveScheduleNotices(sandhurst, new Date('2026-11-15T23:30:00Z')).map((notice) => notice.text),
   [sandhurstNotice],
   'Sandhurst notice is visible through the end of 15 Nov 2026 Europe/London',
 );
 assertEqual(
-  getActiveLocationNotices(sandhurst, new Date('2026-11-16T00:00:00Z')),
+  getActiveScheduleNotices(sandhurst, new Date('2026-11-16T00:00:00Z')),
   [],
   'Sandhurst notice is hidden from 16 Nov 2026 00:00 Europe/London',
+);
+assertEqual(
+  getActiveBannerNotices(sandhurst, new Date('2026-11-15T12:00:00Z')),
+  [],
+  'Sandhurst notice is not shown in the UPDATE banner',
 );
 assertEqual(
   getActiveLocationNotices(sandhurst, new Date('2026-11-02T00:00:00Z')).map((notice) => notice.text),
   [sandhurstNotice],
   'Sandhurst notice is visible from 2 Nov 2026 Europe/London',
 );
-const sandhurstNoticeHtml = renderToStaticMarkup(
-  React.createElement(LocationTicker, { text: sandhurstNotice }),
+const bannerOnly = {
+  notices: [{ text: 'Banner notice', showFrom: '2026-11-02', showUntil: '2026-11-15' }],
+};
+assertEqual(
+  getActiveBannerNotices(bannerOnly, new Date('2026-11-15T12:00:00Z')).map((notice) => notice.text),
+  ['Banner notice'],
+  'a notice without placement still uses the banner',
 );
-assert(sandhurstNoticeHtml.includes(sandhurstNotice), 'the location banner renders the Sandhurst notice text');
+assertEqual(
+  getActiveScheduleNotices(bannerOnly, new Date('2026-11-15T12:00:00Z')),
+  [],
+  'a banner notice does not move into the schedule section',
+);
+function renderedText(html: string): string {
+  return html
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&');
+}
+
+const scheduleOn15 = renderedText(renderToStaticMarkup(
+  React.createElement(ClassScheduleDetails, {
+    notices: getActiveScheduleNotices(sandhurst, new Date('2026-11-15T12:00:00Z')),
+    scheduleNotice: sandhurst.scheduleNotice,
+    sessions: sandhurst.classes,
+  }),
+));
+const headingIndex = scheduleOn15.indexOf('Class Schedule');
+const noticeIndex = scheduleOn15.indexOf(sandhurstNotice);
+const sessionIndex = scheduleOn15.indexOf('Coming soon - January 2027');
+assert(headingIndex >= 0, 'the notice is inside the Class Schedule section');
+assert(noticeIndex > headingIndex, 'the notice renders at the top of the Class Schedule section');
+assert(sessionIndex > noticeIndex, 'the notice renders above the session list');
+assert(!scheduleOn15.includes('>UPDATE<'), 'the schedule section does not use the banner');
+const scheduleOn16 = renderedText(renderToStaticMarkup(
+  React.createElement(ClassScheduleDetails, {
+    notices: getActiveScheduleNotices(sandhurst, new Date('2026-11-16T00:00:00Z')),
+    scheduleNotice: sandhurst.scheduleNotice,
+    sessions: sandhurst.classes,
+  }),
+));
+assert(!scheduleOn16.includes(sandhurstNotice), 'the schedule section hides the notice on 16 Nov 2026');
+assert(scheduleOn16.includes('Coming soon - January 2027'), 'the session list stays when the notice is hidden');
 
 console.log('venueNotice tests passed');

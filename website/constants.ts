@@ -343,9 +343,10 @@ export const LOCATIONS: LocationData[] = [
     // Shown 2-15 Nov 2026 inclusive, Europe/London. Hidden from 16 Nov 2026.
     notices: [
       {
-        text: 'No sessions Sun 15 Nov (hall unavailable). Back Sun 22 Nov.',
+        text: "Sunday 15 November: no sessions (the sports hall isn't available). We're back as normal on Sunday 22 November.",
         showFrom: '2026-11-02',
         showUntil: '2026-11-15',
+        placement: 'schedule',
       },
     ],
     ghlTag: "Sandhurst Earlybird"

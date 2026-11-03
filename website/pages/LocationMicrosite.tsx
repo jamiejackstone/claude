@@ -3,10 +3,10 @@ import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
 import { trackWaitlistLead } from '../lib/metaPixel';
-import { directionsUrl, getActiveLocationNotices, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
+import { directionsUrl, getActiveBannerNotices, getActiveScheduleNotices, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
 import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
-import { LocationData, TemporaryVenue } from '../types';
+import { ClassSession, LocationData, LocationNotice, TemporaryVenue } from '../types';
 import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, AlertTriangle, ShoppingCart } from 'lucide-react';
 
 interface LocationMicrositeProps {
@@ -38,6 +38,51 @@ export function LocationTicker({ text, href }: { text: string; href?: string }) 
     <a href={href} className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark">
       {ticker}
     </a>
+  );
+}
+
+/** Top of the Class Schedule card: dated notices, then the heading and session list. */
+export function ClassScheduleDetails({
+  notices,
+  scheduleNotice,
+  sessions,
+}: {
+  notices: LocationNotice[];
+  scheduleNotice?: string;
+  sessions: ClassSession[];
+}) {
+  return (
+    <div className="p-8 border-b-4 border-brand-dark bg-brand-light">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <h2 className="font-display text-4xl md:text-5xl text-brand-dark uppercase">Class Schedule</h2>
+        <div className="inline-flex items-center gap-2 text-sm font-black uppercase text-brand-dark bg-green-400/20 px-4 py-2 rounded-full border-2 border-green-500/20">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Availability
+        </div>
+      </div>
+      {notices.map((notice) => (
+        <p
+          key={`${notice.showFrom}-${notice.showUntil}-${notice.text}`}
+          className="mt-4 rounded-xl border-2 border-brand-dark bg-brand-orange/20 px-4 py-3 text-sm font-bold leading-snug text-brand-dark"
+        >
+          {notice.text}
+        </p>
+      ))}
+      <div className="space-y-1">
+        <p className="text-slate-600 font-medium">Browse next available sessions below and book your free trial.</p>
+        {scheduleNotice ? (
+          <p className="text-sm font-bold text-brand-orange leading-snug">
+            {scheduleNotice}
+          </p>
+        ) : (
+          <p className="text-xs font-black uppercase text-brand-orange tracking-widest">
+            Term times only, see upcoming schedule for availability.
+          </p>
+        )}
+      </div>
+      {sessions.some((session) => session.comingSoon) && (
+        <ClassSessionList sessions={sessions} />
+      )}
+    </div>
   );
 }
 
@@ -275,7 +320,8 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
   }
 
   const now = new Date();
-  const locationNotices = getActiveLocationNotices(location, now);
+  const bannerNotices = getActiveBannerNotices(location, now);
+  const scheduleNotices = getActiveScheduleNotices(location, now);
   const temporaryVenues = getActiveTemporaryVenues(location, now);
   const bookingWidgetUrl = getBookingWidgetUrl(location, now);
 
@@ -442,7 +488,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
         <div className="lg:col-span-8 space-y-6">
           
           {location.newsTicker && <LocationTicker text={location.newsTicker} />}
-          {locationNotices.map((notice) => (
+          {bannerNotices.map((notice) => (
             <LocationTicker key={`${notice.showFrom}-${notice.showUntil}-${notice.text}`} text={notice.text} />
           ))}
           {temporaryVenues.map((venue, index) => (
@@ -496,29 +542,11 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
             </div>
           ) : (
             <div id="schedule" className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark overflow-hidden scroll-mt-32 flex flex-col min-h-[1050px]">
-              <div className="p-8 border-b-4 border-brand-dark bg-brand-light">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-                  <h2 className="font-display text-4xl md:text-5xl text-brand-dark uppercase">Class Schedule</h2>
-                  <div className="inline-flex items-center gap-2 text-sm font-black uppercase text-brand-dark bg-green-400/20 px-4 py-2 rounded-full border-2 border-green-500/20">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Availability
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-slate-600 font-medium">Browse next available sessions below and book your free trial.</p>
-                  {location.scheduleNotice ? (
-                    <p className="text-sm font-bold text-brand-orange leading-snug">
-                      {location.scheduleNotice}
-                    </p>
-                  ) : (
-                    <p className="text-xs font-black uppercase text-brand-orange tracking-widest">
-                      Term times only, see upcoming schedule for availability.
-                    </p>
-                  )}
-                </div>
-                {location.classes.some((session) => session.comingSoon) && (
-                  <ClassSessionList sessions={location.classes} />
-                )}
-              </div>
+              <ClassScheduleDetails
+                notices={scheduleNotices}
+                scheduleNotice={location.scheduleNotice}
+                sessions={location.classes}
+              />
               {bookingWidgetUrl && (
                 <div className="w-full bg-white flex-grow">
                   <iframe src={getWidgetUrl(bookingWidgetUrl)} title="Hoop Heroes Booking Calendar" className="w-full h-[950px]" style={{ border: 0 }} loading="lazy"></iframe>
