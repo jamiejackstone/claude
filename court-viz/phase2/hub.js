@@ -109,7 +109,7 @@ const BOARD = {
   hoop: { bg: '#fba91a', ink: '#14264e', word: 'BASKETBALL' },
   pickle: { bg: '#9bd13b', ink: '#14264e', word: 'PICKLEBALL' },
   dodge: { bg: '#e63950', ink: '#ffffff', word: 'DODGEBALL' },
-  arena: { bg: '#14264e', ink: '#ffffff', word: 'HEROES ARENA' },
+  arena: { bg: '#14264e', ink: '#ffffff', word: 'HERO DOME' },
 };
 function boardTexture(kind, w, h) {
   const s = 220;

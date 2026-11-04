@@ -5,7 +5,7 @@ from openpyxl.utils import get_column_letter as CL
 from openpyxl.chart import BarChart, Reference
 from openpyxl.comments import Comment
 
-OUT = '/tmp/claude-0/-home-user-claude/2e9593c9-8253-5edb-b8a0-36677906ecc4/scratchpad/finance/Heroes Arena 3-year model v0.2 DRAFT.xlsx'
+OUT = '/tmp/claude-0/-home-user-claude/2e9593c9-8253-5edb-b8a0-36677906ecc4/scratchpad/finance/Hero Dome 3-year model v0.2 DRAFT.xlsx'
 F = 'Arial'
 NAVY, GOLD = '14264E', 'FBA91A'
 f_base = Font(name=F, size=10)
@@ -30,7 +30,7 @@ wb = Workbook()
 # ---------------- Assumptions ----------------
 A = wb.active
 A.title = 'Assumptions'
-A['A1'] = 'Heroes Arena: assumptions'; A['A1'].font = f_h
+A['A1'] = 'Hero Dome: assumptions'; A['A1'].font = f_h
 A['A2'] = 'Blue = input you can change. Pick the case in C3; every other sheet follows. Labels say where each figure comes from.'; A['A2'].font = f_note
 A['A3'] = 'Case shown (1 = Downside, 2 = Cautious, 3 = Target)'; A['A3'].font = f_b
 A['C3'] = 3; A['C3'].font = Font(name=F, size=12, bold=True, color='0000FF'); A['C3'].fill = fill_key
@@ -65,7 +65,7 @@ def d(key, label, unit, formula, src, fmt=NUM):
     R[key] = row; row += 1
 
 sec('Opening and members')
-p('open', 'Arena opens', 'date', dt.date(2027, 9, 1), 'Desk assumption: September 2027 (planning note v1.0: summer 2027 is the realistic fast date)', 'd mmm yyyy')
+p('open', 'Dome opens', 'date', dt.date(2027, 9, 1), 'Desk assumption: September 2027 (planning note v1.0: summer 2027 is the realistic fast date)', 'd mmm yyyy')
 p('m0', 'Members on opening (moving in)', 'members', [78, 100, 100], 'Jamie assumption: 100+ (Aylesbury 31 + Wendover 67 = 98, actual TeamUp 26 Oct 2026). Downside uses the KB retention case (~78 move)')
 p('m1', 'Members, end of Year 1', 'members', [110, 150, 220], 'Jamie assumption (target); cautious and downside are desk estimates')
 p('m2', 'Members, end of Year 2', 'members', [140, 200, 320], 'Jamie assumption (target); cautious and downside are desk estimates')
@@ -155,11 +155,11 @@ p('x3', 'Hire of unused hours, Year 3', '£/year', [1000, 3000, 5000], 'Desk est
 
 sec('Community sessions (free, SEND, wheelchair, girls-only, over-40s)')
 p('cmty', 'Community sessions a week', 'sessions', [2, 3, 4], 'Desk estimate; timetable owned by the Coaching Director')
-p('gc1', 'Share of their coaching cost paid by grants, Year 1', '% of cost', 0, 'Jamie, 29 Oct 2026: Arena #1 runs through the Ltd; most community grants need a not-for-profit, so none in Year 1', PCT)
-p('gc2', 'Share paid by grants, Year 2', '% of cost', [0.25, 0.5, 0.75], 'Desk estimate: once a CIC is set up after Arena #1 is proven', PCT)
+p('gc1', 'Share of their coaching cost paid by grants, Year 1', '% of cost', 0, 'Jamie, 29 Oct 2026: Dome #1 runs through the Ltd; most community grants need a not-for-profit, so none in Year 1', PCT)
+p('gc2', 'Share paid by grants, Year 2', '% of cost', [0.25, 0.5, 0.75], 'Desk estimate: once a CIC is set up after Dome #1 is proven', PCT)
 p('gc3', 'Share paid by grants, Year 3', '% of cost', [0.5, 0.75, 1.0], 'Desk estimate', PCT)
 
-sec('Arena running costs')
+sec('Dome running costs')
 p('fin', 'Supplier finance (Zappshelter package)', '£/month', 2000, 'Indicative: Zappshelter, Peter Laird, 29 Oct 2026: about £2,000 + VAT a month over 5 years (about £3,000 over 3) for the £87,343 + VAT package. Containers not included. VAT treatment to confirm', GBP)
 p('finm', 'Finance term', 'months', 60, 'Indicative, as above')
 p('run', 'Running: insurance, power, maintenance, fabric fund', '£/month', [1000, 1000, 750], 'Desk estimate: HHOS 2.0 £6k–£12k a year', GBP)
@@ -207,7 +207,7 @@ def yr(k, col):  # pick the Year 1/2/3 value
 
 # ---------------- Monthly ----------------
 M = wb.create_sheet('Monthly')
-M['A1'] = 'Heroes Arena: month by month, 36 months'; M['A1'].font = f_h
+M['A1'] = 'Hero Dome: month by month, 36 months'; M['A1'].font = f_h
 M['A2'] = '=CONCATENATE("Case shown: ",Assumptions!$D$3,". All £ after Flat Rate VAT. Change inputs on the Assumptions sheet only.")'; M['A2'].font = f_note
 cols = [CL(i) for i in range(3, 39)]  # C..AL
 rows = {}
@@ -232,7 +232,7 @@ for i, c in enumerate(cols):
 M['B4'] = 'Month starting'; M['B4'].font = f_b
 for c in cols:
     M[f'{c}4'] = f'=EDATE({L("open")},{c}3-1)'; M[f'{c}4'].number_format = 'mmm yy'; M[f'{c}4'].font = f_b
-mrow(5, 'Arena year', lambda c, p: f'=ROUNDUP({c}3/12,0)', '0')
+mrow(5, 'Dome year', lambda c, p: f'=ROUNDUP({c}3/12,0)', '0')
 mrow(6, 'Calendar month', lambda c, p: f'=MONTH({c}4)', '0')
 CAL = lambda col, c: f'INDEX(Assumptions!${col}${cal0}:${col}${cal1},{c}$6)'
 net = f'(1-{L("frs")})'
@@ -274,7 +274,7 @@ mrow(40, 'Card and payment fees', lambda c, p: f'=SUM({c}16:{c}22,{c}24:{c}25)/{
 mrow(41, 'Total direct costs', lambda c, p: f'=SUM({c}32:{c}40)', bold=True, fill=fill_tot, key='dc')
 mrow(43, 'Contribution after direct costs', lambda c, p: f'={c}29-{c}41', bold=True, key='contrib')
 
-header(45, 'ARENA COSTS')
+header(45, 'DOME COSTS')
 mrow(46, 'Supplier finance (Zappshelter package)', lambda c, p: f'={L("fin")}*({c}3<={L("finm")})', key='a_fin')
 mrow(47, 'Running: insurance, power, maintenance', lambda c, p: f'={L("run")}', key='a_run')
 mrow(48, 'Heating (winter months)', lambda c, p: f'={L("heat")}/SUM(Assumptions!$E${cal0}:$E${cal1})*{CAL("E", c)}', key='a_heat')
@@ -282,7 +282,7 @@ mrow(49, 'Rent to the school', lambda c, p: f'={L("rent")}', key='a_rent')
 mrow(50, 'Marketing', lambda c, p: f'={L("mkt")}', key='a_mkt')
 mrow(51, 'Admin and systems', lambda c, p: f'={L("adm")}', key='a_adm')
 mrow(52, 'Kit replacement', lambda c, p: f'={L("equip")}/12', key='a_eq')
-mrow(53, 'Total Arena costs', lambda c, p: f'=SUM({c}46:{c}52)', bold=True, fill=fill_tot, key='ac')
+mrow(53, 'Total Dome costs', lambda c, p: f'=SUM({c}46:{c}52)', bold=True, fill=fill_tot, key='ac')
 
 mrow(55, 'SITE PROFIT (before central overheads)', lambda c, p: f'={c}43-{c}53', bold=True, fill=PatternFill('solid', fgColor='D9EAD3'), key='profit')
 mrow(56, 'Cumulative site profit', lambda c, p: f'={c}55' if p is None else f'={p}56+{c}55', key='cum')
@@ -296,9 +296,9 @@ M.freeze_panes = 'C5'
 
 # ---------------- Summary ----------------
 S = wb.create_sheet('Summary', 0)
-S['A1'] = 'Heroes Arena: 3-year summary'; S['A1'].font = f_h
+S['A1'] = 'Hero Dome: 3-year summary'; S['A1'].font = f_h
 S['A2'] = '=CONCATENATE("Case shown: ",Assumptions!$D$3,". Internal draft for discussion. Every input is labelled on the Assumptions sheet.")'; S['A2'].font = f_note
-hdr = ['', 'Today, rented halls (per year)', 'Arena Year 1', 'Arena Year 2', 'Arena Year 3']
+hdr = ['', 'Today, rented halls (per year)', 'Dome Year 1', 'Dome Year 2', 'Dome Year 3']
 for i, t in enumerate(hdr):
     cell = S.cell(row=4, column=i + 1, value=t); cell.font = f_sec; cell.fill = fill_sec; cell.alignment = Alignment(wrap_text=True, horizontal='center')
 S.row_dimensions[4].height = 30
@@ -337,8 +337,8 @@ S[f'A{r}'] = 'Costs'; S[f'A{r}'].font = f_b; r += 1
 r_c0 = r
 srow('Coaching and session costs', f'={L("bcls")}*{L("weeks")}*{L("sess")}+B{r_inc0}/(1-{L("frs")})*{L("payfee")}', 'dc')
 srow('Hall rent', f'={L("bhall")}*12', custom=lambda col: '=0')
-srow('Arena finance', 0, 'a_fin')
-srow('Arena running and heating', 0, custom=lambda col: f'{sumyr("a_run", col)}+{sumyr("a_heat", col)[1:]}+{sumyr("a_rent", col)[1:]}')
+srow('Dome finance', 0, 'a_fin')
+srow('Dome running and heating', 0, custom=lambda col: f'{sumyr("a_run", col)}+{sumyr("a_heat", col)[1:]}+{sumyr("a_rent", col)[1:]}')
 srow('Marketing, admin and kit', 0, custom=lambda col: f'{sumyr("a_mkt", col)}+{sumyr("a_adm", col)[1:]}+{sumyr("a_eq", col)[1:]}')
 r_c1 = r - 1
 r_cost = srow('Total costs', f'=SUM(B{r_c0}:B{r_c1})', bold=True, fill=fill_tot, custom=lambda col: f'=SUM({col}{r_c0}:{col}{r_c1})')
@@ -351,9 +351,9 @@ r += 1
 S[f'A{r}'] = 'Notes'; S[f'A{r}'].font = f_b; r += 1
 notes = [
     '"Today" is Aylesbury and Wendover in rented halls for a year at today\'s members, with no growth: halls cap the timetable.',
-    'Site profit is before central overheads (management, head office, owner pay). The Arena column also carries its own marketing, admin and kit, so the comparison is cautious.',
-    'Capacity: the Arena has about 45 usable court hours a week against 3 hours in halls today. Above about 90% the timetable is full.',
-    'On rent saved alone the Arena does not pay its way (Project Overview v0.2). The extra profit comes from growth: more members, 2nd sessions, parties, camps, breakfast and leagues.',
+    'Site profit is before central overheads (management, head office, owner pay). The Dome column also carries its own marketing, admin and kit, so the comparison is cautious.',
+    'Capacity: the Dome has about 45 usable court hours a week against 3 hours in halls today. Above about 90% the timetable is full.',
+    'On rent saved alone the Dome does not pay its way (Project Overview v0.2). The extra profit comes from growth: more members, 2nd sessions, parties, camps, breakfast and leagues.',
     'Not included: business rates, structure insurance above the running allowance, professional fees and any build costs not covered by finance (see Build and funding).',
     'Figures are a desk model for discussion, not a forecast or advice. VAT, CIC and finance terms to confirm with the accountant.',
 ]
@@ -361,8 +361,8 @@ for n in notes:
     S[f'A{r}'] = n; S[f'A{r}'].font = f_note; r += 1
 S.column_dimensions['A'].width = 44
 for c in 'BCDE': S.column_dimensions[c].width = 18
-# chart: profit, today vs Arena years
-ch = BarChart(); ch.type = 'col'; ch.title = 'Yearly site profit: rented halls vs Heroes Arena'; ch.style = 10
+# chart: profit, today vs Dome years
+ch = BarChart(); ch.type = 'col'; ch.title = 'Yearly site profit: rented halls vs Hero Dome'; ch.style = 10
 ch.add_data(Reference(S, min_col=2, max_col=5, min_row=r_prof, max_row=r_prof), from_rows=True, titles_from_data=False)
 ch.set_categories(Reference(S, min_col=2, max_col=5, min_row=4, max_row=4))
 ch.legend = None; ch.y_axis.title = '£ a year'; ch.height = 8; ch.width = 18
@@ -371,7 +371,7 @@ S.add_chart(ch, f'G4')
 
 # ---------------- Build and funding ----------------
 B = wb.create_sheet('Build and funding')
-B['A1'] = 'Heroes Arena: build cost and how it is paid for'; B['A1'].font = f_h
+B['A1'] = 'Hero Dome: build cost and how it is paid for'; B['A1'].font = f_h
 B['A2'] = 'Ex VAT unless stated. A floor, not a budget: formal quotes still needed (Project Overview v0.2, cost sheet v6.6).'; B['A2'].font = f_note
 for c, t in zip('ABCDE', ['Item', 'Low £', 'High £', 'Middle £', 'Source / label']):
     B[f'{c}4'] = t; B[f'{c}4'].font = f_sec; B[f'{c}4'].fill = fill_sec
@@ -404,7 +404,7 @@ for c, t in zip('ABCDE', ['Paid for by', 'Low £', 'High £', 'Middle £', 'Sour
 r += 1; f0 = r
 fund = [
     ('Supplier finance (Zappshelter package)', 87343, 87343, 'Indicative: Zappshelter HP, about £2,000 + VAT a month over 5 years (in the model)'),
-    ('Grants via a CIC', 0, 0, 'None for Arena #1: it runs through the Ltd (Jamie, 29 Oct 2026). A CIC is considered for Arenas #2 and #3'),
+    ('Grants via a CIC', 0, 0, 'None for Dome #1: it runs through the Ltd (Jamie, 29 Oct 2026). A CIC is considered for Domes #2 and #3'),
     ('Sponsorship (boards, kit)', 0, 5000, 'Desk estimate: local business sponsors on the arena boards'),
 ]
 for name, lo, hi, src in fund:
@@ -437,7 +437,7 @@ routes = [
     ('PE and Sport Premium (paid by the school)', 'PE lesson support and teacher CPD (revenue only)', 'School buys from Hoop Heroes Ltd', '£6,240 + £10 per pupil per school a year', 'Actual (GOV.UK 2026/27); cannot fund the build'),
     ('Basketball England and wheelchair basketball funds', 'Basketball kit, sports wheelchairs, coach courses', 'CIC or affiliated club', 'Small grants', 'To verify'),
     ('Local council community grants, Section 106 / CIL', 'Facility capital in the community', 'CIC', 'Varies', 'To verify with Buckinghamshire Council'),
-    ('Local business sponsorship', 'Arena boards, kit, team shirts', 'Hoop Heroes Ltd', '£500–£5,000 a year', 'Idea'),
+    ('Local business sponsorship', 'Dome boards, kit, team shirts', 'Hoop Heroes Ltd', '£500–£5,000 a year', 'Idea'),
 ]
 for i, rr in enumerate(routes):
     for j, v in enumerate(rr):
@@ -445,10 +445,10 @@ for i, rr in enumerate(routes):
 r = 5 + len(routes) + 1
 FR[f'A{r}'] = 'How the two companies work together (proposal, for the accountant and solicitor)'; FR[f'A{r}'].font = f_b; r += 1
 struct = [
-    'DECIDED (Jamie, 29 Oct 2026): Arena #1 runs through Hoop Heroes Region 1 Ltd. Once it is open and proven, look at whether a CIC helps fund Arenas #2 and #3. Goal: three Arenas. The proposal below is for that later stage.',
-    'Heroes Arena CIC (to be formed): holds the community side. Applies for grants, runs free and community sessions (SEND, wheelchair, girls-only, free sessions), and can hold kit and grant-funded parts of the building.',
+    'DECIDED (Jamie, 29 Oct 2026): Dome #1 runs through Hoop Heroes Region 1 Ltd. Once it is open and proven, look at whether a CIC helps fund Domes #2 and #3. Goal: three Domes. The proposal below is for that later stage.',
+    'Hero Dome CIC (to be formed): holds the community side. Applies for grants, runs free and community sessions (SEND, wheelchair, girls-only, free sessions), and can hold kit and grant-funded parts of the building.',
     'Hoop Heroes Region 1 Ltd: runs the paid programme (memberships, parties, camps, breakfast, leagues, school PE support) and pays the CIC an arm\'s-length fee for its use of the space and kit.',
-    'The school licenses the site to whichever body holds the Arena; the agreement allows assignment to the CIC later.',
+    'The school licenses the site to whichever body holds the Dome; the agreement allows assignment to the CIC later.',
     'Questions to settle first: the CIC asset lock; whether the sports-hire VAT exemption stops the CIC reclaiming VAT on the build; Flat Rate VAT limits for the Ltd; related-party rules and an independent CIC director.',
     'KB position (Project Overview v0.2, decision D1): "Ltd first", forming the CIC when a named grant needs it, is recommended and awaiting Jamie.',
 ]
@@ -460,7 +460,7 @@ for c, w in zip('ABCDE', [42, 40, 30, 30, 40]):
 
 # ---------------- Read me ----------------
 RM = wb.create_sheet('Read me', 0)
-RM['A1'] = 'Heroes Arena 3-year model, v0.2 DRAFT (30 Oct 2026)'; RM['A1'].font = f_h
+RM['A1'] = 'Hero Dome 3-year model, v0.2 DRAFT (30 Oct 2026)'; RM['A1'].font = f_h
 lines = [
     'Internal. Not for schools. A desk model for discussion, not a forecast, quote or advice.',
     '',
