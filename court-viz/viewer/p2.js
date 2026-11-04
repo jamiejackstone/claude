@@ -74,6 +74,8 @@ function cameraPath(keys) {
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
 export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'reception', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HEROES ARENA', roofs: '#14264e', insideToggle: true, span: 17, arena: true });
+// the same arena, basketball only: basketball lines, board and kit, no sport switch (Jamie, 4 Nov 2026)
+export const coveredBball = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'reception', markings: { multi: true, bballOnly: true, keyFill: '#6e7276' }, name: 'HEROES ARENA', roofs: '#14264e', insideToggle: true, span: 17, arena: true, bballOnly: true });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
@@ -89,8 +91,8 @@ const PLACES = { outside: '1', courtside: '2', reception: 'rec' };
 const isInside = (p) => Math.abs(p.x) < HUB.x1 + HUB.cw && p.z > HUB.z0 && p.z < HUB.z1 && p.y < archY(Math.min(Math.abs(p.x), HUB.x1));
 const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
-async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs, insideToggle = false, pads = false, span = 0, arena = false }) {
-  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff, name, roofs, pads, span, arena });
+async function makePhase2({ renderer, persp, ortho, controls, setFov, orthoFrame, ui, caption }, { mainHoop, fullBuild = false, layout, markings, runoff, sports = false, name, roofs, insideToggle = false, pads = false, span = 0, arena = false, bballOnly = false }) {
+  const hub = await createPhase2(renderer, { logoUrl: 'assets/logo.png', mainHoop, fullBuild, layout, markings, runoff, name, roofs, pads, span, arena, bballOnly });
   // 'HEROES ARENA' -> 'Heroes Arena' for captions
   const title = (name ?? 'HOOP HUB').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   let sport = 'basketball';

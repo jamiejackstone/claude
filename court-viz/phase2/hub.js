@@ -94,6 +94,11 @@ function drawText(g, s, H, text, cx, cy, size, color, maxW) {
   fitText(g, text, '"Lilita One", sans-serif', size * s, maxW * s);
   g.fillText(text, cx * s, (H - cy) * s);
 }
+// basketball-only version (for showing the basketball side on its own, Jamie, 4 Nov 2026): no pickleball or
+// dodgeball lines, boards, kit or colours, so the sport colour bars and chairs go gold
+let BBALL = false;
+const family = () => (BBALL ? ['#fba91a', '#fba91a', '#fba91a'] : ['#fba91a', '#9bd13b', '#e63950']);
+
 function stripe(g, s, W, H, color) {
   // the brand stripe low down, at the same height on every wall and container
   g.fillStyle = color;
@@ -334,7 +339,7 @@ function endWallTexture(kind, art, name = 'HOOP HUB', plain = false) {
       // (Jamie, 29 Oct 2026)
       drawText(g, s, H, name, X(0), 5.65, 1.1, '#ffffff', 8);
       const tw = g.measureText(name).width / s;
-      ['#fba91a', '#9bd13b', '#e63950'].forEach((col, i) => {
+      family().forEach((col, i) => {
         g.fillStyle = col;
         g.fillRect((X(-tw / 2) + (i * tw) / 3) * s, (H - 4.86) * s, (tw / 3) * s, 0.14 * s);
       });
@@ -650,7 +655,7 @@ class Unit {
       const tableTop = std('#ffffff', { roughness: 0.4 });
       const tableLeg = std(COL.navy, { roughness: 0.5, metalness: 0.4 });
       const tx = faceX + side * 0.5;
-      [[2.1, ['#fba91a', '#9bd13b']], [3.65, ['#e63950', '#fba91a']], [5.2, ['#9bd13b', '#e63950']]].forEach(([tz, cols]) => {
+      (BBALL ? [[2.1, ['#fba91a', COL.navy]], [3.65, [COL.navy, '#fba91a']], [5.2, ['#fba91a', COL.navy]]] : [[2.1, ['#fba91a', '#9bd13b']], [3.65, ['#e63950', '#fba91a']], [5.2, ['#9bd13b', '#e63950']]]).forEach(([tz, cols]) => {
         const top = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 28), tableTop);
         top.position.set(tx, 0.86, tz);
         const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.72, 10), tableLeg);
@@ -690,7 +695,7 @@ class Unit {
       const fz1 = z1 - 0.2;
       const fx = outerX - side * 0.078;
       g.add(box(0.012, 1.0, fz1 - fz0, std(COL.navy, { roughness: 0.6 }), fx, 0.63, (fz0 + fz1) / 2));
-      ['#fba91a', '#9bd13b', '#e63950'].forEach((col, i) => {
+      family().forEach((col, i) => {
         const len = (fz1 - fz0) / 3;
         g.add(box(0.014, 0.07, len, std(col, { roughness: 0.5 }), fx, 1.17, fz0 + len * (i + 0.5)));
       });
@@ -703,6 +708,8 @@ class Unit {
         ['THU', [['Breakfast All Stars', 'a'], ['Rookies, Rising Stars', 'd'], ['Rising Stars, Ballers', 'd']]],
         ['FRI', [['Breakfast All Stars', 'a'], ['Dodgeball Night', 'd'], ['League and pickup', 'b']]],
       ];
+      // basketball only: every session is basketball, and Friday night is a hoops night
+      if (BBALL) for (const [, cells] of days) cells.forEach((c) => { if (c[1] !== 'a') c[1] = 'b'; if (c[0] === 'Dodgeball Night') c[0] = 'Friday Night Hoops'; });
       const ttW = 3.9;
       const ttH = 1.08;
       const timetable = facePanel(ttW, ttH, COL.navy, (cg, s2, w, h) => {
@@ -713,7 +720,7 @@ class Unit {
           cg.fill();
         };
         drawText(cg, s2, h, `THIS WEEK AT ${welcome}`, w / 2, h - 0.09, 0.09, '#ffffff', w - 0.4);
-        ['#fba91a', '#9bd13b', '#e63950'].forEach((col, i) => {
+        family().forEach((col, i) => {
           cg.fillStyle = col;
           cg.fillRect((w / 2 - 0.6 + i * 0.4) * s2, (h - 0.16) * s2, 0.4 * s2, 0.014 * s2);
         });
@@ -1089,7 +1096,8 @@ export const FULL_BUILD = {
 // runoff: the run-off tile colour
 // name: the name on the building ('HEROES ARENA' for the Covered Concept); roofs: one colour for every container
 // roof, or each container's own colour when unset
-export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false, span = 0, arena = false } = {}) {
+export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', markings = {}, mainHoop = 'megaSlam', fullBuild = false, layout = 'reception', runoff: runoffColor = HUB.runoff, name = 'HOOP HUB', roofs = null, shift = 0, pads = false, span = 0, arena = false, bballOnly = false } = {}) {
+  BBALL = bballOnly;
   setSpan(span);
   shiftHub(shift);
   // the arena's fire exit sits in the corner, leaving the back wall clear for the boards under the name
@@ -1307,8 +1315,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
         }
       : { reception: new Unit({ ...HUB.reception, side: -1, color: COL.navy, glazed: true, brand: brand.reception }) }),
     // with the reception on the left, the right-hand stores hold the other sports' kit too
-    hhStore: storeUnit(1, false, brand.c2, arena && !storage ? ['balls', 'dodgeball'] : undefined),
-    schoolStore: storeUnit(1, true, brand.c3, arena && !storage ? ['wheelchairs', 'rackets'] : undefined),
+    hhStore: storeUnit(1, false, brand.c2, arena && !storage ? (BBALL ? ['balls', 'balls'] : ['balls', 'dodgeball']) : undefined),
+    schoolStore: storeUnit(1, true, brand.c3, arena && !storage ? (BBALL ? ['wheelchairs', 'balls'] : ['wheelchairs', 'rackets']) : undefined),
   };
   for (const un of Object.values(units)) scene.add(un.group);
   if (arena && !storage) {
@@ -1467,7 +1475,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     const s0 = -6.2;
     const gap = 0.6;
     const bw = (-2 * s0 - 2 * gap) / 3;
-    ['hoop', 'pickle', 'dodge'].forEach((kind, i) => board(bw, s0 + bw / 2 + i * (bw + gap), HUB.z0 + 0.05, 0, kind));
+    if (BBALL) board(bw, 0, HUB.z0 + 0.05, 0, 'hoop'); // basketball only: its board alone, centred under the name
+    else ['hoop', 'pickle', 'dodge'].forEach((kind, i) => board(bw, s0 + bw / 2 + i * (bw + gap), HUB.z0 + 0.05, 0, kind));
     enclosure.add(boards);
   }
 

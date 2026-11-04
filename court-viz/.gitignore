@@ -6,4 +6,5 @@ renders/video/parts/
 dist-phase2/
 dist-final/
 dist-covered/
+dist-bball/
 __pycache__/

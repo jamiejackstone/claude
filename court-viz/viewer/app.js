@@ -133,7 +133,7 @@ export async function startViewer({ builders, navTools = false }) {
       for (const b of bar.querySelectorAll('[data-view]')) b.classList.toggle('on', b.dataset.view === s.view);
       hoopsBtn.classList.toggle('on', s.hoops);
       hoopsBtn.setAttribute('aria-pressed', String(s.hoops));
-      hoopsBtn.hidden = !!active.sports;
+      hoopsBtn.hidden = !!active.sports || !!active.hideRim; // the arena always opens with its hoops out
       sportBtn.hidden = !active.sports;
       if (active.sports) {
         const sp = s.sport ?? 'basketball';

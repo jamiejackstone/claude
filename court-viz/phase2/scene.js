@@ -114,7 +114,7 @@ export function shadowed(obj) {
 // multi: the multi-sport floor (Covered Concept, floor markings plan 'multi-sport with 3x3'): every basketball
 // line gold, the 3x3 key filled light grey, no white boundary or logo, a gold dodgeball halfway line and blue lines for three
 // children's pickleball / badminton courts
-export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, lines = MARKINGS.lines, logoBox = DIM.logo, multi = false } = {}) {
+export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MARKINGS.miniKeyFill, halfway = MARKINGS.halfway, noCharge = MARKINGS.noCharge, lines = MARKINGS.lines, logoBox = DIM.logo, multi = false, bballOnly = false } = {}) {
   const allWhite = lines === 'white';
   const miniCol = allWhite ? COL.white : COL.gold;
   const { L, W } = DIM;
@@ -188,7 +188,8 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
   if (multi) {
     // dodgeball halfway line in Dodge Heroes red, racket courts in Pickle Heroes green, to match the arena boards
     // (Jamie, 29 Oct 2026)
-    stroke('#e63950', gw, () => {
+    // basketball only (Jamie, 4 Nov 2026): the halfway line in gold and no racket courts
+    stroke(bballOnly ? COL.gold : '#e63950', gw, () => {
       g.moveTo(X(0), Z(gh));
       g.lineTo(X(0), Z(L - gh));
     });
@@ -216,7 +217,7 @@ export function paintCourt(logo, { keyFill = MARKINGS.keyFill, miniKeyFill = MAR
     const green = '#9bd13b';
     const rw = 0.04;
     const mid = (W / 2 - gh + 2.6) / 2;
-    stroke(green, rw, () => {
+    if (!bballOnly) stroke(green, rw, () => {
       for (const x of [-2.6, 2.6]) {
         g.moveTo(X(x), Z(gh));
         g.lineTo(X(x), Z(L - gh));
