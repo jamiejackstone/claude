@@ -82,7 +82,19 @@ export interface LocationData {
     postalCode: string;
     addressCountry: string;
   };
-  coordinates: { lat: number; lng: number }; // Mock coordinates
+  coordinates: { lat: number; lng: number }; // Stored pin used by the map embed. Schema uses schemaGeo.
+  /** Permanent-venue PostalAddress for JSON-LD. Visitors still see `address`. */
+  schemaAddress: {
+    streetAddress: string;
+    addressLocality: string;
+    addressRegion?: string;
+    postalCode: string;
+    addressCountry: 'GB';
+  };
+  /** Pin used in JSON-LD. May differ from `coordinates` when that pin is off the venue. */
+  schemaGeo: { lat: number; lng: number };
+  /** Google Maps URL for JSON-LD hasMap. */
+  mapsUrl: string;
   phone: string;
   email: string;
   headCoach: Coach;
