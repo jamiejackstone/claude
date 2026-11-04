@@ -159,7 +159,7 @@ export const LOCATIONS: LocationData[] = [
     id: 'loc_tring',
     name: 'Tring',
     slug: 'tring',
-    address: 'Tring Sports Centre, Tring School, Mortimer Hill, Tring HP23 5JD',
+    address: 'Tring Sports Centre, Tring School, Mortimer Hill, Tring HP23 5JU',
     displayDays: 'Sundays',
     coordinates: { lat: 51.7963, lng: -0.6623 },
     phone: '07700 140 500',
