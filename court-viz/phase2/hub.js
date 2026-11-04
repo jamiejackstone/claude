@@ -1460,10 +1460,26 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   const boards = new THREE.Group();
   if (arena) {
     const BH = 0.9;
+    // a Hoop Heroes board: gold, with the logo (white hand, navy name) centred
+    const hhTexture = (w, h) => {
+      const s2 = 220;
+      const c = canvas(Math.round(w * s2), Math.round(h * s2));
+      const g = c.getContext('2d');
+      g.fillStyle = COL.gold;
+      g.fillRect(0, 0, c.width, c.height);
+      const img = art.logoWhiteNavy;
+      if (img) {
+        const lh = c.height * 0.92;
+        const lw = Math.min(c.width * 0.9, (lh * img.width) / img.height);
+        const lh2 = (lw * img.height) / img.width;
+        g.drawImage(img, (c.width - lw) / 2, (c.height - lh2) / 2, lw, lh2);
+      }
+      return tex(c, { aniso: 8 });
+    };
     const board = (w, x, z, rotY, kind) => {
       const grp = new THREE.Group();
       grp.add(box(w + 0.04, BH + 0.04, 0.03, std(COL.navy, { roughness: 0.6 }), 0, 0, -0.016));
-      const face = new THREE.Mesh(new THREE.PlaneGeometry(w, BH), std('#ffffff', { map: boardTexture(kind, w, BH), roughness: 0.55 }));
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(w, BH), std('#ffffff', { map: kind === 'hh' ? hhTexture(w, BH) : boardTexture(kind, w, BH), roughness: 0.55 }));
       face.receiveShadow = true;
       grp.add(face);
       grp.position.set(x, 0.08 + BH / 2, z);
@@ -1475,7 +1491,8 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     const s0 = -6.2;
     const gap = 0.6;
     const bw = (-2 * s0 - 2 * gap) / 3;
-    if (BBALL) board(bw, 0, HUB.z0 + 0.05, 0, 'hoop'); // basketball only: its board alone, centred under the name
+    // basketball only: Hoop Heroes boards either side of the 3x3 hoop, which stands in the middle (Jamie, 4 Nov 2026)
+    if (BBALL) [0, 2].forEach((i) => board(bw, s0 + bw / 2 + i * (bw + gap), HUB.z0 + 0.05, 0, 'hh'));
     else ['hoop', 'pickle', 'dodge'].forEach((kind, i) => board(bw, s0 + bw / 2 + i * (bw + gap), HUB.z0 + 0.05, 0, kind));
     enclosure.add(boards);
   }
@@ -1771,7 +1788,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     setNight(state.night && state.build === null);
     for (const l of lamps) l.spot.visible = !state.cutaway;
     applyBuild(state.build ?? Infinity, state.build !== null);
-    if (arena) megaSlam.group.visible = false;
+    if (arena && !BBALL) megaSlam.group.visible = false; // basketball only keeps the 3x3 hoop at the back wall
     labels.visible = state.cutaway && state.build === null;
     people.show(state.build === null && !state.cutaway ? state.people : null);
     if (state.build === null) {
