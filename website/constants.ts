@@ -59,6 +59,8 @@ export const LOCATIONS: LocationData[] = [
       postalCode: 'SL7 3JD',
       addressCountry: 'GB',
     },
+    // GBP postcode SL7 3JD disagrees with the visible address SL7 1JE. Keep the data, omit it from JSON-LD.
+    schemaAddressHold: true,
     // GBP pin. Map embed still uses coordinates above (about 640m away).
     schemaGeo: { lat: 51.5811113, lng: -0.7662396 },
     mapsUrl: 'https://maps.google.com/maps?cid=12972546026606672369',
