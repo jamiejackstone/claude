@@ -551,7 +551,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                     <span className="text-[10px] font-black uppercase block mb-1 opacity-60 tracking-widest">Address</span>
                     {location.id === 'loc_holmer' ? (
                       <div className="space-y-2">
-                        <span className="font-bold leading-tight block text-base">Holmer Green Senior School, HP15 6SP</span>
+                        <span className="font-bold leading-tight block text-base">{location.address}</span>
                         <div className="text-xs bg-brand-orange/10 border-2 border-brand-dark p-3 rounded-xl mt-2 text-brand-dark">
                           <p className="font-bold mb-1">Backup Venue during Exams:</p>
                           <p className="font-medium">Sir William Ramsay School, Rose Avenue, Hazlemere, HP15 7UB</p>
@@ -591,9 +591,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                 </li>
               </ul>
               
-              {/* Map iframe removed for Holmer Green due to multiple/varying venues */}
-              {location.id !== 'loc_holmer' && (
-                <div className="mt-10 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner flex flex-col">
+              <div className="mt-10 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner flex flex-col">
                   <div className="h-48">
                     <iframe 
                       width="100%" 
@@ -614,8 +612,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                       Get Directions in Google Maps
                     </a>
                   )}
-                </div>
-              )}
+              </div>
               
               {location.locationNotes && (
                 <div className="mt-6 bg-white p-5 rounded-2xl border-2 border-brand-dark shadow-sm flex items-start gap-3">

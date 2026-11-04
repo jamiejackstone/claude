@@ -139,15 +139,9 @@ for (const location of LOCATIONS) {
   const linked = buildLocationJsonLd(location);
   assert(linked, `${location.slug} schema`);
   if (!linked) continue;
-  if (location.schemaAddressHold) {
-    assert(!('address' in linked), `${location.slug} address is held out of JSON-LD`);
-    assert(!JSON.stringify(linked).includes('PostalAddress'), `${location.slug} emits no PostalAddress`);
-    assert(!JSON.stringify(linked).includes(location.schemaAddress.postalCode), `${location.slug} schema omits the held postcode`);
-  } else {
-    const address = linked.address as { streetAddress?: string; postalCode?: string; addressCountry?: string };
-    assert(address.streetAddress, `${location.slug} street address`);
-    assertEqual(address.addressCountry, 'GB', `${location.slug} country`);
-  }
+  const address = linked.address as { streetAddress?: string; postalCode?: string; addressCountry?: string };
+  assert(address.streetAddress, `${location.slug} street address`);
+  assertEqual(address.addressCountry, 'GB', `${location.slug} country`);
   assert(linked.geo, `${location.slug} geo`);
   assert(linked.openingHoursSpecification, `${location.slug} opening hours`);
   assert(linked.hasMap, `${location.slug} hasMap`);
@@ -161,34 +155,49 @@ const marlow = LOCATIONS.find((location) => location.slug === 'marlow');
 const bicester = LOCATIONS.find((location) => location.slug === 'bicester');
 assert(marlow && bicester, 'Marlow and Bicester exist');
 if (marlow && bicester) {
-  assertEqual(marlow.address, 'Redgrave Sports Centre, Wycombe Road, Marlow SL7 1JE', 'visible Marlow address stays SL7 1JE');
-  assertEqual(marlow.schemaAddress.postalCode, 'SL7 3JD', 'Marlow GBP postcode stays stored');
-  assert(marlow.schemaAddressHold, 'Marlow schema address is on hold');
+  assertEqual(marlow.address, 'Redgrave Sports Centre, Wycombe Road, Marlow SL7 3JD', 'visible Marlow address uses the GBP line');
   const marlowLd = buildLocationJsonLd(marlow);
   assert(marlowLd, 'Marlow schema');
   if (marlowLd) {
-    assert(!('address' in marlowLd), 'Marlow JSON-LD has no address');
-    assertEqual(marlowLd.name, 'Marlow', 'Marlow name stays');
-    assertEqual(marlowLd.url, 'https://www.hoopheroes.co.uk/location/marlow', 'Marlow url stays');
-    assertEqual(marlowLd.geo, { '@type': 'GeoCoordinates', latitude: 51.5811113, longitude: -0.7662396 }, 'Marlow geo stays');
-    assertEqual(marlowLd.hasMap, 'https://maps.google.com/maps?cid=12972546026606672369', 'Marlow hasMap stays');
-    assertEqual(marlowLd.telephone, '+447700140500', 'Marlow telephone stays');
-    assertEqual(marlowLd.parentOrganization, { '@id': 'https://www.hoopheroes.co.uk/#org' }, 'Marlow parent stays');
-    assertEqual(marlowLd.audience, { '@type': 'PeopleAudience', suggestedMinAge: 5, suggestedMaxAge: 15 }, 'Marlow audience stays');
-    assert(marlowLd.openingHoursSpecification, 'Marlow hours stay');
-    assert(!JSON.stringify(marlowLd).includes('SL7 3JD'), 'held GBP postcode is absent from Marlow JSON-LD');
-    assert(!JSON.stringify(marlowLd).includes('SL7 1JE'), 'visible postcode is absent from Marlow JSON-LD');
+    assertEqual(marlowLd.address, {
+      '@type': 'PostalAddress',
+      streetAddress: 'Redgrave Sports Centre, Wycombe Road',
+      addressLocality: 'Marlow',
+      postalCode: 'SL7 3JD',
+      addressCountry: 'GB',
+    }, 'Marlow schema keeps the full GBP address');
+    assertEqual(marlow.mapQueryOverride, '51.5811113,-0.7662396', 'Marlow embed query is the GBP pin');
   }
   assertEqual(bicester.mapsUrl, 'https://maps.google.com/maps?cid=825875848591025387', 'Bicester hasMap url is the GBP cid');
   assertEqual(buildLocationJsonLd(bicester)?.hasMap, 'https://maps.google.com/maps?cid=825875848591025387', 'Bicester schema hasMap is unchanged');
+  assertEqual(bicester.mapQueryOverride, '51.8893166,-1.170213', 'Bicester embed query is the GBP pin');
 }
+
+const pinnedSlugs = ['aylesbury', 'holmer-green', 'great-missenden', 'marlow', 'tring', 'bicester'] as const;
+for (const slug of pinnedSlugs) {
+  const location = LOCATIONS.find((item) => item.slug === slug);
+  assert(location, `${slug} exists`);
+  if (!location) continue;
+  assertEqual(
+    location.mapQueryOverride,
+    `${location.schemaGeo.lat},${location.schemaGeo.lng}`,
+    `${slug} permanent map query matches schemaGeo`,
+  );
+}
+const oxford = LOCATIONS.find((location) => location.slug === 'oxford');
+assert(oxford && oxford.mapQueryOverride === undefined, 'Oxford embed stays on the default query');
+assertEqual(
+  wendover.mapQueryOverride,
+  'John Colet School, Wharf Road, Wendover HP22 6HF',
+  'Wendover embed query stays the school address',
+);
 
 const aylesbury = LOCATIONS.find((location) => location.slug === 'aylesbury');
 const holmer = LOCATIONS.find((location) => location.slug === 'holmer-green');
 assert(aylesbury && holmer, 'permanent venues exist');
 if (aylesbury && holmer) {
-  assertEqual(aylesbury.address, 'The Mandeville School, Ellen Road, Aylesbury HP21 8ED', 'visible Aylesbury address stays the stored line');
-  assertEqual(holmer.address, 'Holmer Green Senior School, HP15 6SP', 'visible Holmer Green address stays the stored line');
+  assertEqual(aylesbury.address, 'The Mandeville School, Ellen Road, Aylesbury HP21 8ES', 'visible Aylesbury address uses the GBP postcode');
+  assertEqual(holmer.address, 'Holmer Green Senior School, Parish Piece, Holmer Green HP15 6SP', 'visible Holmer Green address includes Parish Piece');
   const aylesburyLd = buildLocationJsonLd(aylesbury);
   const holmerLd = buildLocationJsonLd(holmer);
   assert(aylesburyLd && holmerLd, 'temporary-venue locations still emit schema');

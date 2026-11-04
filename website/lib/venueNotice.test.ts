@@ -90,10 +90,10 @@ assert(!aylesbury.classes.some((session) => session.ageGroup.includes('Ballers')
 assertEqual(aylesbury.classes.every((session) => session.day === DayOfWeek.MONDAY), true, 'Aylesbury classes are Monday only');
 assertEqual(
   aylesbury.address,
-  'The Mandeville School, Ellen Road, Aylesbury HP21 8ED',
-  'the usual Mandeville address stays in place',
+  'The Mandeville School, Ellen Road, Aylesbury HP21 8ES',
+  'the usual Mandeville address uses the GBP postcode',
 );
-assertEqual(aylesbury.mapQueryOverride, 'The Mandeville School, Aylesbury', 'the usual map query stays in place');
+assertEqual(aylesbury.mapQueryOverride, '51.7989776,-0.8145699', 'the permanent map query is the GBP pin');
 const baseWidgetUrl = 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944';
 assertEqual(aylesbury.bookingWidgetUrl, baseWidgetUrl, 'the base TeamUp url is the original venue list');
 assertEqual(floyd.teamupVenueIds, ['54994'], 'Sir Henry Floyd is added only from the temporary venue');

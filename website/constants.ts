@@ -16,8 +16,9 @@ export const LOCATIONS: LocationData[] = [
       postalCode: 'OX26 1AY',
       addressCountry: 'GB',
     },
-    // GBP pin. Map embed still uses coordinates above (about 486m away).
+    // Permanent map embed uses this GBP pin. Stored coordinates stay for reference.
     schemaGeo: { lat: 51.8893166, lng: -1.170213 },
+    mapQueryOverride: '51.8893166,-1.170213',
     mapsUrl: 'https://maps.google.com/maps?cid=825875848591025387',
     phone: '07700 140500',
     email: 'bicester@hoopheroes.co.uk',
@@ -50,7 +51,7 @@ export const LOCATIONS: LocationData[] = [
     id: 'loc_marlow',
     name: 'Marlow',
     slug: 'marlow',
-    address: 'Redgrave Sports Centre, Wycombe Road, Marlow SL7 1JE',
+    address: 'Redgrave Sports Centre, Wycombe Road, Marlow SL7 3JD',
     displayDays: 'Sundays',
     coordinates: { lat: 51.5758, lng: -0.7698 },
     schemaAddress: {
@@ -59,10 +60,9 @@ export const LOCATIONS: LocationData[] = [
       postalCode: 'SL7 3JD',
       addressCountry: 'GB',
     },
-    // GBP postcode SL7 3JD disagrees with the visible address SL7 1JE. Keep the data, omit it from JSON-LD.
-    schemaAddressHold: true,
-    // GBP pin. Map embed still uses coordinates above (about 640m away).
+    // Permanent map embed uses this GBP pin. Stored coordinates stay for reference.
     schemaGeo: { lat: 51.5811113, lng: -0.7662396 },
+    mapQueryOverride: '51.5811113,-0.7662396',
     mapsUrl: 'https://maps.google.com/maps?cid=12972546026606672369',
     phone: '07700 140500',
     email: 'marlow@hoopheroes.co.uk',
@@ -90,7 +90,7 @@ export const LOCATIONS: LocationData[] = [
     id: 'loc_holmer',
     name: 'Holmer Green',
     slug: 'holmer-green',
-    address: 'Holmer Green Senior School, HP15 6SP',
+    address: 'Holmer Green Senior School, Parish Piece, Holmer Green HP15 6SP',
     displayDays: 'Tuesdays',
     coordinates: { lat: 51.6667, lng: -0.7097 },
     schemaAddress: {
@@ -99,9 +99,9 @@ export const LOCATIONS: LocationData[] = [
       postalCode: 'HP15 6SP',
       addressCountry: 'GB',
     },
-    // GBP pin for the permanent school, not the temporary Sir William Ramsay venue.
-    // Map embed still uses coordinates above (about 741m away).
+    // Permanent map embed uses this GBP pin, not the temporary Sir William Ramsay venue.
     schemaGeo: { lat: 51.6662099, lng: -0.6989825 },
+    mapQueryOverride: '51.6662099,-0.6989825',
     mapsUrl: 'https://maps.google.com/maps?cid=11761746879650346001',
     phone: '07700 140500',
     email: 'holmergreen@hoopheroes.co.uk',
@@ -207,8 +207,9 @@ export const LOCATIONS: LocationData[] = [
       postalCode: 'HP23 5JU',
       addressCountry: 'GB',
     },
-    // GBP pin. Map embed still uses coordinates above (about 510m away).
+    // Permanent map embed uses this GBP pin. Stored coordinates stay for reference.
     schemaGeo: { lat: 51.7979841, lng: -0.6553978 },
+    mapQueryOverride: '51.7979841,-0.6553978',
     mapsUrl: 'https://maps.google.com/maps?cid=13536222307305111996',
     phone: '07700 140500',
     email: 'tring@hoopheroes.co.uk',
@@ -237,7 +238,7 @@ export const LOCATIONS: LocationData[] = [
     id: 'loc_aylesbury',
     name: 'Aylesbury',
     slug: 'aylesbury',
-    address: 'The Mandeville School, Ellen Road, Aylesbury HP21 8ED',
+    address: 'The Mandeville School, Ellen Road, Aylesbury HP21 8ES',
     displayDays: 'Mondays',
     coordinates: { lat: 51.8103, lng: -0.8123 },
     schemaAddress: {
@@ -246,8 +247,7 @@ export const LOCATIONS: LocationData[] = [
       postalCode: 'HP21 8ES',
       addressCountry: 'GB',
     },
-    // GBP pin for The Mandeville School, not the temporary Sir Henry Floyd venue.
-    // Map embed still uses coordinates above (about 1269m away).
+    // Permanent map embed uses this GBP pin, not the temporary Sir Henry Floyd venue.
     schemaGeo: { lat: 51.7989776, lng: -0.8145699 },
     mapsUrl: 'https://maps.google.com/maps?cid=9953354559982858870',
     phone: '07700 140500',
@@ -256,7 +256,7 @@ export const LOCATIONS: LocationData[] = [
     gallery: ['https://images.unsplash.com/photo-1518407613690-d9fc990e795f?auto=format&fit=crop&q=80&w=800'],
     actionVideoUrl: 'https://www.youtube-nocookie.com/embed/ENWlnbItCc0?si=80euwZHd7QVRV-Dg&controls=0',
     bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944',
-    mapQueryOverride: "The Mandeville School, Aylesbury",
+    mapQueryOverride: '51.7989776,-0.8145699',
     // Base TeamUp venues: 48411 is The Mandeville School.
     // 53172 and 50233 return 404 from TeamUp but stay in the original list. 65944 is Wendover and stays too.
     // 48649 is Great Missenden (The Misbourne), not Mandeville, so it is not on this filter.
@@ -317,8 +317,9 @@ export const LOCATIONS: LocationData[] = [
       postalCode: 'HP16 0BN',
       addressCountry: 'GB',
     },
-    // GBP pin. Map embed still uses coordinates above (about 649m away).
+    // Permanent map embed uses this GBP pin. Stored coordinates stay for reference.
     schemaGeo: { lat: 51.6981135, lng: -0.7039946 },
+    mapQueryOverride: '51.6981135,-0.7039946',
     mapsUrl: 'https://maps.google.com/maps?cid=12639691323723502219',
     phone: '07700 140500',
     email: 'missenden@hoopheroes.co.uk',

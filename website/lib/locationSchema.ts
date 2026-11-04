@@ -63,8 +63,6 @@ export interface SchemaLocation {
   coordinates?: SchemaGeo;
   postalAddress?: SchemaPostalAddress;
   schemaAddress: SchemaPostalAddress;
-  /** When set, schemaAddress stays on the location but is left out of JSON-LD. */
-  schemaAddressHold?: boolean;
   schemaGeo?: SchemaGeo;
   mapsUrl?: string;
 }
@@ -186,16 +184,13 @@ export function buildLocationJsonLd(location: SchemaLocation): Record<string, un
     description,
     parentOrganization: { '@id': ORG_ID },
     telephone: PUBLIC_PHONE_E164,
+    address,
     audience: {
       '@type': 'PeopleAudience',
       suggestedMinAge: 5,
       suggestedMaxAge: 15,
     },
   };
-
-  if (!location.schemaAddressHold) {
-    data.address = address;
-  }
 
   if (openingHoursSpecification.length > 0) {
     data.openingHoursSpecification = openingHoursSpecification;

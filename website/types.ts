@@ -91,8 +91,6 @@ export interface LocationData {
     postalCode: string;
     addressCountry: 'GB';
   };
-  /** Stored schemaAddress is kept, but omitted from JSON-LD until it is confirmed. */
-  schemaAddressHold?: boolean;
   /** Pin used in JSON-LD. May differ from `coordinates` when that pin is off the venue. */
   schemaGeo: { lat: number; lng: number };
   /** Google Maps URL for JSON-LD hasMap. */
