@@ -74,8 +74,9 @@ function cameraPath(keys) {
 
 export const phase2 = (ctx) => makePhase2(ctx, {});
 export const coveredOnly = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'reception', markings: { multi: true, keyFill: '#6e7276' }, sports: true, name: 'HEROES ARENA', roofs: '#14264e', insideToggle: true, span: 17, arena: true });
-// the same arena, basketball only: basketball lines, board and kit, no sport switch (Jamie, 4 Nov 2026)
-export const coveredBball = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'reception', markings: { multi: true, bballOnly: true, keyFill: '#6e7276' }, name: 'HEROES ARENA', roofs: '#14264e', insideToggle: true, span: 17, arena: true, bballOnly: true });
+// the same arena, basketball-led: Hoop Heroes boards, the 3x3 hoop and basketball kit, no sport switch, but the
+// pickleball and dodgeball lines stay on the floor (Jamie, 4 Nov 2026)
+export const coveredBball = (ctx) => makePhase2(ctx, { mainHoop: 'microArena', fullBuild: true, layout: 'reception', markings: { multi: true, keyFill: '#6e7276' }, name: 'HEROES ARENA', roofs: '#14264e', insideToggle: true, span: 17, arena: true, bballOnly: true });
 
 // what each sport sets out: mini hoops (1 out), nets, dodgeballs, and how far the main hoop is lowered
 const KIT = {
