@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, MapPin, ChevronRight, ChevronDown, User, Search } from 'lucide-react';
 import { LOCATIONS } from '../constants';
-import { withTrackedParams } from '../lib/clickTracking';
+import { useTrackedHref } from '../lib/trackedHref';
+import { locationTownName } from '../lib/locationSchema';
 import { Logo } from './Logo';
 
 export const Navbar: React.FC = () => {
@@ -26,8 +27,8 @@ export const Navbar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Trial URL from user
-  const FREE_TRIAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/";
+  const memberHref = useTrackedHref('https://goteamup.com/p/6822945-hoop-heroes/');
+  const freeTrialHref = useTrackedHref('https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/');
 
   // Determine current location data to check for 'comingSoon' status
   const locationId = isMicrosite ? location.pathname.split('/location/')[1]?.replace(/\/$/, '') : null;
@@ -53,9 +54,6 @@ export const Navbar: React.FC = () => {
       ? 'bg-brand-dark shadow-lg py-3' 
       : 'bg-transparent py-5 md:py-8'
   }`;
-
-  // Updated to the specific Hoop Heroes TeamUp portal
-  const MEMBER_PORTAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/";
 
   const handleWaitlistScroll = (e: React.MouseEvent) => {
     // If on a microsite and clicking waitlist, try to scroll
@@ -121,13 +119,27 @@ export const Navbar: React.FC = () => {
                     <a href="https://clubs.coreteamwear.co.uk/hoop-heroes" target="_blank" rel="noopener noreferrer" className="px-5 py-2 rounded-full text-sm font-bold text-white hover:bg-brand-orange hover:text-brand-dark transition-all uppercase tracking-wider font-sans">Store</a>
                 </div>
             ) : (
-                <Link to="/" className="flex items-center gap-2 mr-6 text-sm font-bold text-white hover:text-brand-orange transition-colors uppercase tracking-wider bg-brand-dark/50 px-4 py-2 rounded-full border border-white/10">
-                    <MapPin size={14} /> Find another location
-                </Link>
+                <details className="relative mr-6">
+                    <summary className="flex items-center gap-2 text-sm font-bold text-white hover:text-brand-orange transition-colors uppercase tracking-wider bg-brand-dark/50 px-4 py-2 rounded-full border border-white/10 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                        <MapPin size={14} /> Find another location
+                    </summary>
+                    <ul className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl bg-brand-dark border-2 border-white/10 shadow-xl py-2">
+                        {LOCATIONS.map((loc) => (
+                            <li key={loc.id}>
+                                <Link
+                                    to={`/location/${loc.slug}`}
+                                    className="block px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-brand-orange hover:text-brand-dark transition-all uppercase tracking-wide"
+                                >
+                                    {locationTownName(loc)}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </details>
             )}
 
             {/* Member Login */}
-            <a href={withTrackedParams(MEMBER_PORTAL_URL)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mr-2 text-sm font-bold text-white hover:text-brand-orange transition-colors uppercase tracking-wider px-4 py-2">
+            <a href={memberHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mr-2 text-sm font-bold text-white hover:text-brand-orange transition-colors uppercase tracking-wider px-4 py-2">
                <User size={16} /> Member Login
             </a>
 
@@ -145,7 +157,7 @@ export const Navbar: React.FC = () => {
                     </Link>
                 ) : (
                     <a 
-                        href={withTrackedParams(FREE_TRIAL_URL)}
+                        href={freeTrialHref}
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="group relative overflow-hidden bg-brand-orange text-brand-dark px-8 py-3 rounded-full font-display text-lg uppercase tracking-wide shadow-sticker border-2 border-brand-dark hover:shadow-sticker-hover transition-all transform hover:-translate-y-0.5"
@@ -213,10 +225,31 @@ export const Navbar: React.FC = () => {
               )}
             </div>
 
+            {isMicrosite && (
+              <details className="w-full max-w-xs text-center">
+                <summary className="text-2xl font-display text-white hover:text-brand-orange transition-colors uppercase cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  Find another location
+                </summary>
+                <ul className="mt-4 flex flex-col items-center gap-3">
+                  {LOCATIONS.map((loc) => (
+                    <li key={loc.id}>
+                      <Link
+                        to={`/location/${loc.slug}`}
+                        onClick={() => setIsOpen(false)}
+                        className="text-xl font-display text-slate-300 hover:text-brand-orange transition-colors uppercase"
+                      >
+                        {locationTownName(loc)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+
             <Link to="/careers" onClick={() => setIsOpen(false)} className="text-4xl font-display text-white hover:text-brand-orange transition-colors uppercase">COACHING</Link>
             <a href="https://clubs.coreteamwear.co.uk/hoop-heroes" target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="text-4xl font-display text-white hover:text-brand-orange transition-colors uppercase">Store</a>
             
-            <a href={withTrackedParams(MEMBER_PORTAL_URL)} target="_blank" rel="noopener noreferrer" className="text-2xl font-display text-slate-300 hover:text-white transition-colors uppercase flex items-center gap-2">
+            <a href={memberHref} target="_blank" rel="noopener noreferrer" className="text-2xl font-display text-slate-300 hover:text-white transition-colors uppercase flex items-center gap-2">
                 <User size={24} /> Member Login
             </a>
             
@@ -228,7 +261,7 @@ export const Navbar: React.FC = () => {
             {isMicrosite ? (
               !isComingSoon ? (
                 <a 
-                    href={withTrackedParams(FREE_TRIAL_URL)}
+                    href={freeTrialHref}
                     target="_blank" 
                     rel="noopener noreferrer"
                     onClick={() => setIsOpen(false)}

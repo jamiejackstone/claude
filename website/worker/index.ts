@@ -10,10 +10,18 @@ import {
   ghlV1ClickIdCustomField,
   mergeIncomingSearch,
 } from '../lib/clickTracking';
+import { apexWwwRedirectTarget, isLlmsTxtRequest } from '../lib/edgeSeo';
+import { injectServedHtml } from '../lib/dateWindowInject';
+import { SPA_SHELL_PATH, isPrerenderPath, prerenderAssetPath, prerenderMarker } from '../lib/prerenderRoutes';
 import {
+  HOME_DOCUMENT_TITLE,
+  LOCATION_SCHEMA_ID,
+  ORG_SCHEMA_ID,
   SANDHURST_META_DESCRIPTION,
-  SANDHURST_PAGE_TITLE,
   buildLocationJsonLd,
+  buildOrganizationJsonLd,
+  jsonLdScriptTag,
+  locationDocumentTitle,
 } from '../lib/locationSchema';
 
 interface Env {
@@ -600,7 +608,7 @@ const SITE_ORIGIN = 'https://www.hoopheroes.co.uk';
 
 const PAGE_META: Record<string, { title: string; description: string }> = {
   '/': {
-    title: 'Hoop Heroes Basketball | Youth Basketball Classes UK',
+    title: HOME_DOCUMENT_TITLE,
     description:
       'Fun, high-energy youth basketball classes for ages 5-15 across Buckinghamshire, Oxfordshire, Hertfordshire and Berkshire. Book a free taster session today.',
   },
@@ -636,30 +644,64 @@ function pageMetaFor(path: string): { title: string; description: string } | nul
     const slug = path.split('/')[2] || '';
     const name = LOCATION_NAMES[slug];
     if (!name) return null;
+    const location = LOCATIONS.find((item) => item.slug === slug);
+    if (!location) return null;
     if (slug === 'sandhurst') {
       return {
-        title: SANDHURST_PAGE_TITLE,
+        title: locationDocumentTitle(location),
         description: SANDHURST_META_DESCRIPTION,
       };
     }
     return {
-      title: `Kids Basketball Classes in ${name} | Hoop Heroes`,
+      title: locationDocumentTitle(location),
       description: `Youth basketball classes for ages 5-15 in ${name}. Weekly sessions with qualified coaches — book your free taster session at Hoop Heroes ${name} today.`,
     };
   }
   return null;
 }
 
-function sandhurstHeadExtras(meta: { title: string; description: string }): string {
-  const location = LOCATIONS.find((item) => item.slug === 'sandhurst');
-  const jsonLd = location ? buildLocationJsonLd(location) : null;
-  const script = jsonLd
-    ? `<script type="application/ld+json" id="hh-location-schema">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`
-    : '';
+function schemaForPath(path: string): string {
+  if (path === '/') return jsonLdScriptTag(ORG_SCHEMA_ID, buildOrganizationJsonLd());
+  if (!path.startsWith('/location/')) return '';
+  const slug = path.split('/')[2] || '';
+  const location = LOCATIONS.find((item) => item.slug === slug);
+  if (!location) return '';
+  return jsonLdScriptTag(LOCATION_SCHEMA_ID, buildLocationJsonLd(location));
+}
+
+function assetRequest(request: Request, pathname: string): Request {
+  const url = new URL(request.url);
+  url.pathname = pathname;
+  url.search = '';
+  return new Request(url.toString(), { method: 'GET' });
+}
+
+async function readAsset(env: Env, request: Request, pathname: string): Promise<{ ok: boolean; html: string; headers: Headers }> {
+  const response = await env.ASSETS.fetch(assetRequest(request, pathname));
+  return { ok: response.ok, html: await response.text(), headers: response.headers };
+}
+
+function htmlResponse(html: string, status: number, sourceHeaders: Headers, extra?: Record<string, string>): Response {
+  const headers = new Headers(sourceHeaders);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  headers.delete('etag');
+  headers.set('content-type', 'text/html; charset=utf-8');
+  // Date-window copy is filled per request, so this document must not be cached for long.
+  headers.set('Cache-Control', 'public, max-age=60, must-revalidate');
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) headers.set(key, value);
+  }
+  return new Response(html, { status, headers });
+}
+
+function headExtras(path: string, meta: { title: string; description: string }): string {
+  const schema = schemaForPath(path);
+  if (path !== '/location/sandhurst') return schema;
   return [
     `<meta property="og:title" content="${escapeHtml(meta.title)}">`,
     `<meta property="og:description" content="${escapeHtml(meta.description)}">`,
-    script,
+    schema,
   ].join('');
 }
 
@@ -672,11 +714,11 @@ function injectMeta(
     .on('title', { element: (el) => el.setInnerContent(meta.title) })
     .on('meta[name="description"]', { element: (el) => el.setAttribute('content', meta.description) });
   if (canonicalPath !== null) {
-    const sandhurstExtras = canonicalPath === '/location/sandhurst' ? sandhurstHeadExtras(meta) : '';
+    const extras = headExtras(canonicalPath, meta);
     rewriter = rewriter.on('head', {
       element: (el) =>
         el.append(
-          `<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">${sandhurstExtras}`,
+          `<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">${extras}`,
           { html: true },
         ),
     });
@@ -689,6 +731,11 @@ export default {
     const url = new URL(request.url);
 
     try {
+      const apexTarget = apexWwwRedirectTarget(url);
+      if (apexTarget) {
+        return Response.redirect(apexTarget, 301);
+      }
+
       if (url.pathname === '/api/health') {
         return json({
           status: 'ok',
@@ -723,25 +770,71 @@ export default {
         return Response.redirect(mergeIncomingSearch(redirectTarget, url.origin, url.searchParams), 301);
       }
 
+      // No llms.txt file exists. Do not fall through to the SPA shell.
+      if (isLlmsTxtRequest(path)) {
+        return new Response('Not found\n', {
+          status: 404,
+          headers: {
+            'content-type': 'text/plain; charset=utf-8',
+            'X-Robots-Tag': 'noindex',
+          },
+        });
+      }
+
+      // The empty SPA shell is fetched by the worker. It is not a public page.
+      if (path === SPA_SHELL_PATH) {
+        return new Response('Not found\n', {
+          status: 404,
+          headers: {
+            'content-type': 'text/plain; charset=utf-8',
+            'X-Robots-Tag': 'noindex',
+          },
+        });
+      }
+
       // Real files (JS/CSS/images, robots.txt, sitemap.xml) go straight to assets
       if (path.includes('.') || path.startsWith('/assets/')) {
         return env.ASSETS.fetch(request);
       }
 
       const meta = pageMetaFor(path);
-      const assetResponse = await env.ASSETS.fetch(request);
+      const now = new Date();
+      let html = '';
+      let sourceHeaders = new Headers();
+
+      if (isPrerenderPath(path)) {
+        const prerendered = await readAsset(env, request, prerenderAssetPath(path));
+        if (prerendered.ok && prerendered.html.includes(prerenderMarker(path))) {
+          html = prerendered.html;
+          sourceHeaders = prerendered.headers;
+        }
+      }
+
+      if (!html) {
+        const shell = await readAsset(env, request, SPA_SHELL_PATH);
+        if (shell.ok && shell.html.includes('hh-spa-shell')) {
+          html = shell.html;
+          sourceHeaders = shell.headers;
+        } else {
+          const fallback = await env.ASSETS.fetch(request);
+          html = await fallback.text();
+          sourceHeaders = fallback.headers;
+        }
+      }
+
+      const location = path.startsWith('/location/')
+        ? LOCATIONS.find((item) => item.slug === (path.split('/')[2] || ''))
+        : undefined;
+      html = injectServedHtml(html, { location, now });
 
       if (meta) {
-        // Known page: inject its unique title, description and canonical URL
-        return injectMeta(assetResponse, meta, path === '/' ? '/' : path);
+        // Known page: inject its unique title, description, canonical and schema.
+        return injectMeta(htmlResponse(html, 200, sourceHeaders), meta, path === '/' ? '/' : path);
       }
 
       // Unknown page: serve the SPA shell (which renders the 404 page) with a
       // real 404 status so search engines drop the URL
-      const headers = new Headers(assetResponse.headers);
-      headers.set('X-Robots-Tag', 'noindex');
-      const notFound = new Response(assetResponse.body, { status: 404, headers });
-      return injectMeta(notFound, {
+      return injectMeta(htmlResponse(html, 404, sourceHeaders, { 'X-Robots-Tag': 'noindex' }), {
         title: 'Page Not Found | Hoop Heroes',
         description: 'This page does not exist. Find your nearest Hoop Heroes youth basketball class on our homepage.',
       }, null);

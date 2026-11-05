@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Lock, Eye, FileText, ChevronRight, UserCheck, Menu, X } from 'lucide-react';
-import { withTrackedParams } from '../lib/clickTracking';
+import { useTrackedHref } from '../lib/trackedHref';
+import { PUBLIC_PHONE_DISPLAY, PUBLIC_PHONE_TEL } from '../lib/locationSchema';
 
 type PolicySection = 'privacy' | 'cookies' | 'safeguarding' | 'terms' | 'conduct';
 
@@ -10,6 +11,7 @@ export const Policies: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<PolicySection>('privacy');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const teamUpHref = useTrackedHref('https://goteamup.com/p/6822945-hoop-heroes/');
 
   // Sync state with search params
   useEffect(() => {
@@ -212,7 +214,7 @@ export const Policies: React.FC = () => {
                                 <h3>6. Designated Safeguarding Lead (DSL)</h3>
                                 <p><strong>Name:</strong> Jacob Clarke<br />
                                 <strong>Contact:</strong> <a href="mailto:jacob@hoopheroes.co.uk" className="text-brand-orange font-bold">jacob@hoopheroes.co.uk</a><br />
-                                <strong>Phone:</strong> 07700 140 500</p>
+                                <strong>Phone:</strong> <a href={PUBLIC_PHONE_TEL} className="text-brand-orange font-bold">{PUBLIC_PHONE_DISPLAY}</a></p>
 
                                 <h3>7. Staffing and Supervision Ratios</h3>
                                 <p>We maintain appropriate staffing ratios to ensure safety, with a minimum of two adults present during any activity involving children.</p>
@@ -276,7 +278,7 @@ export const Policies: React.FC = () => {
 
                                  <h3>5. Cancelling Your Membership</h3>
                                  <p>Membership is monthly rolling. There is no minimum term and no notice period.</p>
-                                 <p>You can cancel your membership yourself at any time from your TeamUp account: log in at <a href={withTrackedParams('https://goteamup.com/p/6822945-hoop-heroes/')} target="_blank" rel="noopener noreferrer" className="text-brand-orange font-bold">goteamup.com/p/6822945-hoop-heroes/</a>, or use the TeamUp Members App, go to <strong>My Memberships</strong>, and cancel from there. You do not need to email or telephone us to cancel — the cancellation is applied automatically by TeamUp.</p>
+                                 <p>You can cancel your membership yourself at any time from your TeamUp account: log in at <a href={teamUpHref} target="_blank" rel="noopener noreferrer" className="text-brand-orange font-bold">goteamup.com/p/6822945-hoop-heroes/</a>, or use the TeamUp Members App, go to <strong>My Memberships</strong>, and cancel from there. You do not need to email or telephone us to cancel — the cancellation is applied automatically by TeamUp.</p>
                                  <p>Sessions run during school term time only, and membership payments are spread evenly across the year. Monthly payments therefore include school holiday periods while your membership is active.</p>
                                  <p>If you have a question about your payments, or need help with anything the self-serve route cannot do, please email <a href="mailto:basketball@hoopheroes.co.uk" className="text-brand-orange font-bold">basketball@hoopheroes.co.uk</a> with your child's name and the details.</p>
 

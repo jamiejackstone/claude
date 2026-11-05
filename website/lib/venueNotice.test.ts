@@ -1,11 +1,16 @@
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { LOCATIONS } from '../constants.ts';
-import { ClassScheduleDetails, TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
+import { ClassSessionList } from '../components/ClassSessionList.tsx';
+import { DateWindowOutlet } from '../components/DateWindows.tsx';
+import { TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
 import { DayOfWeek } from '../types.ts';
+import { dateSlotMarker, injectServedHtml } from './dateWindowInject.ts';
 import {
   activeTemporaryVenues,
   directionsUrl,
+  bakedDateWindowPhrases,
+  dateOnLondonDay,
   getActiveBannerNotices,
   getActiveLocationNotices,
   getActiveScheduleNotices,
@@ -93,10 +98,10 @@ assert(!aylesbury.classes.some((session) => session.ageGroup.includes('Ballers')
 assertEqual(aylesbury.classes.every((session) => session.day === DayOfWeek.MONDAY), true, 'Aylesbury classes are Monday only');
 assertEqual(
   aylesbury.address,
-  'The Mandeville School, Ellen Road, Aylesbury HP21 8ED',
-  'the usual Mandeville address stays in place',
+  'The Mandeville School, Ellen Road, Aylesbury HP21 8ES',
+  'the usual Mandeville address uses the GBP postcode',
 );
-assertEqual(aylesbury.mapQueryOverride, 'The Mandeville School, Aylesbury', 'the usual map query stays in place');
+assertEqual(aylesbury.mapQueryOverride, '51.7989776,-0.8145699', 'the permanent map query is the GBP pin');
 const baseWidgetUrl = 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48411,53172,50233,65944';
 assertEqual(aylesbury.bookingWidgetUrl, baseWidgetUrl, 'the base TeamUp url is the original venue list');
 assertEqual(floyd.teamupVenueIds, ['54994'], 'Sir Henry Floyd is added only from the temporary venue');
@@ -422,13 +427,15 @@ function renderedText(html: string): string {
     .replace(/&amp;/g, '&');
 }
 
-const scheduleOn15 = renderedText(renderToStaticMarkup(
-  React.createElement(ClassScheduleDetails, {
-    notices: getActiveScheduleNotices(sandhurst, new Date('2026-11-15T12:00:00Z')),
-    scheduleNotice: sandhurst.scheduleNotice,
-    sessions: sandhurst.classes,
-  }),
-));
+const sessionListHtml = renderToStaticMarkup(
+  React.createElement(ClassSessionList, { sessions: sandhurst.classes }),
+);
+function servedSchedule(now: Date): string {
+  const shell = `<section><h2>Class Schedule</h2>${dateSlotMarker('schedule-notices')}${sessionListHtml}</section>`;
+  return renderedText(injectServedHtml(shell, { location: sandhurst, now }));
+}
+
+const scheduleOn15 = servedSchedule(new Date('2026-11-15T12:00:00Z'));
 const headingIndex = scheduleOn15.indexOf('Class Schedule');
 const noticeIndex = scheduleOn15.indexOf(sandhurstNotice);
 const makeupIndex = scheduleOn15.indexOf(sandhurstMakeup);
@@ -438,33 +445,63 @@ assert(noticeIndex > headingIndex, 'the 15 Nov notice renders at the top of the 
 assert(makeupIndex > noticeIndex, 'the make-up line renders directly below the 15 Nov notice');
 assert(sessionIndex > makeupIndex, 'both notices render above the session list');
 assert(!scheduleOn15.includes('>UPDATE<'), 'the schedule section does not use the banner');
-const scheduleOn16 = renderedText(renderToStaticMarkup(
-  React.createElement(ClassScheduleDetails, {
-    notices: getActiveScheduleNotices(sandhurst, new Date('2026-11-16T00:00:00Z')),
-    scheduleNotice: sandhurst.scheduleNotice,
-    sessions: sandhurst.classes,
-  }),
-));
+assert(!scheduleOn15.includes('data-hh-date-slot='), 'the worker replaces the schedule marker');
+const scheduleOn16 = servedSchedule(new Date('2026-11-16T00:00:00Z'));
 assert(!scheduleOn16.includes(sandhurstNotice), 'the schedule section hides the 15 Nov notice on 16 Nov 2026');
 assert(scheduleOn16.indexOf(sandhurstMakeup) > scheduleOn16.indexOf('Class Schedule'), 'the make-up line stays in the schedule section on 16 Nov');
 assert(scheduleOn16.indexOf('Coming soon - January 2027') > scheduleOn16.indexOf(sandhurstMakeup), 'the make-up line stays above the session list on 16 Nov');
-const scheduleOn20 = renderedText(renderToStaticMarkup(
-  React.createElement(ClassScheduleDetails, {
-    notices: getActiveScheduleNotices(sandhurst, new Date('2026-12-20T12:00:00Z')),
-    scheduleNotice: sandhurst.scheduleNotice,
-    sessions: sandhurst.classes,
-  }),
-));
+const scheduleOn20 = servedSchedule(new Date('2026-12-20T12:00:00Z'));
 assert(!scheduleOn20.includes(sandhurstNotice), 'the 15 Nov notice is absent on 20 Dec 2026');
 assert(scheduleOn20.indexOf('Coming soon - January 2027') > scheduleOn20.indexOf(sandhurstMakeup), 'the make-up line renders above the session list on 20 Dec');
-const scheduleOn21 = renderedText(renderToStaticMarkup(
-  React.createElement(ClassScheduleDetails, {
-    notices: getActiveScheduleNotices(sandhurst, new Date('2026-12-21T00:00:00Z')),
-    scheduleNotice: sandhurst.scheduleNotice,
-    sessions: sandhurst.classes,
-  }),
-));
+const scheduleOn21 = servedSchedule(new Date('2026-12-21T00:00:00Z'));
 assert(!scheduleOn21.includes(sandhurstNotice) && !scheduleOn21.includes(sandhurstMakeup), 'the schedule section hides both notices on 21 Dec 2026');
 assert(scheduleOn21.includes('Coming soon - January 2027'), 'the session list stays when both notices are hidden');
+const clientOn15 = renderToString(
+  React.createElement(DateWindowOutlet, { slot: 'schedule-notices', location: sandhurst, londonDay: '2026-11-15' }),
+);
+assert(
+  injectServedHtml(dateSlotMarker('schedule-notices'), { location: sandhurst, now: dateOnLondonDay('2026-11-15') }).endsWith(clientOn15),
+  'served schedule notices match the hydrated render',
+);
+const prerenderMarker = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'schedule-notices', location: sandhurst, londonDay: null }),
+);
+assert(prerenderMarker.includes('data-hh-date-slot="schedule-notices"'), 'prerender leaves a schedule marker');
+assert(!prerenderMarker.includes(sandhurstNotice) && !prerenderMarker.includes('Make-up session'), 'prerender does not bake Sandhurst notices');
+assert(bakedDateWindowPhrases(sandhurst).includes(sandhurstNotice), 'the 15 Nov notice is date-window copy');
+assert(bakedDateWindowPhrases(sandhurst).includes(sandhurstMakeup), 'the make-up line is date-window copy');
+
+const scheduleNotice = {
+  text: 'No session on Sunday 20 December. The make-up is the Sunday after.',
+  showFrom: '2026-12-01',
+  showUntil: '2026-12-20',
+  placement: 'schedule' as const,
+};
+const bannerNotice = {
+  text: 'Use the side gate while the notice is up.',
+  showFrom: '2026-12-01',
+  showUntil: '2026-12-20',
+};
+const noticed = { notices: [scheduleNotice, bannerNotice] };
+assertEqual(
+  getActiveScheduleNotices(noticed, dateOnLondonDay('2026-12-20')).map((notice) => notice.text),
+  [scheduleNotice.text],
+  'schedule placement is included on showUntil',
+);
+assertEqual(
+  getActiveBannerNotices(noticed, dateOnLondonDay('2026-12-01')).map((notice) => notice.text),
+  [bannerNotice.text],
+  'a notice without placement uses the banner',
+);
+assertEqual(getActiveScheduleNotices(noticed, dateOnLondonDay('2026-11-30')), [], 'schedule notice is hidden before showFrom');
+assertEqual(getActiveBannerNotices({}), [], 'locations without notices have none');
+assert(
+  bakedDateWindowPhrases(aylesbury).includes(floyd.tickerText),
+  'Aylesbury ticker is treated as date-window copy',
+);
+assert(
+  !bakedDateWindowPhrases(holmer).includes('Sir William Ramsay School'),
+  'the permanent backup-venue name is not flagged as baked date-window copy',
+);
 
 console.log('venueNotice tests passed');

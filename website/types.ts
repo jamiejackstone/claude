@@ -69,13 +69,13 @@ export interface TemporaryVenue {
   teamupVenueIds?: string[];
 }
 
-/** Short location-page notice. Inclusive YYYY-MM-DD window, Europe/London. */
+/** Dated location-page text. Inclusive YYYY-MM-DD window, compared in Europe/London. */
 export interface LocationNotice {
   text: string;
   showFrom: string;
   showUntil: string;
-  /** Defaults to the UPDATE banner. `schedule` renders at the top of Class Schedule. */
-  placement?: 'banner' | 'schedule';
+  /** Unset renders in the UPDATE banner. `schedule` renders in Class Schedule. */
+  placement?: 'banner' | 'schedule' | string;
 }
 
 export interface LocationData {
@@ -91,7 +91,19 @@ export interface LocationData {
     postalCode: string;
     addressCountry: string;
   };
-  coordinates: { lat: number; lng: number }; // Mock coordinates
+  coordinates: { lat: number; lng: number }; // Stored pin used by the map embed. Schema uses schemaGeo.
+  /** Permanent-venue PostalAddress for JSON-LD. Visitors still see `address`. */
+  schemaAddress: {
+    streetAddress: string;
+    addressLocality: string;
+    addressRegion?: string;
+    postalCode: string;
+    addressCountry: 'GB';
+  };
+  /** Pin used in JSON-LD. May differ from `coordinates` when that pin is off the venue. */
+  schemaGeo: { lat: number; lng: number };
+  /** Google Maps URL for JSON-LD hasMap. */
+  mapsUrl: string;
   phone: string;
   email: string;
   headCoach: Coach;

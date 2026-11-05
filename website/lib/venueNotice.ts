@@ -31,29 +31,62 @@ export function activeTemporaryVenues(
   return venues.filter((venue) => isWithinLondonWindow(venue.showFrom, venue.showUntil, now));
 }
 
-/** Location-page text notices inside their Europe/London window. */
+/** Noon UTC stays on the same Europe/London calendar day in GMT and BST. */
+export function dateOnLondonDay(londonDay: string): Date {
+  return new Date(`${londonDay}T12:00:00.000Z`);
+}
+
 export function getActiveLocationNotices(
-  location: Pick<LocationData, 'notices'>,
+  location: { notices?: LocationNotice[] },
   now: Date = new Date(),
 ): LocationNotice[] {
   if (!location.notices?.length) return [];
-  return location.notices.filter((notice) => isWithinLondonWindow(notice.showFrom, notice.showUntil, now));
+  return location.notices.filter((notice) => {
+    if (!notice?.text?.trim() || !notice.showFrom || !notice.showUntil) return false;
+    return isWithinLondonWindow(notice.showFrom, notice.showUntil, now);
+  });
 }
 
-/** Active notices for the UPDATE banner. Unset placement stays here. */
+/** UPDATE banner. Any placement other than `schedule` stays here, including unset. */
 export function getActiveBannerNotices(
-  location: Pick<LocationData, 'notices'>,
+  location: { notices?: LocationNotice[] },
   now: Date = new Date(),
 ): LocationNotice[] {
   return getActiveLocationNotices(location, now).filter((notice) => notice.placement !== 'schedule');
 }
 
-/** Active notices for the top of the Class Schedule section. */
+/** Top of the Class Schedule section. */
 export function getActiveScheduleNotices(
-  location: Pick<LocationData, 'notices'>,
+  location: { notices?: LocationNotice[] },
   now: Date = new Date(),
 ): LocationNotice[] {
   return getActiveLocationNotices(location, now).filter((notice) => notice.placement === 'schedule');
+}
+
+/** Phrases that belong only to date windows, so a build can assert they were not baked in. */
+export function bakedDateWindowPhrases(location: Pick<LocationData, 'address' | 'scheduleNotice' | 'locationNotes' | 'newsTicker' | 'name' | 'temporaryVenues' | 'notices'>): string[] {
+  const permanent = [location.address, location.scheduleNotice, location.locationNotes, location.newsTicker, location.name]
+    .filter(Boolean)
+    .join('\n');
+  const phrases: string[] = [];
+  const add = (value: string | undefined) => {
+    const text = value?.trim();
+    if (!text || text.length < 8 || permanent.includes(text)) return;
+    phrases.push(text);
+  };
+  for (const venue of location.temporaryVenues ?? []) {
+    add(venue.tickerText);
+    add(venue.returnNote);
+    add(venue.venueName);
+    add(venue.address);
+    add(venue.parking);
+    add(venue.entry);
+    add(venue.timesNote);
+    add(temporaryVenueHeading(venue.sessionDates));
+    for (const sessionDate of venue.sessionDates) add(sessionDate);
+  }
+  for (const notice of location.notices ?? []) add(notice.text);
+  return phrases;
 }
 
 /** Banner, box and booking-widget venue ids all come from this window. */

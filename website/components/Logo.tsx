@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { HOOP_HEROES_LOGO_URL } from '../lib/locationSchema';
 
 interface LogoProps {
   className?: string;
@@ -9,7 +10,7 @@ interface LogoProps {
 /**
  * THE HOOP HEROES LOGO COMPONENT
  */
-const LOGO_URL = "https://storage.googleapis.com/msgsndr/9p0wEiLpTaIe1FDTFFQI/media/6929cb514a68807a3d781c96.png";
+const LOGO_URL = HOOP_HEROES_LOGO_URL;
 
 export const Logo: React.FC<LogoProps> = ({ className = "", variant = 'light' }) => {
   if (LOGO_URL) {
