@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Search, MapPin, Trophy, Users, ArrowRight, Star, ShieldCheck, Heart, Clock, Award, Calendar, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 import { withTrackedParams } from '../lib/clickTracking';
+import { trackBookTrialClick } from '../lib/trackBookTrial';
 import { upsertJsonLd } from '../lib/jsonLdDom';
 import {
   buildOrganizationJsonLd,
@@ -18,6 +19,15 @@ export const Home: React.FC = () => {
   const [searchResults, setSearchResults] = useState(LOCATIONS);
 
   const FREE_TRIAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/";
+  const freeTrialUrl = withTrackedParams(FREE_TRIAL_URL);
+
+  const trackTrial = (buttonPosition: string) => {
+    trackBookTrialClick({
+      location_slug: 'none',
+      button_position: buttonPosition,
+      link_url: freeTrialUrl,
+    });
+  };
 
   // Load Review Widget Script
   useEffect(() => {
@@ -109,9 +119,10 @@ export const Home: React.FC = () => {
                     FIND A CLASS <Search size={24} strokeWidth={3} />
                 </a>
                 <a 
-                  href={withTrackedParams(FREE_TRIAL_URL)}
+                  href={freeTrialUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackTrial('hero')}
                   className="w-full sm:w-auto bg-white hover:bg-slate-50 text-brand-dark border-2 border-brand-dark px-10 py-4 rounded-full font-display text-xl uppercase tracking-wide transition-all shadow-sticker hover:shadow-sticker-hover transform hover:-translate-y-1 flex items-center justify-center gap-3"
                 >
                    Book a free trial
@@ -363,7 +374,7 @@ export const Home: React.FC = () => {
                 We're on a mission to positively impact 10,000 children across the UK every week through basketball by 2030. Every hero on the court helps us reach that goal.
               </p>
               
-              <a href={withTrackedParams(FREE_TRIAL_URL)} target="_blank" rel="noopener noreferrer" className="inline-block bg-brand-dark text-white px-12 py-6 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker hover:shadow-sticker-hover hover:scale-105 transition-all border-4 border-transparent hover:border-white">
+              <a href={freeTrialUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackTrial('banner')} className="inline-block bg-brand-dark text-white px-12 py-6 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker hover:shadow-sticker-hover hover:scale-105 transition-all border-4 border-transparent hover:border-white">
                   TRY YOUR FIRST CLASS FREE
               </a>
           </div>

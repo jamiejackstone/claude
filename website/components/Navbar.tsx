@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, MapPin, ChevronRight, ChevronDown, User, Search } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 import { withTrackedParams } from '../lib/clickTracking';
+import { trackBookTrialClick } from '../lib/trackBookTrial';
 import { locationTownName } from '../lib/locationSchema';
 import { Logo } from './Logo';
 
@@ -29,11 +30,21 @@ export const Navbar: React.FC = () => {
 
   // Trial URL from user
   const FREE_TRIAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/";
+  const freeTrialUrl = withTrackedParams(FREE_TRIAL_URL);
 
   // Determine current location data to check for 'comingSoon' status
   const locationId = isMicrosite ? location.pathname.split('/location/')[1]?.replace(/\/$/, '') : null;
   const currentLocation = locationId ? LOCATIONS.find(l => l.id === locationId || l.slug === locationId) : null;
   const isComingSoon = currentLocation?.comingSoon;
+  const trialLocationSlug = currentLocation?.slug || 'none';
+
+  const trackTrial = (buttonPosition: string) => {
+    trackBookTrialClick({
+      location_slug: trialLocationSlug,
+      button_position: buttonPosition,
+      link_url: freeTrialUrl,
+    });
+  };
 
   // Handle scroll effect
   useEffect(() => {
@@ -160,9 +171,10 @@ export const Navbar: React.FC = () => {
                     </Link>
                 ) : (
                     <a 
-                        href={withTrackedParams(FREE_TRIAL_URL)}
+                        href={freeTrialUrl}
                         target="_blank" 
                         rel="noopener noreferrer"
+                        onClick={() => trackTrial('navbar')}
                         className="group relative overflow-hidden bg-brand-orange text-brand-dark px-8 py-3 rounded-full font-display text-lg uppercase tracking-wide shadow-sticker border-2 border-brand-dark hover:shadow-sticker-hover transition-all transform hover:-translate-y-0.5"
                     >
                         <span className="relative z-10 flex items-center gap-2">
@@ -264,10 +276,13 @@ export const Navbar: React.FC = () => {
             {isMicrosite ? (
               !isComingSoon ? (
                 <a 
-                    href={withTrackedParams(FREE_TRIAL_URL)}
+                    href={freeTrialUrl}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                      trackTrial('navbar_mobile');
+                      setIsOpen(false);
+                    }}
                     className="bg-brand-orange text-brand-dark px-10 py-4 rounded-full font-display uppercase tracking-wider text-xl shadow-sticker border-2 border-brand-dark"
                 >
                     Book Free Trial
