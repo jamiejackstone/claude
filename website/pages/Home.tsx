@@ -1,19 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Search, MapPin, Trophy, Users, ArrowRight, Star, ShieldCheck, Heart, Clock, Award, Calendar, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 import { withTrackedParams } from '../lib/clickTracking';
+import { upsertJsonLd } from '../lib/jsonLdDom';
+import {
+  buildOrganizationJsonLd,
+  HOME_DOCUMENT_TITLE,
+  LOCATION_SCHEMA_ID,
+  ORG_SCHEMA_ID,
+} from '../lib/locationSchema';
 import { ClassSessionList } from '../components/ClassSessionList';
 
 export const Home: React.FC = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(LOCATIONS);
 
   const FREE_TRIAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/";
 
   // Load Review Widget Script
+  useEffect(() => {
+    document.title = HOME_DOCUMENT_TITLE;
+    upsertJsonLd(ORG_SCHEMA_ID, buildOrganizationJsonLd());
+    upsertJsonLd(LOCATION_SCHEMA_ID, null);
+  }, []);
+
   useEffect(() => {
     const scriptUrl = 'https://reputationhub.site/reputation/assets/review-widget.js';
     const scriptId = 'reputation-widget-script';
@@ -141,9 +153,9 @@ export const Home: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {searchResults.map((loc) => {
                         return (
-                            <div 
-                                key={loc.id} 
-                                onClick={() => navigate(`/location/${loc.slug}`)}
+                            <Link
+                                key={loc.id}
+                                to={`/location/${loc.slug}`}
                                 className="group bg-white border-4 border-brand-dark rounded-3xl overflow-hidden cursor-pointer hover:-translate-y-2 transition-all duration-300 shadow-sticker hover:shadow-sticker-hover flex flex-col h-full"
                             >
                                 {/* Bold color top cap matching location state */}
@@ -203,7 +215,7 @@ export const Home: React.FC = () => {
                                         </span>
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         );
                     })}
                 </div>

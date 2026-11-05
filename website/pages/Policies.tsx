@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Lock, Eye, FileText, ChevronRight, UserCheck, Menu, X } from 'lucide-react';
 import { withTrackedParams } from '../lib/clickTracking';
+import { PUBLIC_PHONE_DISPLAY, PUBLIC_PHONE_TEL } from '../lib/locationSchema';
 
 type PolicySection = 'privacy' | 'cookies' | 'safeguarding' | 'terms' | 'conduct';
 
@@ -212,7 +213,7 @@ export const Policies: React.FC = () => {
                                 <h3>6. Designated Safeguarding Lead (DSL)</h3>
                                 <p><strong>Name:</strong> Jacob Clarke<br />
                                 <strong>Contact:</strong> <a href="mailto:jacob@hoopheroes.co.uk" className="text-brand-orange font-bold">jacob@hoopheroes.co.uk</a><br />
-                                <strong>Phone:</strong> 07700 140 500</p>
+                                <strong>Phone:</strong> <a href={PUBLIC_PHONE_TEL} className="text-brand-orange font-bold">{PUBLIC_PHONE_DISPLAY}</a></p>
 
                                 <h3>7. Staffing and Supervision Ratios</h3>
                                 <p>We maintain appropriate staffing ratios to ensure safety, with a minimum of two adults present during any activity involving children.</p>

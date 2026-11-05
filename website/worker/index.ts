@@ -10,10 +10,16 @@ import {
   ghlV1ClickIdCustomField,
   mergeIncomingSearch,
 } from '../lib/clickTracking';
+import { apexWwwRedirectTarget, isLlmsTxtRequest } from '../lib/edgeSeo';
 import {
+  HOME_DOCUMENT_TITLE,
+  LOCATION_SCHEMA_ID,
+  ORG_SCHEMA_ID,
   SANDHURST_META_DESCRIPTION,
-  SANDHURST_PAGE_TITLE,
   buildLocationJsonLd,
+  buildOrganizationJsonLd,
+  jsonLdScriptTag,
+  locationDocumentTitle,
 } from '../lib/locationSchema';
 
 interface Env {
@@ -600,7 +606,7 @@ const SITE_ORIGIN = 'https://www.hoopheroes.co.uk';
 
 const PAGE_META: Record<string, { title: string; description: string }> = {
   '/': {
-    title: 'Hoop Heroes Basketball | Youth Basketball Classes UK',
+    title: HOME_DOCUMENT_TITLE,
     description:
       'Fun, high-energy youth basketball classes for ages 5-15 across Buckinghamshire, Oxfordshire, Hertfordshire and Berkshire. Book a free taster session today.',
   },
@@ -636,30 +642,38 @@ function pageMetaFor(path: string): { title: string; description: string } | nul
     const slug = path.split('/')[2] || '';
     const name = LOCATION_NAMES[slug];
     if (!name) return null;
+    const location = LOCATIONS.find((item) => item.slug === slug);
+    if (!location) return null;
     if (slug === 'sandhurst') {
       return {
-        title: SANDHURST_PAGE_TITLE,
+        title: locationDocumentTitle(location),
         description: SANDHURST_META_DESCRIPTION,
       };
     }
     return {
-      title: `Kids Basketball Classes in ${name} | Hoop Heroes`,
+      title: locationDocumentTitle(location),
       description: `Youth basketball classes for ages 5-15 in ${name}. Weekly sessions with qualified coaches — book your free taster session at Hoop Heroes ${name} today.`,
     };
   }
   return null;
 }
 
-function sandhurstHeadExtras(meta: { title: string; description: string }): string {
-  const location = LOCATIONS.find((item) => item.slug === 'sandhurst');
-  const jsonLd = location ? buildLocationJsonLd(location) : null;
-  const script = jsonLd
-    ? `<script type="application/ld+json" id="hh-location-schema">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`
-    : '';
+function schemaForPath(path: string): string {
+  if (path === '/') return jsonLdScriptTag(ORG_SCHEMA_ID, buildOrganizationJsonLd());
+  if (!path.startsWith('/location/')) return '';
+  const slug = path.split('/')[2] || '';
+  const location = LOCATIONS.find((item) => item.slug === slug);
+  if (!location) return '';
+  return jsonLdScriptTag(LOCATION_SCHEMA_ID, buildLocationJsonLd(location));
+}
+
+function headExtras(path: string, meta: { title: string; description: string }): string {
+  const schema = schemaForPath(path);
+  if (path !== '/location/sandhurst') return schema;
   return [
     `<meta property="og:title" content="${escapeHtml(meta.title)}">`,
     `<meta property="og:description" content="${escapeHtml(meta.description)}">`,
-    script,
+    schema,
   ].join('');
 }
 
@@ -672,11 +686,11 @@ function injectMeta(
     .on('title', { element: (el) => el.setInnerContent(meta.title) })
     .on('meta[name="description"]', { element: (el) => el.setAttribute('content', meta.description) });
   if (canonicalPath !== null) {
-    const sandhurstExtras = canonicalPath === '/location/sandhurst' ? sandhurstHeadExtras(meta) : '';
+    const extras = headExtras(canonicalPath, meta);
     rewriter = rewriter.on('head', {
       element: (el) =>
         el.append(
-          `<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">${sandhurstExtras}`,
+          `<link rel="canonical" href="${SITE_ORIGIN}${canonicalPath}">${extras}`,
           { html: true },
         ),
     });
@@ -689,6 +703,11 @@ export default {
     const url = new URL(request.url);
 
     try {
+      const apexTarget = apexWwwRedirectTarget(url);
+      if (apexTarget) {
+        return Response.redirect(apexTarget, 301);
+      }
+
       if (url.pathname === '/api/health') {
         return json({
           status: 'ok',
@@ -721,6 +740,17 @@ export default {
         // Merge incoming search into the target. Targets that already have a query
         // (e.g. /policies?section=terms) keep their own keys and gain gclid/UTMs.
         return Response.redirect(mergeIncomingSearch(redirectTarget, url.origin, url.searchParams), 301);
+      }
+
+      // No llms.txt file exists. Do not fall through to the SPA shell.
+      if (isLlmsTxtRequest(path)) {
+        return new Response('Not found\n', {
+          status: 404,
+          headers: {
+            'content-type': 'text/plain; charset=utf-8',
+            'X-Robots-Tag': 'noindex',
+          },
+        });
       }
 
       // Real files (JS/CSS/images, robots.txt, sitemap.xml) go straight to assets

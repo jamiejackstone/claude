@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, MapPin, ChevronRight, ChevronDown, User, Search } from 'lucide-react';
 import { LOCATIONS } from '../constants';
 import { withTrackedParams } from '../lib/clickTracking';
+import { locationTownName } from '../lib/locationSchema';
 import { Logo } from './Logo';
 
 export const Navbar: React.FC = () => {
@@ -121,9 +122,23 @@ export const Navbar: React.FC = () => {
                     <a href="https://clubs.coreteamwear.co.uk/hoop-heroes" target="_blank" rel="noopener noreferrer" className="px-5 py-2 rounded-full text-sm font-bold text-white hover:bg-brand-orange hover:text-brand-dark transition-all uppercase tracking-wider font-sans">Store</a>
                 </div>
             ) : (
-                <Link to="/" className="flex items-center gap-2 mr-6 text-sm font-bold text-white hover:text-brand-orange transition-colors uppercase tracking-wider bg-brand-dark/50 px-4 py-2 rounded-full border border-white/10">
-                    <MapPin size={14} /> Find another location
-                </Link>
+                <details className="relative mr-6">
+                    <summary className="flex items-center gap-2 text-sm font-bold text-white hover:text-brand-orange transition-colors uppercase tracking-wider bg-brand-dark/50 px-4 py-2 rounded-full border border-white/10 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                        <MapPin size={14} /> Find another location
+                    </summary>
+                    <ul className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl bg-brand-dark border-2 border-white/10 shadow-xl py-2">
+                        {LOCATIONS.map((loc) => (
+                            <li key={loc.id}>
+                                <Link
+                                    to={`/location/${loc.slug}`}
+                                    className="block px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-brand-orange hover:text-brand-dark transition-all uppercase tracking-wide"
+                                >
+                                    {locationTownName(loc)}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </details>
             )}
 
             {/* Member Login */}
@@ -212,6 +227,27 @@ export const Navbar: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {isMicrosite && (
+              <details className="w-full max-w-xs text-center">
+                <summary className="text-2xl font-display text-white hover:text-brand-orange transition-colors uppercase cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  Find another location
+                </summary>
+                <ul className="mt-4 flex flex-col items-center gap-3">
+                  {LOCATIONS.map((loc) => (
+                    <li key={loc.id}>
+                      <Link
+                        to={`/location/${loc.slug}`}
+                        onClick={() => setIsOpen(false)}
+                        className="text-xl font-display text-slate-300 hover:text-brand-orange transition-colors uppercase"
+                      >
+                        {locationTownName(loc)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
 
             <Link to="/careers" onClick={() => setIsOpen(false)} className="text-4xl font-display text-white hover:text-brand-orange transition-colors uppercase">COACHING</Link>
             <a href="https://clubs.coreteamwear.co.uk/hoop-heroes" target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="text-4xl font-display text-white hover:text-brand-orange transition-colors uppercase">Store</a>

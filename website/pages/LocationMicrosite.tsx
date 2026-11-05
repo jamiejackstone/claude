@@ -5,7 +5,19 @@ import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
 import { trackWaitlistLead } from '../lib/metaPixel';
 import { directionsUrl, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
 import { ClassSessionList } from '../components/ClassSessionList';
-import { SANDHURST_META_DESCRIPTION, SANDHURST_PAGE_TITLE, buildLocationJsonLd } from '../lib/locationSchema';
+import { upsertJsonLd } from '../lib/jsonLdDom';
+import {
+  LOCATION_SCHEMA_ID,
+  ORG_SCHEMA_ID,
+  PUBLIC_EMAIL,
+  PUBLIC_PHONE_DISPLAY,
+  PUBLIC_PHONE_TEL,
+  SANDHURST_META_DESCRIPTION,
+  SANDHURST_PAGE_TITLE,
+  buildLocationJsonLd,
+  locationDocumentTitle,
+  locationTownName,
+} from '../lib/locationSchema';
 import { LocationData, TemporaryVenue } from '../types';
 import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, AlertTriangle, ShoppingCart } from 'lucide-react';
 
@@ -128,19 +140,6 @@ function upsertMeta(property: string, content: string | null) {
   if (!existing) document.head.appendChild(el);
 }
 
-function upsertLocationSchema(data: Record<string, unknown> | null) {
-  const existing = document.getElementById('hh-location-schema');
-  if (!data) {
-    existing?.remove();
-    return;
-  }
-  const script = existing ?? document.createElement('script');
-  script.id = 'hh-location-schema';
-  script.setAttribute('type', 'application/ld+json');
-  script.textContent = JSON.stringify(data);
-  if (!existing) document.head.appendChild(script);
-}
-
 export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }) => {
   const { id: paramId } = useParams<{ id: string }>();
   const id = forcedId || paramId;
@@ -170,11 +169,9 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       setLocation(localFound);
       setWaitlistData(prev => ({ ...prev, source_location: localFound.name }));
 
-      // SEO: Unique metadata per location. Sandhurst is ages 5-11 while Ballers is paused.
+      // SEO: keep the worker title. Do not rewrite it to "[Town] Basketball Classes".
       const isSandhurst = localFound.slug === 'sandhurst';
-      document.title = isSandhurst
-        ? SANDHURST_PAGE_TITLE
-        : `${localFound.name} Basketball Classes | Hoop Heroes`;
+      document.title = locationDocumentTitle(localFound);
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
         metaDescription.setAttribute(
@@ -186,7 +183,8 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       }
       upsertMeta('og:title', isSandhurst ? SANDHURST_PAGE_TITLE : null);
       upsertMeta('og:description', isSandhurst ? SANDHURST_META_DESCRIPTION : null);
-      upsertLocationSchema(isSandhurst ? buildLocationJsonLd(localFound) : null);
+      upsertJsonLd(LOCATION_SCHEMA_ID, buildLocationJsonLd(localFound));
+      upsertJsonLd(ORG_SCHEMA_ID, null);
     }
 
     window.scrollTo(0, 0);
@@ -360,8 +358,8 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="max-w-4xl flex flex-col">
               <h1 className="font-display text-5xl md:text-8xl text-white uppercase leading-none drop-shadow-xl mb-6 order-1">
-                Hoop Heroes <br/>
-                <span className={location.comingSoon ? "text-blue-400" : "text-brand-orange"}>{location.name}</span>
+                Kids Basketball Classes in <br/>
+                <span className={location.comingSoon ? "text-blue-400" : "text-brand-orange"}>{locationTownName(location)}</span>
               </h1>
 
               <div className="flex flex-wrap items-center gap-4 mb-6 order-2">
@@ -553,7 +551,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                     <span className="text-[10px] font-black uppercase block mb-1 opacity-60 tracking-widest">Address</span>
                     {location.id === 'loc_holmer' ? (
                       <div className="space-y-2">
-                        <span className="font-bold leading-tight block text-base">Holmer Green Senior School, HP15 6SP</span>
+                        <span className="font-bold leading-tight block text-base">{location.address}</span>
                         <div className="text-xs bg-brand-orange/10 border-2 border-brand-dark p-3 rounded-xl mt-2 text-brand-dark">
                           <p className="font-bold mb-1">Backup Venue during Exams:</p>
                           <p className="font-medium">Sir William Ramsay School, Rose Avenue, Hazlemere, HP15 7UB</p>
@@ -581,21 +579,19 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                   <div className="bg-brand-dark p-3 rounded-xl text-white shrink-0"><Mail size={22} /></div>
                   <div>
                     <span className="text-[10px] font-black uppercase block mb-1 opacity-60 tracking-widest">Email Us</span>
-                    <a href={`mailto:basketball@hoopheroes.co.uk?subject=Hoop Heroes ${location.name} inquiry`} className="font-black hover:underline break-all block text-base">basketball@hoopheroes.co.uk</a>
+                    <a href={`mailto:${PUBLIC_EMAIL}?subject=Hoop Heroes ${location.name} inquiry`} className="font-black hover:underline break-all block text-base">{PUBLIC_EMAIL}</a>
                   </div>
                 </li>
                 <li className="flex items-start gap-4">
                   <div className="bg-brand-dark p-3 rounded-xl text-white shrink-0"><Smartphone size={22} /></div>
                   <div>
                     <span className="text-[10px] font-black uppercase block mb-1 opacity-60 tracking-widest">SMS / WhatsApp</span>
-                    <a href="https://wa.me/447700140500" className="font-black hover:underline block tracking-wide text-base">+44 7700 140500</a>
+                    <a href={PUBLIC_PHONE_TEL} className="font-black hover:underline block tracking-wide text-base">{PUBLIC_PHONE_DISPLAY}</a>
                   </div>
                 </li>
               </ul>
               
-              {/* Map iframe removed for Holmer Green due to multiple/varying venues */}
-              {location.id !== 'loc_holmer' && (
-                <div className="mt-10 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner flex flex-col">
+              <div className="mt-10 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner flex flex-col">
                   <div className="h-48">
                     <iframe 
                       width="100%" 
@@ -616,8 +612,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                       Get Directions in Google Maps
                     </a>
                   )}
-                </div>
-              )}
+              </div>
               
               {location.locationNotes && (
                 <div className="mt-6 bg-white p-5 rounded-2xl border-2 border-brand-dark shadow-sm flex items-start gap-3">
