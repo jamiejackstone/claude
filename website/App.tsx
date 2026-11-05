@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, useParams, Navigate, Link as RouterLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, useParams, Navigate, Link as RouterLink } from 'react-router-dom';
 import { captureLandingClickIds, pathWithTrackedParams, TRACKED_PARAMS } from './lib/clickTracking';
+import { publishTrackedParams } from './lib/trackedHref';
 import { trackPageView } from './lib/metaPixel';
 import { LOCATIONS } from './constants';
 import { Navbar } from './components/Navbar';
@@ -133,6 +134,7 @@ const ClickIdPreserver: React.FC = () => {
 
   useEffect(() => {
     const stored = captureLandingClickIds(location.search);
+    publishTrackedParams(stored);
     const current = new URLSearchParams(location.search);
     let changed = false;
     for (const key of TRACKED_PARAMS) {
@@ -202,9 +204,8 @@ const LocationsPluralRedirect: React.FC = () => {
   return <NotFound />;
 };
 
-const App: React.FC = () => {
+export function AppShell() {
   return (
-    <Router>
       <div className="flex flex-col min-h-screen">
         <ScrollToTop />
         <HashToPathRedirect />
@@ -262,8 +263,13 @@ const App: React.FC = () => {
         <Footer />
         <CookieConsent />
       </div>
-    </Router>
   );
-};
+}
+
+const App: React.FC = () => (
+  <BrowserRouter>
+    <AppShell />
+  </BrowserRouter>
+);
 
 export default App;

@@ -3,8 +3,12 @@ import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
 import { trackWaitlistLead } from '../lib/metaPixel';
-import { directionsUrl, getActiveTemporaryVenues, getBookingWidgetUrl, mapEmbedSrc, temporaryVenueAnchorId, temporaryVenueHeading, temporaryVenueUsualAside } from '../lib/venueNotice';
+import { getBookingWidgetUrl } from '../lib/venueNotice';
+import { requestLondonNow, useRequestLondonDate } from '../lib/requestDate';
+import { useTrackedHref } from '../lib/trackedHref';
 import { ClassSessionList } from '../components/ClassSessionList';
+import { DateWindowOutlet, LocationTicker } from '../components/DateWindows';
+import { DeferredEmbed } from '../components/DeferredEmbed';
 import { upsertJsonLd } from '../lib/jsonLdDom';
 import {
   LOCATION_SCHEMA_ID,
@@ -18,112 +22,77 @@ import {
   locationDocumentTitle,
   locationTownName,
 } from '../lib/locationSchema';
-import { LocationData, TemporaryVenue } from '../types';
-import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { LocationData } from '../types';
+import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, ShoppingCart } from 'lucide-react';
+
+export { TemporaryVenueCard } from '../components/DateWindows';
 
 interface LocationMicrositeProps {
   forcedId?: string;
 }
 
-function LocationTicker({ text, href }: { text: string; href?: string }) {
-  const ticker = (
-    <div className="bg-brand-orange border-4 border-brand-dark rounded-2xl shadow-sticker overflow-hidden flex items-stretch h-14 motion-reduce:h-auto relative z-30">
-      <div className="bg-brand-dark text-white px-4 flex items-center gap-2 shrink-0 border-r-2 border-brand-dark relative z-10">
-        <AlertTriangle size={20} className="text-brand-orange animate-pulse motion-reduce:animate-none" />
-        <span className="font-display uppercase tracking-wider text-sm">UPDATE</span>
-      </div>
-      <div className="flex-1 overflow-hidden relative motion-reduce:overflow-visible flex items-center">
-        <div className="whitespace-nowrap animate-[marquee_12s_linear_infinite] motion-reduce:animate-none motion-reduce:whitespace-normal flex items-center h-full motion-reduce:py-3">
-          <span className="text-brand-dark font-black uppercase text-sm px-4">
-            {text}
-            <span className="motion-reduce:hidden">
-              {' '}&bull;{' '}{text}{' '}&bull;{' '}{text}{' '}&bull;{' '}{text}
-            </span>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+function nextClassDate(loc: LocationData, today: Date): string | null {
+  if (loc.startDate) return loc.startDate;
+  if (!loc.classes || loc.classes.length === 0) return null;
 
-  if (!href) return ticker;
-  return (
-    <a href={href} className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark">
-      {ticker}
-    </a>
-  );
+  const dayMap: Record<string, number> = {
+    'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
+  };
+
+  const currentDay = today.getDay();
+  const classDays = Array.from(new Set(loc.classes.map(c => c.day)));
+
+  let minDiff = 8;
+  let targetDate: Date | null = null;
+
+  classDays.forEach(dayStr => {
+    const targetDay = dayMap[dayStr];
+    if (targetDay === undefined) return;
+
+    let diff = targetDay - currentDay;
+    if (diff < 0) diff += 7;
+
+    if (diff < minDiff) {
+      minDiff = diff;
+      const d = new Date(today);
+      d.setDate(today.getDate() + diff);
+      targetDate = d;
+    }
+  });
+
+  if (!targetDate) return null;
+
+  const d: Date = targetDate;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
-export function TemporaryVenueCard({ venue, anchorId }: { venue: TemporaryVenue; anchorId: string }) {
-  const embedSrc = mapEmbedSrc(venue.mapQuery);
-  const mapsUrl = directionsUrl(venue.mapQuery);
-  const parking = venue.parking?.trim();
-  const entry = venue.entry?.trim();
+function BookingCalendar({ location }: { location: LocationData }) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    const bookingWidgetUrl = getBookingWidgetUrl(location, requestLondonNow());
+    if (!bookingWidgetUrl) {
+      setSrc(null);
+      return;
+    }
+    const separator = bookingWidgetUrl.includes('?') ? '&' : '?';
+    let finalUrl = `${bookingWidgetUrl}${separator}view=agenda&mode=upcoming`;
+    const autoDate = nextClassDate(location, new Date());
+    if (autoDate) finalUrl += `&start_date=${autoDate}`;
+    setSrc(withTrackedParams(finalUrl));
+  }, [location]);
 
   return (
-    <section id={anchorId} className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark p-6 md:p-8 scroll-mt-32">
-      <p className="text-sm font-black tracking-wide text-brand-orange mb-3">{temporaryVenueHeading(venue.sessionDates)}</p>
-      <h2 className="font-display text-3xl md:text-4xl uppercase text-brand-dark leading-none mb-4">{venue.venueName}</h2>
-      {venue.timesNote.trim() && (
-        <p className="text-sm font-black uppercase tracking-wide text-brand-orange">{venue.timesNote}</p>
+    <div className="w-full bg-white flex-grow">
+      {src ? (
+        <iframe src={src} title="Hoop Heroes Booking Calendar" className="w-full h-[950px]" style={{ border: 0 }} loading="lazy" />
+      ) : (
+        <div className="w-full h-[950px]" data-hh-embed="Hoop Heroes Booking Calendar" />
       )}
-      <ul className="mt-3 space-y-1">
-        {venue.times.map((slot) => {
-          const usualAside = temporaryVenueUsualAside(slot.time, slot.usualTime);
-          return (
-            <li key={`${slot.label}-${slot.time}`} className="font-bold text-brand-dark">
-              {slot.label} {slot.time}
-              {usualAside && <span className="font-medium text-slate-600"> {usualAside}</span>}
-            </li>
-          );
-        })}
-      </ul>
-      <p className="mt-4 font-bold text-brand-dark leading-snug">{venue.address}</p>
-      {embedSrc && (
-        <div className="mt-5 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner">
-          <div className="h-48">
-            <iframe
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              title={`${venue.venueName} map`}
-              src={embedSrc}
-              loading="lazy"
-            ></iframe>
-          </div>
-        </div>
-      )}
-      {mapsUrl && (
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 mt-3 text-sm font-black uppercase underline"
-        >
-          Get directions <ExternalLink size={14} />
-        </a>
-      )}
-      {parking && (
-        <p className="mt-4 text-sm font-bold text-brand-dark leading-snug">
-          <span className="block text-[10px] font-black uppercase tracking-widest">Parking</span>
-          {parking}
-        </p>
-      )}
-      {entry && (
-        <p className="mt-3 text-sm font-bold text-brand-dark leading-snug">
-          <span className="block text-[10px] font-black uppercase tracking-widest">How to get in</span>
-          {entry}
-        </p>
-      )}
-      {venue.siteMapImage?.src && (
-        <img
-          src={venue.siteMapImage.src}
-          alt={venue.siteMapImage.alt}
-          className="mt-4 w-full rounded-2xl border-2 border-brand-dark"
-          loading="lazy"
-        />
-      )}
-      <p className="mt-4 font-bold text-brand-dark leading-snug">{venue.returnNote}</p>
-    </section>
+    </div>
   );
 }
 
@@ -143,7 +112,9 @@ function upsertMeta(property: string, content: string | null) {
 export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }) => {
   const { id: paramId } = useParams<{ id: string }>();
   const id = forcedId || paramId;
-  const [location, setLocation] = useState<LocationData | null>(null);
+  const location = LOCATIONS.find(l => l.id === id || l.slug === id) ?? null;
+  const londonDay = useRequestLondonDate();
+  const memberHref = useTrackedHref('https://goteamup.com/p/6822945-hoop-heroes/');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isWaitlistSubmitted, setIsWaitlistSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,15 +129,12 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     source_location: ''
   });
 
-  const MEMBER_PORTAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/";
   const FREE_TRIAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/";
   const HERO_VIDEO_URL = "https://storage.googleapis.com/msgsndr/9p0wEiLpTaIe1FDTFFQI/media/697370fc10cc2782a54f64d8.mp4";
 
   useEffect(() => {
-    // Resolve the location from either canonical ID (e.g. loc_marlow) or slug
-    const localFound = LOCATIONS.find(l => l.id === id || l.slug === id);
+    const localFound = location;
     if (localFound) {
-      setLocation(localFound);
       setWaitlistData(prev => ({ ...prev, source_location: localFound.name }));
 
       // SEO: keep the worker title. Do not rewrite it to "[Town] Basketball Classes".
@@ -188,7 +156,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     }
 
     window.scrollTo(0, 0);
-  }, [id]);
+  }, [location]);
 
   useEffect(() => {
     // Load Review Widget Script with delay
@@ -272,62 +240,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     return <div className="flex items-center justify-center h-screen bg-brand-dark text-white font-display text-2xl uppercase">Loading Location...</div>;
   }
 
-  const now = new Date();
-  const temporaryVenues = getActiveTemporaryVenues(location, now);
-  const bookingWidgetUrl = getBookingWidgetUrl(location, now);
-
-  // Calculate the next occurrence of a class day
-  const getNextClassDate = (loc: LocationData): string | null => {
-    if (loc.startDate) return loc.startDate;
-    if (!loc.classes || loc.classes.length === 0) return null;
-    
-    const dayMap: Record<string, number> = {
-      'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
-    };
-    
-    const today = new Date();
-    const currentDay = today.getDay();
-    const classDays = Array.from(new Set(loc.classes.map(c => c.day)));
-    
-    let minDiff = 8;
-    let targetDate: Date | null = null;
-    
-    classDays.forEach(dayStr => {
-      const targetDay = dayMap[dayStr];
-      if (targetDay === undefined) return;
-      
-      let diff = targetDay - currentDay;
-      if (diff < 0) diff += 7;
-      
-      if (diff < minDiff) {
-        minDiff = diff;
-        const d = new Date(today);
-        d.setDate(today.getDate() + diff);
-        targetDate = d;
-      }
-    });
-    
-    if (!targetDate) return null;
-    
-    const d: Date = targetDate;
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  // Updated TeamUp widget optimization per prompt
-  const getWidgetUrl = (url: string) => {
-    const separator = url.includes('?') ? '&' : '?';
-    let finalUrl = `${url}${separator}view=agenda&mode=upcoming`;
-    
-    const autoDate = getNextClassDate(location!);
-    if (autoDate) {
-      finalUrl += `&start_date=${autoDate}`;
-    }
-    
-    return withTrackedParams(finalUrl);
-  };
+  const mapSrc = `https://maps.google.com/maps?q=${encodeURIComponent(location.mapQueryOverride || `Hoop Heroes ${location.name}`)}&t=&z=18&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <div className="bg-white min-h-screen font-sans text-brand-dark selection:bg-brand-orange selection:text-brand-dark pb-20 md:pb-0">
@@ -410,6 +323,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                 <div className="relative rounded-[2.5rem] overflow-hidden border-8 border-white shadow-2xl transition-all duration-500 bg-black aspect-video group transform rotate-2 hover:rotate-0">
                     <video 
                         ref={videoRef}
+                        suppressHydrationWarning
                         className="w-full h-full absolute inset-0 object-cover"
                         src={HERO_VIDEO_URL}
                         autoPlay
@@ -439,12 +353,8 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
         <div className="lg:col-span-8 space-y-6">
           
           {location.newsTicker && <LocationTicker text={location.newsTicker} />}
-          {temporaryVenues.map((venue, index) => (
-            <LocationTicker key={`${venue.venueName}-ticker`} text={venue.tickerText} href={`#${temporaryVenueAnchorId(index)}`} />
-          ))}
-          {temporaryVenues.map((venue, index) => (
-            <TemporaryVenueCard key={venue.venueName} venue={venue} anchorId={temporaryVenueAnchorId(index)} />
-          ))}
+          <DateWindowOutlet slot="banner-notices" location={location} londonDay={londonDay} />
+          <DateWindowOutlet slot="temporary-venues" location={location} londonDay={londonDay} />
 
           {location.comingSoon ? (
             <div id="waitlist" className="bg-white rounded-[2.5rem] shadow-sticker border-4 border-brand-dark overflow-hidden scroll-mt-32">
@@ -497,6 +407,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Live Availability
                   </div>
                 </div>
+                <DateWindowOutlet slot="schedule-notices" location={location} londonDay={londonDay} />
                 <div className="space-y-1">
                   <p className="text-slate-600 font-medium">Browse next available sessions below and book your free trial.</p>
                   {location.scheduleNotice ? (
@@ -513,11 +424,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                   <ClassSessionList sessions={location.classes} />
                 )}
               </div>
-              {bookingWidgetUrl && (
-                <div className="w-full bg-white flex-grow">
-                  <iframe src={getWidgetUrl(bookingWidgetUrl)} title="Hoop Heroes Booking Calendar" className="w-full h-[950px]" style={{ border: 0 }} loading="lazy"></iframe>
-                </div>
-              )}
+              {location.bookingWidgetUrl && <BookingCalendar location={location} />}
             </div>
           )}
         </div>
@@ -593,14 +500,15 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
               
               <div className="mt-10 rounded-2xl overflow-hidden border-2 border-brand-dark bg-white shadow-inner flex flex-col">
                   <div className="h-48">
-                    <iframe 
-                      width="100%" 
-                      height="100%" 
-                      style={{ border: 0 }} 
-                      title="Location Map" 
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(location.mapQueryOverride || `Hoop Heroes ${location.name}`)}&t=&z=18&ie=UTF8&iwloc=&output=embed`} 
+                    <DeferredEmbed
+                      width="100%"
+                      height="100%"
+                      className="w-full h-full"
+                      style={{ border: 0 }}
+                      title="Location Map"
+                      src={mapSrc}
                       loading="lazy"
-                    ></iframe>
+                    />
                   </div>
                   {location.googleMapsUrl && (
                     <a 
@@ -629,7 +537,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
             {!location.comingSoon && (
               <div className="bg-brand-dark rounded-[2.5rem] p-8 md:p-10 border-4 border-brand-dark shadow-sticker text-white text-center">
                 <h3 className="font-display text-2xl uppercase mb-5">Existing Member?</h3>
-                <a href={withTrackedParams(MEMBER_PORTAL_URL)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white text-brand-dark px-8 py-3 rounded-full font-display uppercase hover:bg-brand-orange transition-colors w-full justify-center mb-8 shadow-md">
+                <a href={memberHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white text-brand-dark px-8 py-3 rounded-full font-display uppercase hover:bg-brand-orange transition-colors w-full justify-center mb-8 shadow-md">
                     Member Login <ExternalLink size={16} />
                 </a>
 

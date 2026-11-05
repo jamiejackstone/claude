@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, Check, X } from 'lucide-react';
 import {
@@ -20,7 +20,11 @@ function bannerShouldShow(): boolean {
 }
 
 export const CookieConsent: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(() => bannerShouldShow());
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(bannerShouldShow());
+  }, []);
 
   const handleAccept = () => {
     localStorage.setItem(CONSENT_STORAGE_KEY, 'accepted');
