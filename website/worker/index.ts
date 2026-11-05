@@ -11,6 +11,8 @@ import {
   mergeIncomingSearch,
 } from '../lib/clickTracking';
 import { apexWwwRedirectTarget, isLlmsTxtRequest } from '../lib/edgeSeo';
+import { injectServedHtml } from '../lib/dateWindowInject';
+import { SPA_SHELL_PATH, isPrerenderPath, prerenderAssetPath, prerenderMarker } from '../lib/prerenderRoutes';
 import {
   HOME_DOCUMENT_TITLE,
   LOCATION_SCHEMA_ID,
@@ -667,6 +669,32 @@ function schemaForPath(path: string): string {
   return jsonLdScriptTag(LOCATION_SCHEMA_ID, buildLocationJsonLd(location));
 }
 
+function assetRequest(request: Request, pathname: string): Request {
+  const url = new URL(request.url);
+  url.pathname = pathname;
+  url.search = '';
+  return new Request(url.toString(), { method: 'GET' });
+}
+
+async function readAsset(env: Env, request: Request, pathname: string): Promise<{ ok: boolean; html: string; headers: Headers }> {
+  const response = await env.ASSETS.fetch(assetRequest(request, pathname));
+  return { ok: response.ok, html: await response.text(), headers: response.headers };
+}
+
+function htmlResponse(html: string, status: number, sourceHeaders: Headers, extra?: Record<string, string>): Response {
+  const headers = new Headers(sourceHeaders);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  headers.delete('etag');
+  headers.set('content-type', 'text/html; charset=utf-8');
+  // Date-window copy is filled per request, so this document must not be cached for long.
+  headers.set('Cache-Control', 'public, max-age=60, must-revalidate');
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) headers.set(key, value);
+  }
+  return new Response(html, { status, headers });
+}
+
 function headExtras(path: string, meta: { title: string; description: string }): string {
   const schema = schemaForPath(path);
   if (path !== '/location/sandhurst') return schema;
@@ -753,25 +781,60 @@ export default {
         });
       }
 
+      // The empty SPA shell is fetched by the worker. It is not a public page.
+      if (path === SPA_SHELL_PATH) {
+        return new Response('Not found\n', {
+          status: 404,
+          headers: {
+            'content-type': 'text/plain; charset=utf-8',
+            'X-Robots-Tag': 'noindex',
+          },
+        });
+      }
+
       // Real files (JS/CSS/images, robots.txt, sitemap.xml) go straight to assets
       if (path.includes('.') || path.startsWith('/assets/')) {
         return env.ASSETS.fetch(request);
       }
 
       const meta = pageMetaFor(path);
-      const assetResponse = await env.ASSETS.fetch(request);
+      const now = new Date();
+      let html = '';
+      let sourceHeaders = new Headers();
+
+      if (isPrerenderPath(path)) {
+        const prerendered = await readAsset(env, request, prerenderAssetPath(path));
+        if (prerendered.ok && prerendered.html.includes(prerenderMarker(path))) {
+          html = prerendered.html;
+          sourceHeaders = prerendered.headers;
+        }
+      }
+
+      if (!html) {
+        const shell = await readAsset(env, request, SPA_SHELL_PATH);
+        if (shell.ok && shell.html.includes('hh-spa-shell')) {
+          html = shell.html;
+          sourceHeaders = shell.headers;
+        } else {
+          const fallback = await env.ASSETS.fetch(request);
+          html = await fallback.text();
+          sourceHeaders = fallback.headers;
+        }
+      }
+
+      const location = path.startsWith('/location/')
+        ? LOCATIONS.find((item) => item.slug === (path.split('/')[2] || ''))
+        : undefined;
+      html = injectServedHtml(html, { location, now });
 
       if (meta) {
-        // Known page: inject its unique title, description and canonical URL
-        return injectMeta(assetResponse, meta, path === '/' ? '/' : path);
+        // Known page: inject its unique title, description, canonical and schema.
+        return injectMeta(htmlResponse(html, 200, sourceHeaders), meta, path === '/' ? '/' : path);
       }
 
       // Unknown page: serve the SPA shell (which renders the 404 page) with a
       // real 404 status so search engines drop the URL
-      const headers = new Headers(assetResponse.headers);
-      headers.set('X-Robots-Tag', 'noindex');
-      const notFound = new Response(assetResponse.body, { status: 404, headers });
-      return injectMeta(notFound, {
+      return injectMeta(htmlResponse(html, 404, sourceHeaders, { 'X-Robots-Tag': 'noindex' }), {
         title: 'Page Not Found | Hoop Heroes',
         description: 'This page does not exist. Find your nearest Hoop Heroes youth basketball class on our homepage.',
       }, null);

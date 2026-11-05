@@ -6,6 +6,10 @@ import { DayOfWeek } from '../types.ts';
 import {
   activeTemporaryVenues,
   directionsUrl,
+  bakedDateWindowPhrases,
+  dateOnLondonDay,
+  getActiveBannerNotices,
+  getActiveScheduleNotices,
   getActiveTemporaryVenues,
   getBookingWidgetUrl,
   isWithinLondonWindow,
@@ -322,6 +326,39 @@ assertEqual(
   getBookingWidgetUrl(holmer, new Date('2026-11-25T12:00:00Z')),
   holmerBaseWidgetUrl,
   '25 Nov uses the original base widget url',
+);
+
+const scheduleNotice = {
+  text: 'No session on Sunday 20 December. The make-up is the Sunday after.',
+  showFrom: '2026-12-01',
+  showUntil: '2026-12-20',
+  placement: 'schedule' as const,
+};
+const bannerNotice = {
+  text: 'Use the side gate while the notice is up.',
+  showFrom: '2026-12-01',
+  showUntil: '2026-12-20',
+};
+const noticed = { notices: [scheduleNotice, bannerNotice] };
+assertEqual(
+  getActiveScheduleNotices(noticed, dateOnLondonDay('2026-12-20')).map((notice) => notice.text),
+  [scheduleNotice.text],
+  'schedule placement is included on showUntil',
+);
+assertEqual(
+  getActiveBannerNotices(noticed, dateOnLondonDay('2026-12-01')).map((notice) => notice.text),
+  [bannerNotice.text],
+  'a notice without placement uses the banner',
+);
+assertEqual(getActiveScheduleNotices(noticed, dateOnLondonDay('2026-11-30')), [], 'schedule notice is hidden before showFrom');
+assertEqual(getActiveBannerNotices({}), [], 'locations without notices have none');
+assert(
+  bakedDateWindowPhrases(aylesbury).includes(floyd.tickerText),
+  'Aylesbury ticker is treated as date-window copy',
+);
+assert(
+  !bakedDateWindowPhrases(holmer).includes('Sir William Ramsay School'),
+  'the permanent backup-venue name is not flagged as baked date-window copy',
 );
 
 console.log('venueNotice tests passed');
