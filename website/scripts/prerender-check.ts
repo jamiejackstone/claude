@@ -8,6 +8,8 @@ import { HOME_DOCUMENT_TITLE, locationDocumentTitle, locationH1Text } from '../l
 import { isPrerenderPath, LOCATION_SLUGS, SITEMAP_PATHS, prerenderMarker } from '../lib/prerenderRoutes';
 import { bakedDateWindowPhrases, isWithinLondonWindow, londonDate } from '../lib/venueNotice';
 
+const APPROVED_REVIEW_BADGE = 'Rated 4.9★ on Google · 110+ reviews';
+
 const websiteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(websiteRoot, 'dist');
 
@@ -209,10 +211,20 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
         if (!location) throw new Error(`missing location ${route}`);
         assert((await page.title()) === locationDocumentTitle(location), `${route} title was "${await page.title()}"`);
         assert(!liveDescription.includes('Join the best youth basketball classes'), `${route} rewrote the meta description`);
-        assert((await page.getByText('5.0 RATING', { exact: true }).count()) === 0, `${route} still shows 5.0 RATING`);
-        assert((await page.getByText('80+ REVIEWS', { exact: true }).count()) === 0, `${route} still shows 80+ REVIEWS`);
+        const visibleText = await page.locator('body').innerText();
+        assert(!visibleText.includes('5.0 RATING'), `${route} still shows 5.0 RATING`);
+        assert(!visibleText.includes('80+ REVIEWS'), `${route} still shows 80+ REVIEWS`);
+        assert(!visibleText.includes('Join the best youth basketball classes'), `${route} still shows the old meta description`);
         if (!location.comingSoon) {
-          await page.getByRole('button', { name: 'Book Free Taster' }).waitFor({ state: 'visible', timeout: 5000 });
+          const bookButton = page.getByRole('button', { name: 'Book Free Taster' });
+          await bookButton.waitFor({ state: 'visible', timeout: 5000 });
+          const heroText = await bookButton.locator('xpath=..').innerText();
+          assert(heroText.includes(APPROVED_REVIEW_BADGE), `${route} hero is missing the approved review badge: ${heroText}`);
+          assert(!heroText.includes('5.0'), `${route} hero still shows 5.0: ${heroText}`);
+          assert(!heroText.includes('80+'), `${route} hero still shows 80+: ${heroText}`);
+          assert((await page.getByText(APPROVED_REVIEW_BADGE, { exact: true }).count()) >= 1, `${route} badge text did not match`);
+        } else {
+          assert(!visibleText.includes(APPROVED_REVIEW_BADGE), `${route} shows the review badge while coming soon`);
         }
         if (slug === 'marlow') {
           assert(liveDescription.includes('Youth basketball classes for ages 5-15 in Marlow'), `marlow description was "${liveDescription}"`);
@@ -224,6 +236,11 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
         }
       } else if (route === '/') {
         assert((await page.title()) === HOME_DOCUMENT_TITLE, `home title was "${await page.title()}"`);
+        const homeText = await page.locator('body').innerText();
+        assert(!homeText.includes('5.0 RATING'), 'home still shows 5.0 RATING');
+        assert(!homeText.includes('80+ REVIEWS'), 'home still shows 80+ REVIEWS');
+        assert(!homeText.includes('5.0'), 'home still shows 5.0');
+        assert(!homeText.includes('80+'), 'home still shows 80+');
       }
 
       await page.close();
