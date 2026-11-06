@@ -16,8 +16,6 @@ import {
   PUBLIC_EMAIL,
   PUBLIC_PHONE_DISPLAY,
   PUBLIC_PHONE_TEL,
-  SANDHURST_META_DESCRIPTION,
-  SANDHURST_PAGE_TITLE,
   buildLocationJsonLd,
   locationDocumentTitle,
   locationTownName,
@@ -26,6 +24,9 @@ import { LocationData } from '../types';
 import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, ShoppingCart } from 'lucide-react';
 
 export { TemporaryVenueCard } from '../components/DateWindows';
+
+// Off until Marketing confirms the public review count. Do not invent replacement copy.
+const SHOW_LOCATION_REVIEW_BADGE = false;
 
 interface LocationMicrositeProps {
   forcedId?: string;
@@ -96,19 +97,6 @@ function BookingCalendar({ location }: { location: LocationData }) {
   );
 }
 
-function upsertMeta(property: string, content: string | null) {
-  const selector = `meta[property="${property}"]`;
-  const existing = document.querySelector(selector);
-  if (!content) {
-    existing?.remove();
-    return;
-  }
-  const el = existing ?? document.createElement('meta');
-  el.setAttribute('property', property);
-  el.setAttribute('content', content);
-  if (!existing) document.head.appendChild(el);
-}
-
 export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }) => {
   const { id: paramId } = useParams<{ id: string }>();
   const id = forcedId || paramId;
@@ -137,20 +125,9 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     if (localFound) {
       setWaitlistData(prev => ({ ...prev, source_location: localFound.name }));
 
-      // SEO: keep the worker title. Do not rewrite it to "[Town] Basketball Classes".
-      const isSandhurst = localFound.slug === 'sandhurst';
+      // SEO: keep the worker title (kids-classes form) and the worker head tags.
+      // Do not rewrite meta description or og:title / og:description after hydrate.
       document.title = locationDocumentTitle(localFound);
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute(
-          'content',
-          isSandhurst
-            ? SANDHURST_META_DESCRIPTION
-            : `Join the best youth basketball classes in ${localFound.name}. Book your free taster session today at Hoop Heroes ${localFound.name}.`,
-        );
-      }
-      upsertMeta('og:title', isSandhurst ? SANDHURST_PAGE_TITLE : null);
-      upsertMeta('og:description', isSandhurst ? SANDHURST_META_DESCRIPTION : null);
       upsertJsonLd(LOCATION_SCHEMA_ID, buildLocationJsonLd(localFound));
       upsertJsonLd(ORG_SCHEMA_ID, null);
     }
@@ -298,7 +275,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                   {location.comingSoon ? "Join Waitlist" : "Book Free Taster"}
                 </button>
                 
-                {!location.comingSoon && (
+                {SHOW_LOCATION_REVIEW_BADGE && !location.comingSoon && (
                   <div className="bg-white border-2 border-brand-dark px-6 py-3 rounded-2xl shadow-sticker flex items-center gap-4 animate-fade-in">
                     <div className="flex items-center gap-2">
                       <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" width="20" height="20" className="w-5 h-5 shrink-0" />
