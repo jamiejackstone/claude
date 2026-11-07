@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { LOCATIONS } from '../constants';
 import { getClickIdsForLead, withTrackedParams } from '../lib/clickTracking';
 import { trackWaitlistLead } from '../lib/metaPixel';
+import { trackBookTrialClick } from '../lib/trackBookTrial';
 import { getBookingWidgetUrl } from '../lib/venueNotice';
 import { requestLondonNow, useRequestLondonDate } from '../lib/requestDate';
 import { useTrackedHref } from '../lib/trackedHref';
@@ -117,7 +118,6 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     source_location: ''
   });
 
-  const FREE_TRIAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/";
   const HERO_VIDEO_URL = "https://storage.googleapis.com/msgsndr/9p0wEiLpTaIe1FDTFFQI/media/697370fc10cc2782a54f64d8.mp4";
 
   useEffect(() => {
@@ -152,12 +152,18 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     return () => clearTimeout(timer);
   }, []);
 
-  const handleBookClick = () => {
+  const handleBookClick = (buttonPosition: string) => {
     if (location?.comingSoon) {
       document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    window.open(withTrackedParams(FREE_TRIAL_URL), '_blank');
+    const linkUrl = withTrackedParams('https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/');
+    trackBookTrialClick({
+      location_slug: location?.slug || 'none',
+      button_position: buttonPosition,
+      link_url: linkUrl,
+    });
+    window.open(linkUrl, '_blank');
   };
 
   const toggleMute = () => {
@@ -225,7 +231,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
       {/* Sticky Mobile CTA */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white p-4 border-t-2 border-slate-100 z-40 flex flex-col items-center shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
         <button 
-          onClick={handleBookClick}
+          onClick={() => handleBookClick('sticky')}
           className={`w-full py-4 rounded-xl font-display uppercase text-xl tracking-wide shadow-lg ${location.comingSoon ? 'bg-blue-600 text-white' : 'bg-brand-dark text-white'}`}
         >
           {location.comingSoon ? "Join Waitlist" : "Book Free Taster"}
@@ -269,7 +275,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
               
               <div className="flex flex-col md:flex-row gap-6 mt-4 items-start md:items-center order-3">
                 <button 
-                  onClick={handleBookClick}
+                  onClick={() => handleBookClick('hero')}
                   className={`px-8 py-4 rounded-full font-display uppercase text-xl tracking-wide transition-all shadow-sticker border-2 border-transparent flex items-center justify-center gap-2 shrink-0 ${location.comingSoon ? 'bg-blue-600 hover:bg-blue-500 text-white hover:border-white' : 'bg-white hover:bg-slate-100 text-brand-dark hover:border-brand-dark'}`}
                 >
                   {location.comingSoon ? "Join Waitlist" : "Book Free Taster"}
