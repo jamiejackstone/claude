@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Clock, Users, ArrowRight, Trophy, Activity, Heart, ShieldCheck } from 'lucide-react';
-import { withTrackedParams } from '../lib/clickTracking';
+import { useTrackedHref } from '../lib/trackedHref';
+import { DeferredEmbed } from '../components/DeferredEmbed';
 
 export const Gameday: React.FC = () => {
   const settings = ({
@@ -17,7 +18,7 @@ export const Gameday: React.FC = () => {
     registrationOpen: false
   });
 
-  const REGISTRATION_URL = withTrackedParams(settings.registrationUrl);
+  const REGISTRATION_URL = useTrackedHref(settings.registrationUrl);
 
   const faqs = [
     {
@@ -198,14 +199,15 @@ export const Gameday: React.FC = () => {
                                   <p className="text-xl font-bold text-brand-dark mb-1">{settings.location}</p>
                                   <p className="text-slate-600 font-medium leading-snug mb-3">{settings.address}</p>
                                   <div className="rounded-xl overflow-hidden border-2 border-brand-dark h-32 w-full">
-                                      <iframe 
-                                          width="100%" 
-                                          height="100%" 
-                                          style={{ border: 0 }} 
-                                          title={`${settings.location} Map`} 
-                                          src={`https://maps.google.com/maps?q=${encodeURIComponent(`${settings.location}, ${settings.address}`)}&t=&z=14&ie=UTF8&iwloc=&output=embed`} 
+                                      <DeferredEmbed
+                                          width="100%"
+                                          height="100%"
+                                          className="w-full h-full"
+                                          style={{ border: 0 }}
+                                          title={`${settings.location} Map`}
+                                          src={`https://maps.google.com/maps?q=${encodeURIComponent(`${settings.location}, ${settings.address}`)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
                                           loading="lazy"
-                                      ></iframe>
+                                      />
                                   </div>
                               </div>
                           </div>

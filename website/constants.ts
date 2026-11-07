@@ -427,6 +427,22 @@ export const LOCATIONS: LocationData[] = [
     comingSoon: false,
     displayDays: 'Sundays',
     scheduleNotice: 'Classes run every Sunday during term time. Please check the booking calendar below for up to date information.',
+    // Hall closure: 2-15 Nov 2026 inclusive, Europe/London. Hidden from 16 Nov 2026.
+    // Make-up: 2 Nov-20 Dec 2026 inclusive, Europe/London. Hidden from 21 Dec 2026.
+    notices: [
+      {
+        text: "Sunday 15 November: no sessions (the sports hall isn't available). We're back as normal on Sunday 22 November.",
+        showFrom: '2026-11-02',
+        showUntil: '2026-11-15',
+        placement: 'schedule',
+      },
+      {
+        text: 'Make-up session: Sunday 20 December, Rookies 15:00-15:30 and Rising Stars 15:30-16:15, same venue.',
+        showFrom: '2026-11-02',
+        showUntil: '2026-12-20',
+        placement: 'schedule',
+      },
+    ],
     ghlTag: "Sandhurst Earlybird"
   }
 ];

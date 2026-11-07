@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Trophy, Users, ArrowRight, Star, ShieldCheck, Heart, Clock, Award, Calendar, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { LOCATIONS } from '../constants';
-import { withTrackedParams } from '../lib/clickTracking';
+import { DeferredEmbed } from '../components/DeferredEmbed';
 import { trackBookTrialClick } from '../lib/trackBookTrial';
+import { useTrackedHref } from '../lib/trackedHref';
 import { upsertJsonLd } from '../lib/jsonLdDom';
 import {
   buildOrganizationJsonLd,
@@ -18,14 +19,13 @@ export const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(LOCATIONS);
 
-  const FREE_TRIAL_URL = "https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/";
-  const freeTrialUrl = withTrackedParams(FREE_TRIAL_URL);
+  const freeTrialHref = useTrackedHref('https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/');
 
   const trackTrial = (buttonPosition: string) => {
     trackBookTrialClick({
       location_slug: 'none',
       button_position: buttonPosition,
-      link_url: freeTrialUrl,
+      link_url: freeTrialHref,
     });
   };
 
@@ -119,7 +119,7 @@ export const Home: React.FC = () => {
                     FIND A CLASS <Search size={24} strokeWidth={3} />
                 </a>
                 <a 
-                  href={freeTrialUrl}
+                  href={freeTrialHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackTrial('hero')}
@@ -250,11 +250,11 @@ export const Home: React.FC = () => {
                 </div>
                 
                 <div className="relative">
-                    <iframe 
-                        className="lc_reviews_widget" 
-                        src="https://reputationhub.site/reputation/widgets/review_widget/9p0wEiLpTaIe1FDTFFQI?widgetId=6925621ff44c6d6cf010b9e2" 
-                        frameBorder="0" 
-                        scrolling="no" 
+                    <DeferredEmbed
+                        className="lc_reviews_widget"
+                        src="https://reputationhub.site/reputation/widgets/review_widget/9p0wEiLpTaIe1FDTFFQI?widgetId=6925621ff44c6d6cf010b9e2"
+                        frameBorder="0"
+                        scrolling="no"
                         style={{ minWidth: '100%', width: '100%', height: '460px', border: 'none' }}
                         title="Customer Reviews"
                         loading="lazy"
@@ -374,7 +374,7 @@ export const Home: React.FC = () => {
                 We're on a mission to positively impact 10,000 children across the UK every week through basketball by 2030. Every hero on the court helps us reach that goal.
               </p>
               
-              <a href={freeTrialUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackTrial('banner')} className="inline-block bg-brand-dark text-white px-12 py-6 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker hover:shadow-sticker-hover hover:scale-105 transition-all border-4 border-transparent hover:border-white">
+              <a href={freeTrialHref} target="_blank" rel="noopener noreferrer" onClick={() => trackTrial('banner')} className="inline-block bg-brand-dark text-white px-12 py-6 rounded-full font-display text-2xl uppercase tracking-wide shadow-sticker hover:shadow-sticker-hover hover:scale-105 transition-all border-4 border-transparent hover:border-white">
                   TRY YOUR FIRST CLASS FREE
               </a>
           </div>
