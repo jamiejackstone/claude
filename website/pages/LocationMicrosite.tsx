@@ -17,16 +17,17 @@ import {
   PUBLIC_EMAIL,
   PUBLIC_PHONE_DISPLAY,
   PUBLIC_PHONE_TEL,
-  SANDHURST_META_DESCRIPTION,
-  SANDHURST_PAGE_TITLE,
   buildLocationJsonLd,
   locationDocumentTitle,
   locationTownName,
 } from '../lib/locationSchema';
 import { LocationData } from '../types';
-import { MapPin, CheckCircle, Star, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, ShoppingCart } from 'lucide-react';
+import { MapPin, CheckCircle, ArrowRight, Mail, Clock, ExternalLink, Info, Bell, Loader2, Volume2, VolumeX, MessageCircle, Calendar, Smartphone, ShoppingCart } from 'lucide-react';
 
 export { TemporaryVenueCard } from '../components/DateWindows';
+
+// Approved copy from Marketing (Asana 1220251040579696). One line, character for character.
+const LOCATION_REVIEW_BADGE_TEXT = 'Rated 4.9★ on Google · 110+ reviews';
 
 interface LocationMicrositeProps {
   forcedId?: string;
@@ -97,19 +98,6 @@ function BookingCalendar({ location }: { location: LocationData }) {
   );
 }
 
-function upsertMeta(property: string, content: string | null) {
-  const selector = `meta[property="${property}"]`;
-  const existing = document.querySelector(selector);
-  if (!content) {
-    existing?.remove();
-    return;
-  }
-  const el = existing ?? document.createElement('meta');
-  el.setAttribute('property', property);
-  el.setAttribute('content', content);
-  if (!existing) document.head.appendChild(el);
-}
-
 export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }) => {
   const { id: paramId } = useParams<{ id: string }>();
   const id = forcedId || paramId;
@@ -137,20 +125,9 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
     if (localFound) {
       setWaitlistData(prev => ({ ...prev, source_location: localFound.name }));
 
-      // SEO: keep the worker title. Do not rewrite it to "[Town] Basketball Classes".
-      const isSandhurst = localFound.slug === 'sandhurst';
+      // SEO: keep the worker title (kids-classes form) and the worker head tags.
+      // Do not rewrite meta description or og:title / og:description after hydrate.
       document.title = locationDocumentTitle(localFound);
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute(
-          'content',
-          isSandhurst
-            ? SANDHURST_META_DESCRIPTION
-            : `Join the best youth basketball classes in ${localFound.name}. Book your free taster session today at Hoop Heroes ${localFound.name}.`,
-        );
-      }
-      upsertMeta('og:title', isSandhurst ? SANDHURST_PAGE_TITLE : null);
-      upsertMeta('og:description', isSandhurst ? SANDHURST_META_DESCRIPTION : null);
       upsertJsonLd(LOCATION_SCHEMA_ID, buildLocationJsonLd(localFound));
       upsertJsonLd(ORG_SCHEMA_ID, null);
     }
@@ -305,19 +282,10 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
                 </button>
                 
                 {!location.comingSoon && (
-                  <div className="bg-white border-2 border-brand-dark px-6 py-3 rounded-2xl shadow-sticker flex items-center gap-4 animate-fade-in">
-                    <div className="flex items-center gap-2">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" width="20" height="20" className="w-5 h-5 shrink-0" />
-                      <div className="flex -space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} size={20} fill="#fba91a" className="text-brand-orange" />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-col leading-tight border-l-2 border-slate-100 pl-4">
-                      <span className="text-lg font-display text-brand-dark uppercase">5.0 RATING</span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">80+ REVIEWS</span>
-                    </div>
+                  <div className="bg-white border-2 border-brand-dark px-5 py-3 rounded-2xl shadow-sticker shrink-0 animate-fade-in">
+                    <p className="font-sans font-bold text-brand-dark text-sm md:text-base leading-none whitespace-nowrap">
+                      {LOCATION_REVIEW_BADGE_TEXT}
+                    </p>
                   </div>
                 )}
               </div>
