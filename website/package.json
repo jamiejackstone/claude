@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build && NODE_ENV=production tsx scripts/prerender.tsx",
     "lint": "tsc --noEmit",
-    "test": "tsx lib/clickTracking.test.ts && tsx lib/venueNotice.test.ts && tsx lib/metaPixel.test.ts && tsx lib/locationSchema.test.ts && tsx lib/edgeSeo.test.ts && tsx worker/ghlV2.test.ts && tsx lib/dateWindowInject.test.ts && npm run build && tsx scripts/prerender-check.ts",
+    "test": "tsx lib/clickTracking.test.ts && tsx lib/venueNotice.test.ts && tsx lib/metaPixel.test.ts && tsx lib/trackBookTrial.test.ts && tsx lib/locationSchema.test.ts && tsx lib/edgeSeo.test.ts && tsx worker/ghlV2.test.ts && tsx lib/dateWindowInject.test.ts && npm run build && tsx scripts/prerender-check.ts",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },
