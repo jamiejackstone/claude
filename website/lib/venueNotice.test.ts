@@ -241,8 +241,17 @@ assertEqual(ramsay.showFrom, '2026-10-27', 'Holmer Green window starts on 27 Oct
 assertEqual(ramsay.showUntil, '2026-11-24', 'Holmer Green window ends on 24 Nov 2026 inclusive');
 assertEqual(
   ramsay.sessionDates,
-  ['Tuesday 17 November', 'Tuesday 24 November'],
-  'session dates are the two November Tuesdays',
+  ['Tuesday 10 November', 'Tuesday 17 November', 'Tuesday 24 November'],
+  'session dates are the three November Tuesdays',
+);
+assertEqual(
+  temporaryVenueHeading(ramsay.sessionDates),
+  'TEMPORARY VENUE: Tuesday 10 November, Tuesday 17 November, Tuesday 24 November',
+  'heading lists 10, 17 and 24 November',
+);
+assert(
+  isWithinLondonWindow(ramsay.showFrom, ramsay.showUntil, dateOnLondonDay('2026-11-10')),
+  'the Holmer Green window includes 10 Nov 2026',
 );
 assertEqual(ramsay.timesNote, 'Same times as usual', 'times note does not say the sessions start later');
 assertEqual(ramsay.times, [
@@ -268,11 +277,14 @@ assertEqual(temporaryVenueUsualAside('17:00 - 17:30', '17:00-17:30'), null, 'das
 assertEqual(ramsay.returnNote, 'Back at Holmer Green Senior School from Tue 1 Dec', 'return note is set');
 assertEqual(
   ramsay.tickerText,
-  'Temporary venue on Tue 17 and 24 Nov: Sir William Ramsay School - see details',
-  'ticker text is set',
+  'Temporary venue on Tue 10, 17 and 24 Nov: Sir William Ramsay School - see details',
+  'ticker text lists 10, 17 and 24 Nov',
 );
-assertEqual(ramsay.parking, undefined, 'parking is still to come');
-assertEqual(ramsay.entry, undefined, 'entry is still to come');
+const ramsayParking = 'Please use the main vehicle entrance off Rose Avenue. Park in the school car parks or the front layby, not the Community Centre car park.';
+assertEqual(ramsay.parking, ramsayParking, 'parking is the Rose Avenue entrance and school car parks');
+assert(/^[ -~]+$/.test(ramsay.parking ?? ''), 'parking copy is plain ASCII');
+assert(/^[ -~]+$/.test(ramsay.tickerText), 'ticker copy is plain ASCII');
+assertEqual(ramsay.entry, undefined, 'entry is still unset');
 assertEqual(ramsay.siteMapImage, undefined, 'no site map image');
 const ramsayHtml = renderToStaticMarkup(React.createElement(TemporaryVenueCard, { venue: ramsay, anchorId: 'temporary-venue' }));
 assert(!ramsayHtml.includes('usually'), 'the rendered card does not say usually when times are unchanged');
@@ -280,7 +292,10 @@ assert(ramsayHtml.includes('Same times as usual'), 'the rendered card says the t
 assert(ramsayHtml.includes('Rookies (Age 5-7) 17:00 - 17:30'), 'the rendered Rookies time is unchanged');
 assert(ramsayHtml.includes('Rising Stars (Age 8-11) 17:30 - 18:15'), 'the rendered Rising Stars time is unchanged');
 assert(ramsayHtml.includes('Ballers (Age 12-15) 18:15 - 19:00'), 'the rendered Ballers time is unchanged');
-assert(!ramsayHtml.includes('>Parking<') && !ramsayHtml.includes('How to get in'), 'parking and entry stay off the card');
+assert(ramsayHtml.includes('Tuesday 10 November'), 'the rendered card lists Tuesday 10 November');
+assert(ramsayHtml.includes(ramsayParking), 'the rendered card includes the parking guidance');
+assert(ramsayHtml.includes('>Parking<'), 'the rendered card labels parking');
+assert(!ramsayHtml.includes('How to get in'), 'entry stays off the card');
 assert(!ramsayHtml.includes('<img'), 'the card has no site map image');
 const floydHtml = renderToStaticMarkup(React.createElement(TemporaryVenueCard, { venue: floyd, anchorId: 'temporary-venue' }));
 assert(floydHtml.includes('(usually 17:30)'), 'a changed Rookies time still renders the usual aside');
@@ -301,6 +316,11 @@ assertEqual(
   activeTemporaryVenues(holmer.temporaryVenues, new Date('2026-10-27T00:30:00Z')).map((venue) => venue.venueName),
   ['Sir William Ramsay School'],
   'Holmer Green venue appears from 27 Oct',
+);
+assertEqual(
+  activeTemporaryVenues(holmer.temporaryVenues, dateOnLondonDay('2026-11-10')).length,
+  1,
+  'Holmer Green venue is showing on 10 Nov',
 );
 assertEqual(
   activeTemporaryVenues(holmer.temporaryVenues, new Date('2026-11-17T12:00:00Z')).length,
