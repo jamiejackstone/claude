@@ -111,9 +111,10 @@ export const LOCATIONS: LocationData[] = [
     bookingWidgetUrl: 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=48474,48651',
     // 48474 is Holmer Green Senior School. 48651 is Sir William Ramsay School and is already on this base filter,
     // so the temporary entry lists it without the booking URL repeating the id.
-    // Shown 27 Oct-24 Nov 2026 inclusive, Europe/London. Tuesday sessions on 17 and 24 Nov only.
+    // Shown 27 Oct-24 Nov 2026 inclusive, Europe/London. Tuesday sessions on 10, 17 and 24 Nov.
     // Address is the school's published contact address: https://www.swr.school/Contact/
-    // Times match the usual Tuesday classes, so there is no later-than-usual note. Parking and entry are still to come.
+    // Times match the usual Tuesday classes (17:00-19:00), so there is no later-than-usual note.
+    // Parking: main vehicle entrance off Rose Avenue; school car parks or the front layby; not the Community Centre car park.
     scheduleNotice: "Term times only. During exams, Sir William Ramsay School, Hazlemere (HP15 7UB) is used as a backup. Please check the booking calendar below for up-to-date location details.",
     locationNotes: "IMPORTANT: During exams, Sir William Ramsay School, Rose Avenue, Hazlemere, HP15 7UB is used as a backup. Please check the booking calendar below for up-to-date location details.",
     temporaryVenues: [
@@ -123,15 +124,16 @@ export const LOCATIONS: LocationData[] = [
         mapQuery: 'Sir William Ramsay School, Rose Avenue, Hazlemere, High Wycombe, Buckinghamshire, HP15 7UB',
         showFrom: '2026-10-27',
         showUntil: '2026-11-24',
-        sessionDates: ['Tuesday 17 November', 'Tuesday 24 November'],
+        sessionDates: ['Tuesday 10 November', 'Tuesday 17 November', 'Tuesday 24 November'],
         timesNote: 'Same times as usual',
         times: [
           { label: 'Rookies (Age 5-7)', time: '17:00 - 17:30', usualTime: '17:00 - 17:30' },
           { label: 'Rising Stars (Age 8-11)', time: '17:30 - 18:15', usualTime: '17:30 - 18:15' },
           { label: 'Ballers (Age 12-15)', time: '18:15 - 19:00', usualTime: '18:15 - 19:00' },
         ],
+        parking: 'Please use the main vehicle entrance off Rose Avenue. Park in the school car parks or the front layby, not the Community Centre car park.',
         returnNote: 'Back at Holmer Green Senior School from Tue 1 Dec',
-        tickerText: 'Temporary venue on Tue 17 and 24 Nov: Sir William Ramsay School - see details',
+        tickerText: 'Temporary venue on Tue 10, 17 and 24 Nov: Sir William Ramsay School - see details',
         teamupVenueIds: ['48651'],
       },
     ],

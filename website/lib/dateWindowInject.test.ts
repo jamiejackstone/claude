@@ -32,10 +32,17 @@ const outside = injectServedHtml(shell, { location: aylesbury, now: new Date('20
 assert(!outside.includes('Sir Henry Floyd'), 'Aylesbury temporary venue is omitted after the window');
 assert(!outside.includes('data-hh-date-slot='), 'expired slots are removed rather than left hidden');
 
+const holmerTicker = 'Temporary venue on Tue 10, 17 and 24 Nov: Sir William Ramsay School - see details';
+const holmerParking = 'Please use the main vehicle entrance off Rose Avenue. Park in the school car parks or the front layby, not the Community Centre car park.';
+const holmerToday = injectServedHtml(shell, { location: holmer, now: dateOnLondonDay('2026-11-10') });
+assert(holmerToday.includes(holmerTicker), 'Holmer Green ticker is injected on 10 Nov');
+assert(holmerToday.includes('Tuesday 10 November'), '10 Nov is listed in the injected box');
+assert(holmerToday.includes(holmerParking), 'parking guidance is injected on 10 Nov');
 const holmerHtml = injectServedHtml(shell, { location: holmer, now: dateOnLondonDay('2026-11-17') });
-assert(holmerHtml.includes('Temporary venue on Tue 17 and 24 Nov'), 'Holmer Green ticker is injected on a date inside the window');
+assert(holmerHtml.includes(holmerTicker), 'Holmer Green ticker is injected on a date inside the window');
 const holmerAfter = injectServedHtml(shell, { location: holmer, now: dateOnLondonDay('2026-11-25') });
-assert(!holmerAfter.includes('Temporary venue on Tue 17 and 24 Nov'), 'Holmer Green ticker is omitted after the window');
+assert(!holmerAfter.includes(holmerTicker), 'Holmer Green ticker is omitted after the window');
+assert(!holmerAfter.includes(holmerParking), 'parking guidance is omitted after the window');
 
 const makeup = 'Hall closed Sunday 20 December. Make-up session is on the following Sunday.';
 const sandhurst = {

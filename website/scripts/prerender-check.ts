@@ -149,6 +149,11 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
       html.includes(venue.tickerText) === active,
       `${slug} ticker ${active ? 'missing' : 'present'} for London ${londonDate(today)}`,
     );
+    if (slug === 'holmer-green' && active) {
+      assert(html.includes('Tuesday 10 November'), 'served Holmer Green lists Tuesday 10 November');
+      assert(html.includes('Tue 10, 17 and 24 Nov'), 'served Holmer Green ticker lists 10, 17 and 24 Nov');
+      assert(html.includes(venue.parking ?? ''), 'served Holmer Green includes the parking guidance');
+    }
   }
 
   const missing = await worker.fetch(`${origin}/this-page-is-not-real`);
@@ -170,7 +175,7 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
 
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const route of ['/', '/location/marlow', '/location/sandhurst', '/location/aylesbury']) {
+    for (const route of ['/', '/location/marlow', '/location/sandhurst', '/location/aylesbury', '/location/holmer-green']) {
       const page = await browser.newPage();
       const logs: string[] = [];
       page.on('console', (message) => logs.push(`${message.type()}: ${message.text()}`));
@@ -233,6 +238,16 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
         if (slug === 'sandhurst') {
           assert(liveDescription.includes('Youth basketball classes for ages 5-11 in Sandhurst'), `sandhurst description was "${liveDescription}"`);
           assert(metaAttr(servedHtml, 'property', 'og:description') === liveDescription, 'sandhurst og:description left the worker text');
+        }
+        if (slug === 'holmer-green') {
+          const notice = 'Temporary venue on Tue 10, 17 and 24 Nov: Sir William Ramsay School - see details';
+          const parking = 'Please use the main vehicle entrance off Rose Avenue. Park in the school car parks or the front layby, not the Community Centre car park.';
+          const rendered = visibleText.toLowerCase();
+          assert(rendered.includes(notice.toLowerCase()), 'Holmer Green ticker missing after JS');
+          assert(rendered.includes('temporary venue: tuesday 10 november, tuesday 17 november, tuesday 24 november'), 'Holmer Green box heading missing after JS');
+          assert(rendered.includes(parking.toLowerCase()), 'Holmer Green parking missing after JS');
+          assert(servedHtml.includes(notice), 'served Holmer Green HTML is missing the ticker');
+          assert(servedHtml.includes(parking), 'served Holmer Green HTML is missing parking');
         }
       } else if (route === '/') {
         assert((await page.title()) === HOME_DOCUMENT_TITLE, `home title was "${await page.title()}"`);
