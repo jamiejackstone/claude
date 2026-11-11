@@ -279,7 +279,7 @@ export const LOCATIONS: LocationData[] = [
           { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },
           { label: 'Rising Stars (Age 8-11)', time: '18:15', usualTime: '18:00' },
         ],
-        parking: 'Please park in the college car park next to the school. It is clearly signposted.',
+        parking: "Drive into the shared car park and keep going past the 'School parking from here' signs. Only park in the school parking area by the Gym, shown on the map below. Please don't park in the college spaces: they are camera-monitored and the college issues parking tickets that can't be cancelled.",
         entry: 'Come in through the lettings entrance by the Gym. The Sports Hall is a short walk from there.',
         siteMapImage: {
           src: '/images/sir-henry-floyd-lettings-map.jpg',

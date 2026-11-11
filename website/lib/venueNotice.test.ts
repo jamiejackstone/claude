@@ -162,8 +162,8 @@ assertEqual(
 );
 assertEqual(
   floyd.parking,
-  'Please park in the college car park next to the school. It is clearly signposted.',
-  'parking is the college car park note',
+  "Drive into the shared car park and keep going past the 'School parking from here' signs. Only park in the school parking area by the Gym, shown on the map below. Please don't park in the college spaces: they are camera-monitored and the college issues parking tickets that can't be cancelled.",
+  'parking is the school parking area by the Gym',
 );
 assertEqual(
   floyd.entry,
@@ -174,7 +174,7 @@ assertEqual(floyd.siteMapImage, {
   src: '/images/sir-henry-floyd-lettings-map.jpg',
   alt: 'Site map showing parking, the lettings entrance, the Gym and the Sports Hall at Sir Henry Floyd',
 }, 'site map image is set');
-assert(JSON.stringify(floyd).includes('Please park in the college car park next to the school. It is clearly signposted.'), 'parking text is published');
+assert(JSON.stringify(floyd).includes("Drive into the shared car park and keep going past the 'School parking from here' signs. Only park in the school parking area by the Gym, shown on the map below. Please don't park in the college spaces: they are camera-monitored and the college issues parking tickets that can't be cancelled."), 'parking text is published');
 assert(!JSON.stringify(floyd).includes('Ballers'), 'Ballers has no confirmed Floyd time');
 assertEqual(
   mapEmbedSrc(floyd.mapQuery),
