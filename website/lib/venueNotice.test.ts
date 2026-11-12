@@ -201,6 +201,127 @@ assertEqual(
   0,
   'Aylesbury venue is hidden on 10 Nov',
 );
+
+const floydMonday = aylesbury.temporaryVenues?.[1];
+assert(floydMonday, 'Aylesbury has a second temporary venue for Monday 16 November');
+if (!floydMonday) throw new Error('Aylesbury has a second temporary venue for Monday 16 November');
+assert(floyd !== floydMonday, 'the 16 November entry is not the October window');
+assertEqual(floydMonday.venueName, floyd.venueName, 'the 16 November venue name matches the October window');
+assertEqual(floydMonday.address, floyd.address, 'the 16 November address matches the October window');
+assertEqual(floydMonday.mapQuery, floyd.mapQuery, 'the 16 November map query matches the October window');
+assertEqual(floydMonday.entry, floyd.entry, 'the 16 November entry note matches the October window');
+assertEqual(floydMonday.siteMapImage, floyd.siteMapImage, 'the 16 November site map matches the October window');
+assertEqual(floydMonday.showFrom, '2026-11-12', 'the second window starts on 12 Nov 2026');
+assertEqual(floydMonday.showUntil, '2026-11-16', 'the second window ends on 16 Nov 2026 inclusive');
+assertEqual(floydMonday.sessionDates, ['Monday 16 November'], 'the second window is Monday 16 November only');
+assertEqual(floydMonday.timesNote, 'This Monday only - starting 15 minutes later than usual', 'the 16 November times note is set');
+assertEqual(floydMonday.times, [
+  { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },
+  { label: 'Rising Stars (Age 8-11)', time: '18:15', usualTime: '18:00' },
+], 'the 16 November times match the October Floyd slots');
+assert(!floydMonday.times.some((slot) => slot.label.includes('Ballers')), 'the 16 November window has no Ballers slot');
+assertEqual(
+  floydMonday.parking,
+  "Drive into the shared car park and keep going past the 'School parking from here' signs. Only park in the school parking area by the Gym, shown on the map below. Please don't park in the college spaces: they are camera-monitored and the college issues parking tickets that can't be cancelled.",
+  'the 16 November parking text matches the October window',
+);
+assertEqual(floydMonday.parking, floyd.parking, 'parking is copied from the October window');
+assertEqual(floydMonday.teamupVenueIds, ['54994'], 'Sir Henry Floyd 54994 is on the 16 November window');
+assertEqual(floydMonday.returnNote, 'Back at The Mandeville School as usual from Mon 23 Nov', 'the 16 November return note is set');
+assertEqual(
+  floydMonday.tickerText,
+  'This Monday only (16 Nov): Sir Henry Floyd, 17:45 start - see details',
+  'the 16 November ticker is set',
+);
+assert(isWithinLondonWindow(floydMonday.showFrom, floydMonday.showUntil, dateOnLondonDay('2026-11-12')), 'the second window is shown on 12 Nov London');
+assert(isWithinLondonWindow(floydMonday.showFrom, floydMonday.showUntil, dateOnLondonDay('2026-11-16')), 'the second window is shown on 16 Nov London');
+assert(!isWithinLondonWindow(floydMonday.showFrom, floydMonday.showUntil, dateOnLondonDay('2026-11-11')), 'the second window is hidden on 11 Nov London');
+assert(!isWithinLondonWindow(floydMonday.showFrom, floydMonday.showUntil, dateOnLondonDay('2026-11-17')), 'the second window is hidden on 17 Nov London');
+assertEqual(
+  activeTemporaryVenues(aylesbury.temporaryVenues, dateOnLondonDay('2026-11-12')).map((venue) => venue.tickerText),
+  [floydMonday.tickerText],
+  '12 Nov renders the 16 November entry, not the October window',
+);
+assertEqual(
+  activeTemporaryVenues(aylesbury.temporaryVenues, dateOnLondonDay('2026-11-16')),
+  [floydMonday],
+  '16 Nov renders the second temporary venue',
+);
+assertEqual(
+  activeTemporaryVenues(aylesbury.temporaryVenues, dateOnLondonDay('2026-11-11')),
+  [],
+  '11 Nov is between the two Aylesbury windows',
+);
+assertEqual(
+  activeTemporaryVenues(aylesbury.temporaryVenues, dateOnLondonDay('2026-11-17')),
+  [],
+  '17 Nov hides both Aylesbury temporary venues',
+);
+assertEqual(
+  getBookingWidgetUrl(aylesbury, dateOnLondonDay('2026-11-12')),
+  `${baseWidgetUrl},54994`,
+  '12 Nov includes Sir Henry Floyd 54994',
+);
+assertEqual(
+  getBookingWidgetUrl(aylesbury, dateOnLondonDay('2026-11-16')),
+  `${baseWidgetUrl},54994`,
+  '16 Nov includes Sir Henry Floyd 54994',
+);
+assert(
+  String(getBookingWidgetUrl(aylesbury, dateOnLondonDay('2026-11-16'))).includes('54994'),
+  '54994 is inside the 16 Nov booking filter',
+);
+assertEqual(
+  getBookingWidgetUrl(aylesbury, dateOnLondonDay('2026-11-17')),
+  baseWidgetUrl,
+  '17 Nov drops Sir Henry Floyd 54994',
+);
+assert(
+  !String(getBookingWidgetUrl(aylesbury, dateOnLondonDay('2026-11-17'))).includes('54994'),
+  '54994 is absent on 17 Nov',
+);
+const mondayHtml = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'temporary-venues', location: aylesbury, londonDay: '2026-11-16' }),
+);
+assert(mondayHtml.includes(floydMonday.tickerText), '16 Nov renders the new ticker');
+assert(mondayHtml.includes(floydMonday.returnNote), '16 Nov renders the return note');
+assert(mondayHtml.includes('Rookies (Age 5-7) 17:45'), '16 Nov renders the Rookies time');
+assert(mondayHtml.includes('Rising Stars (Age 8-11) 18:15'), '16 Nov renders the Rising Stars time');
+assert(renderedText(mondayHtml).includes(floydMonday.parking ?? ''), '16 Nov renders the parking text');
+assert(mondayHtml.includes('Monday 16 November'), '16 Nov renders the session date');
+assert(mondayHtml.includes('/images/sir-henry-floyd-lettings-map.jpg'), '16 Nov renders the site map');
+assert(!mondayHtml.includes(floyd.tickerText), '16 Nov does not render the October ticker');
+assert(!mondayHtml.includes('Ballers'), '16 Nov does not render a Ballers time');
+const afterMondayHtml = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'temporary-venues', location: aylesbury, londonDay: '2026-11-17' }),
+);
+assert(!afterMondayHtml.includes('Sir Henry Floyd'), '17 Nov renders no Floyd notice');
+assert(!afterMondayHtml.includes('54994'), '17 Nov notice HTML has no 54994');
+const overlapVenues = [
+  { ...sample, venueName: 'Shared Hall', showFrom: '2026-11-12', showUntil: '2026-11-16', tickerText: 'First overlapping window', sessionDates: ['Monday 16 November'] },
+  { ...sample, venueName: 'Shared Hall', showFrom: '2026-11-12', showUntil: '2026-11-16', tickerText: 'Second overlapping window', sessionDates: ['Monday 16 November'], teamupVenueIds: ['54994'] },
+];
+assertEqual(
+  activeTemporaryVenues(overlapVenues, dateOnLondonDay('2026-11-16')).map((venue) => venue.tickerText),
+  ['First overlapping window', 'Second overlapping window'],
+  'overlapping windows both stay active',
+);
+const overlapHtml = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, {
+    slot: 'temporary-venues',
+    location: { ...aylesbury, temporaryVenues: overlapVenues },
+    londonDay: '2026-11-16',
+  }),
+);
+assert(overlapHtml.includes('First overlapping window'), 'the first overlapping window renders');
+assert(overlapHtml.includes('Second overlapping window'), 'the second overlapping window renders');
+assert(overlapHtml.includes('id="temporary-venue"'), 'the first active window keeps the shared anchor');
+assert(overlapHtml.includes('id="temporary-venue-2"'), 'the second active window gets its own anchor');
+assertEqual(
+  getBookingWidgetUrl({ bookingWidgetUrl: baseWidgetUrl, temporaryVenues: overlapVenues }, dateOnLondonDay('2026-11-16')),
+  `${baseWidgetUrl},54994`,
+  'overlapping windows append 54994 once',
+);
 assertEqual(
   floyd.times.map((slot) => temporaryVenueUsualAside(slot.time, slot.usualTime)),
   ['(usually 17:30)', '(usually 18:00)'],
@@ -518,6 +639,14 @@ assertEqual(getActiveBannerNotices({}), [], 'locations without notices have none
 assert(
   bakedDateWindowPhrases(aylesbury).includes(floyd.tickerText),
   'Aylesbury ticker is treated as date-window copy',
+);
+assert(
+  bakedDateWindowPhrases(aylesbury).includes(floydMonday.tickerText),
+  'the 16 November ticker is treated as date-window copy',
+);
+assert(
+  bakedDateWindowPhrases(aylesbury).includes(floydMonday.returnNote),
+  'the 16 November return note is treated as date-window copy',
 );
 assert(
   !bakedDateWindowPhrases(holmer).includes('Sir William Ramsay School'),

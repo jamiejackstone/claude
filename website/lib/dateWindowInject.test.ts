@@ -28,9 +28,21 @@ assert(inside.includes('window.__HH_LONDON_DATE__="2026-11-05"'), 'worker stamps
 assert(!inside.includes('data-hh-date-slot="temporary-venues"'), 'filled slot is not left as a marker');
 assert(!inside.includes('<iframe'), 'injected venue HTML does not include a map iframe');
 
-const outside = injectServedHtml(shell, { location: aylesbury, now: new Date('2026-11-10T12:00:00Z') });
-assert(!outside.includes('Sir Henry Floyd'), 'Aylesbury temporary venue is omitted after the window');
+const mondayOnly = injectServedHtml(shell, { location: aylesbury, now: dateOnLondonDay('2026-11-16') });
+const mondayText = mondayOnly.replace(/<!--.*?-->/g, '');
+assert(mondayOnly.includes('This Monday only (16 Nov): Sir Henry Floyd, 17:45 start - see details'), '16 Nov injects the Monday-only ticker');
+assert(mondayOnly.includes('Monday 16 November'), '16 Nov injects the session date');
+assert(mondayText.includes('Rookies (Age 5-7) 17:45'), '16 Nov injects the later Rookies time');
+assert(mondayText.includes('Rising Stars (Age 8-11) 18:15'), '16 Nov injects the later Rising Stars time');
+assert(mondayOnly.includes('Back at The Mandeville School as usual from Mon 23 Nov'), '16 Nov injects the return note');
+assert(mondayOnly.includes('window.__HH_LONDON_DATE__="2026-11-16"'), '16 Nov stamps that London day');
+assert(!mondayOnly.includes('Temporary venue for the next 3 weeks'), '16 Nov does not inject the October ticker');
+assert(!mondayOnly.includes('data-hh-date-slot="temporary-venues"'), '16 Nov replaces the temporary-venue marker');
+
+const outside = injectServedHtml(shell, { location: aylesbury, now: dateOnLondonDay('2026-11-20') });
+assert(!outside.includes('Sir Henry Floyd'), 'Aylesbury temporary venue is omitted after both windows');
 assert(!outside.includes('data-hh-date-slot='), 'expired slots are removed rather than left hidden');
+assert(!outside.includes('54994'), '20 Nov injects no Sir Henry Floyd venue id');
 
 const holmerTicker = 'Temporary venue on Tue 10, 17 and 24 Nov: Sir William Ramsay School - see details';
 const holmerParking = 'Please use the main vehicle entrance off Rose Avenue. Park in the school car parks or the front layby, not the Community Centre car park.';
