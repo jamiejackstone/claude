@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright';
+import { chromium, type Browser } from 'playwright';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { LOCATIONS } from '../constants';
 import { HOME_DOCUMENT_TITLE, locationDocumentTitle, locationH1Text } from '../lib/locationSchema';
 import { isPrerenderPath, LOCATION_SLUGS, SITEMAP_PATHS, prerenderMarker } from '../lib/prerenderRoutes';
-import { bakedDateWindowPhrases, isWithinLondonWindow, londonDate } from '../lib/venueNotice';
+import { injectServedHtml } from '../lib/dateWindowInject';
+import { bakedDateWindowPhrases, dateOnLondonDay, isWithinLondonWindow, londonDate } from '../lib/venueNotice';
 
 const APPROVED_REVIEW_BADGE = 'Rated 4.9★ on Google · 110+ reviews';
 
@@ -140,16 +141,21 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
   const today = new Date();
   for (const slug of ['aylesbury', 'holmer-green'] as const) {
     const location = LOCATIONS.find((item) => item.slug === slug);
-    const venue = location?.temporaryVenues?.[0];
-    if (!location || !venue) throw new Error(`missing ${slug} venue`);
+    if (!location) throw new Error(`missing ${slug}`);
+    const venues = location.temporaryVenues ?? [];
+    if (!venues.length) throw new Error(`missing ${slug} venue`);
     const response = await worker.fetch(`${origin}/location/${slug}`);
     const html = await response.text();
-    const active = isWithinLondonWindow(venue.showFrom, venue.showUntil, today);
-    assert(
-      html.includes(venue.tickerText) === active,
-      `${slug} ticker ${active ? 'missing' : 'present'} for London ${londonDate(today)}`,
-    );
-    if (slug === 'holmer-green' && active) {
+    const activeVenues = venues.filter((venue) => isWithinLondonWindow(venue.showFrom, venue.showUntil, today));
+    for (const venue of venues) {
+      const active = activeVenues.includes(venue);
+      assert(
+        html.includes(venue.tickerText) === active,
+        `${slug} ticker ${active ? 'missing' : 'present'} for London ${londonDate(today)}: ${venue.tickerText}`,
+      );
+    }
+    if (slug === 'holmer-green' && activeVenues.length > 0) {
+      const venue = activeVenues[0];
       assert(html.includes('Tuesday 10 November'), 'served Holmer Green lists Tuesday 10 November');
       assert(html.includes('Tue 10, 17 and 24 Nov'), 'served Holmer Green ticker lists 10, 17 and 24 Nov');
       assert(html.includes(venue.parking ?? ''), 'served Holmer Green includes the parking guidance');
@@ -261,10 +267,117 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
       await page.close();
       console.log(`hydration ok ${route}`);
     }
+    await assertAylesburyOnDate(browser, origin, '2026-11-16');
+    await assertAylesburyOnDate(browser, origin, '2026-11-17');
   } finally {
     await browser.close();
   }
   console.log('served HTML and hydration checks passed');
+}
+
+const FLOYD_MONDAY_TICKER = 'This Monday only (16 Nov): Sir Henry Floyd, 17:45 start - see details';
+const FLOYD_MONDAY_RETURN = 'Back at The Mandeville School as usual from Mon 23 Nov';
+const FLOYD_PARKING = "Drive into the shared car park and keep going past the 'School parking from here' signs. Only park in the school parking area by the Gym, shown on the map below. Please don't park in the college spaces: they are camera-monitored and the college issues parking tickets that can't be cancelled.";
+const FLOYD_MAP_TITLE = 'Sir Henry Floyd Grammar School Sports Hall map';
+
+async function assertAylesburyOnDate(browser: Browser, origin: string, londonDay: string): Promise<void> {
+  const location = LOCATIONS.find((item) => item.slug === 'aylesbury');
+  if (!location) throw new Error('missing aylesbury');
+  const showing = isWithinLondonWindow('2026-11-12', '2026-11-16', dateOnLondonDay(londonDay));
+  const html = injectServedHtml(builtFile('/location/aylesbury'), {
+    location,
+    now: dateOnLondonDay(londonDay),
+  });
+  if (showing) {
+    const rendered = html.replace(/<!--.*?-->/g, '');
+    assert(html.includes(FLOYD_MONDAY_TICKER), `${londonDay} prerender includes the Monday ticker`);
+    assert(rendered.includes('Rookies (Age 5-7) 17:45'), `${londonDay} prerender includes 17:45`);
+    assert(rendered.includes('Rising Stars (Age 8-11) 18:15'), `${londonDay} prerender includes 18:15`);
+    assert(html.includes(FLOYD_MONDAY_RETURN), `${londonDay} prerender includes the return note`);
+    assert(decode(html).includes(FLOYD_PARKING), `${londonDay} prerender includes the parking text`);
+    assert(html.includes('/images/sir-henry-floyd-lettings-map.jpg'), `${londonDay} prerender includes the site map`);
+    assert(html.includes('Monday 16 November'), `${londonDay} prerender includes the session date`);
+    assert(!html.includes('Temporary venue for the next 3 weeks'), `${londonDay} prerender omits the October ticker`);
+  } else {
+    assert(!html.includes('Sir Henry Floyd'), `${londonDay} prerender has no Floyd notice`);
+    assert(!html.includes(FLOYD_MONDAY_TICKER), `${londonDay} prerender has no Monday ticker`);
+    assert(!html.includes('54994'), `${londonDay} prerender has no 54994`);
+  }
+
+  const page = await browser.newPage();
+  const logs: string[] = [];
+  page.on('console', (message) => logs.push(`${message.type()}: ${message.text()}`));
+  page.on('pageerror', (error) => logs.push(`pageerror: ${error.message}`));
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route('**/*', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const pathname = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
+    if (request.resourceType() === 'document' && pathname === '/location/aylesbury') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html; charset=utf-8',
+        body: html,
+      });
+      return;
+    }
+    await route.continue();
+  });
+  try {
+    await page.goto(`${origin}/location/aylesbury`, { waitUntil: 'load', timeout: 30000 });
+    await page.waitForSelector('iframe[title="Hoop Heroes Booking Calendar"]', { timeout: 10000 });
+    await page.waitForSelector('iframe[title="Location Map"]', { timeout: 10000 });
+    const bookingSrc = await page.locator('iframe[title="Hoop Heroes Booking Calendar"]').getAttribute('src');
+    const visibleText = (await page.locator('body').innerText()).toLowerCase();
+    const hydration = logs.filter((line) => /hydrat|did not match|server rendered HTML|server HTML/i.test(line));
+    assert(hydration.length === 0, `${londonDay} hydration warnings:\n${hydration.join('\n')}\nall logs:\n${logs.join('\n')}`);
+
+    if (showing) {
+      assert(visibleText.includes(FLOYD_MONDAY_TICKER.toLowerCase()), `${londonDay} render shows the ticker`);
+      assert(visibleText.includes('17:45'), `${londonDay} render shows 17:45`);
+      assert(visibleText.includes('18:15'), `${londonDay} render shows 18:15`);
+      assert(visibleText.includes(FLOYD_MONDAY_RETURN.toLowerCase()), `${londonDay} render shows the return note`);
+      assert(visibleText.includes(FLOYD_PARKING.toLowerCase()), `${londonDay} render shows the parking text`);
+      assert(visibleText.includes('temporary venue: monday 16 november'), `${londonDay} render shows the heading`);
+      assert(visibleText.includes('this monday only - starting 15 minutes later than usual'), `${londonDay} render shows the times note`);
+      const floydMap = page.locator(`iframe[title="${FLOYD_MAP_TITLE}"]`);
+      await floydMap.waitFor({ state: 'attached', timeout: 10000 });
+      const mapSrc = await floydMap.getAttribute('src');
+      assert(mapSrc?.includes('maps.google.com'), `${londonDay} Floyd map src ${mapSrc}`);
+      assert(mapSrc?.includes(encodeURIComponent('Sir Henry Floyd Grammar School')), `${londonDay} map query is Sir Henry Floyd`);
+      assert(await page.locator('img[src="/images/sir-henry-floyd-lettings-map.jpg"]').count() === 1, `${londonDay} shows the site map image`);
+      assert(bookingSrc?.includes('54994'), `${londonDay} TeamUp filter missing 54994: ${bookingSrc}`);
+      assert(bookingSrc?.includes('48411'), `${londonDay} TeamUp filter missing the base venues: ${bookingSrc}`);
+      const rejectCookies = page.getByRole('button', { name: 'Reject Non-Essential' });
+      if (await rejectCookies.count()) {
+        await rejectCookies.click();
+        await rejectCookies.waitFor({ state: 'hidden', timeout: 5000 });
+      }
+      await page.evaluate(() => {
+        const ticker = document.querySelector('a[href="#temporary-venue"]');
+        const card = document.getElementById('temporary-venue');
+        if (!ticker || !card || !ticker.parentElement) return;
+        const wrap = document.createElement('div');
+        wrap.id = 'floyd-notice-shot';
+        ticker.parentElement.insertBefore(wrap, ticker);
+        wrap.append(ticker, card);
+      });
+      fs.mkdirSync('/opt/cursor/artifacts', { recursive: true });
+      await page.locator('#floyd-notice-shot').screenshot({
+        path: '/opt/cursor/artifacts/aylesbury_16_nov_floyd_notice.png',
+      });
+    } else {
+      assert(!visibleText.includes(FLOYD_MONDAY_TICKER.toLowerCase()), `${londonDay} render hides the ticker`);
+      assert(!visibleText.includes('sir henry floyd'), `${londonDay} render hides the Floyd notice`);
+      assert(!visibleText.includes('monday 16 november'), `${londonDay} render hides the session date`);
+      assert(await page.locator(`iframe[title="${FLOYD_MAP_TITLE}"]`).count() === 0, `${londonDay} has no Floyd map`);
+      assert(!bookingSrc?.includes('54994'), `${londonDay} TeamUp filter still has 54994: ${bookingSrc}`);
+      assert(bookingSrc?.includes('48411'), `${londonDay} TeamUp filter missing the base venues: ${bookingSrc}`);
+    }
+  } finally {
+    await page.close();
+  }
+  console.log(`aylesbury ${londonDay} render ok`);
 }
 
 async function main(): Promise<void> {

@@ -262,8 +262,9 @@ export const LOCATIONS: LocationData[] = [
     // Base TeamUp venues: 48411 is The Mandeville School.
     // 53172 and 50233 return 404 from TeamUp but stay in the original list. 65944 is Wendover and stays too.
     // 48649 is Great Missenden (The Misbourne), not Mandeville, so it is not on this filter.
-    // Sir Henry Floyd (54994) is added only while the temporary venue below is showing.
-    // Shown 22 Oct-9 Nov 2026 inclusive, Europe/London. Monday sessions only.
+    // Sir Henry Floyd (54994) is added only while a temporary venue below is showing.
+    // Two inclusive Europe/London windows: 22 Oct-9 Nov 2026, then 12-16 Nov 2026
+    // (Monday 16 November only, after Mandeville extended its exam period).
     // Address, parking, entry and site map are from the member email 'HH Aylesbury venue change 20 Oct 2026'.
     // There is no Monday Ballers class at Aylesbury.
     temporaryVenues: [
@@ -287,6 +288,28 @@ export const LOCATIONS: LocationData[] = [
         },
         returnNote: 'Back at The Mandeville School from Mon 16 Nov',
         tickerText: 'Temporary venue for the next 3 weeks: Sir Henry Floyd, new times - see details',
+        teamupVenueIds: ['54994'],
+      },
+      {
+        venueName: 'Sir Henry Floyd Grammar School Sports Hall',
+        address: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
+        mapQuery: 'Sir Henry Floyd Grammar School, Oxford Road, Aylesbury HP21 8PE',
+        showFrom: '2026-11-12',
+        showUntil: '2026-11-16',
+        sessionDates: ['Monday 16 November'],
+        timesNote: 'This Monday only - starting 15 minutes later than usual',
+        times: [
+          { label: 'Rookies (Age 5-7)', time: '17:45', usualTime: '17:30' },
+          { label: 'Rising Stars (Age 8-11)', time: '18:15', usualTime: '18:00' },
+        ],
+        parking: "Drive into the shared car park and keep going past the 'School parking from here' signs. Only park in the school parking area by the Gym, shown on the map below. Please don't park in the college spaces: they are camera-monitored and the college issues parking tickets that can't be cancelled.",
+        entry: 'Come in through the lettings entrance by the Gym. The Sports Hall is a short walk from there.',
+        siteMapImage: {
+          src: '/images/sir-henry-floyd-lettings-map.jpg',
+          alt: 'Site map showing parking, the lettings entrance, the Gym and the Sports Hall at Sir Henry Floyd',
+        },
+        returnNote: 'Back at The Mandeville School as usual from Mon 23 Nov',
+        tickerText: 'This Monday only (16 Nov): Sir Henry Floyd, 17:45 start - see details',
         teamupVenueIds: ['54994'],
       },
     ],

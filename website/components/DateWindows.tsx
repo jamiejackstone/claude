@@ -155,10 +155,10 @@ export function DateWindowOutlet({
     return (
       <>
         {venues.map((venue, index) => (
-          <LocationTicker key={`${venue.venueName}-ticker`} text={venue.tickerText} href={`#${temporaryVenueAnchorId(index)}`} />
+          <LocationTicker key={`${venue.showFrom}-${venue.showUntil}-${index}-ticker`} text={venue.tickerText} href={`#${temporaryVenueAnchorId(index)}`} />
         ))}
         {venues.map((venue, index) => (
-          <TemporaryVenueCard key={venue.venueName} venue={venue} anchorId={temporaryVenueAnchorId(index)} />
+          <TemporaryVenueCard key={`${venue.showFrom}-${venue.showUntil}-${index}`} venue={venue} anchorId={temporaryVenueAnchorId(index)} />
         ))}
       </>
     );
