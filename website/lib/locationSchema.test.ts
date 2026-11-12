@@ -50,7 +50,7 @@ assertEqual(
 );
 assertEqual(
   sandhurst.locationNotes,
-  "We run in the sports hall at Sandhurst School, Owlsmoor Road, Sandhurst, GU47 0SD. On site it's signposted Sandhurst Sports Centre – follow those signs, not the school ones.\n\nDon't go to the main school entrance or reception – it's closed on Sundays and there's no way through to the hall from there. Coming along Owlsmoor Road, the turning for the sports hall is on your right, just before the main school entrance. Follow the Sports Centre signs into the car park; the hall entrance is right there.\n\nParking is free and plentiful. Please arrive a few minutes early so your child can sign in with the coach before the session starts.",
+  "We run in the sports hall at Sandhurst School, Owlsmoor Road, Sandhurst, GU47 0SD. On site it's signposted Sandhurst Sports Centre – follow those signs, not the school ones.\n\nDon't go to the main school entrance or reception – it's closed on Sundays and there's no way through to the hall from there. Coming along Owlsmoor Road, look for the sign that says \"Greenfinch Close leading to Sports Centre car park\". That's the turning for the sports hall, on your right just before the main school entrance. Follow it into the Sports Centre car park; the hall entrance is right there.\n\nParking is free and plentiful. Please arrive a few minutes early so your child can sign in with the coach before the session starts.",
   'arrival directions stay word for word',
 );
 assertEqual(sandhurst.bookingWidgetUrl, 'https://goteamup.com/p/6822945-hoop-heroes/c/schedule?venues=66611', 'TeamUp venue id stays 66611');
