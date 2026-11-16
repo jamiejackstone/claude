@@ -1,6 +1,6 @@
 # Hero Dome: school pitch deck (text version)
 
-Text version of the Hero Dome schools pitch deck, for AI agents and anyone who needs the content without the slides. Generated from the live deck on 11 November 2026.
+Text version of the Hero Dome schools pitch deck, for AI agents and anyone who needs the content without the slides. Generated from the live deck on 16 November 2026 (18 slides).
 
 - **Live deck:** https://claude.ai/artifact/BExeLhW8PQoN2oUELP81Ly
 - **3D concept:** https://claude.ai/artifact/8vA8bnSnsFfczJXxV82EhW
@@ -15,7 +15,9 @@ Text version of the Hero Dome schools pitch deck, for AI agents and anyone who n
 - **Target areas, in order:** Aylesbury and Wendover, then Bicester, then the High Wycombe area (Marlow, Great Missenden, Holmer Green). One Dome per area.
 - **The ask:** a 20-minute discovery call, then a 30-minute site visit.
 - **Tone:** plain UK English, warm, confident, no hard sell. Lead with what the school gets, not the structure.
-- **Do not promise:** opening dates, or that a Dome will definitely be built.
+- **Do not promise:** install or opening dates; that a Dome will definitely be built; that the school will be the first or only site; any money figure for what the school saves or gets (no "worth over £50,000"); numbers of free sessions or community hours; "no digging or building work" (the accessible WC needs water and drainage); that it is run by a CIC (who runs Dome #1 is not settled).
+- **Placeholders:** lines marked [Placeholder: …] are still undecided. Do not fill them in or answer them; say they will be confirmed.
+- **School-day use** (PE, clubs, break, wet play) is still undecided. Do not describe it beyond "the school day is yours".
 
 Each slide below gives the on-slide text, a description of any image, and the presenter's notes.
 
@@ -26,7 +28,7 @@ Each slide below gives the on-slide text, a description of any image, and the pr
 ### Slide 1: Cover
 
 **On the slide**
-- Label: Founding school invitation
+- Label: An invitation to your school
 - Title: **Hero Dome**
 - Strap line: Your home court
 - A year-round multi-sport arena on your playground.
@@ -79,26 +81,26 @@ Each slide below gives the on-slide text, a description of any image, and the pr
 - **Covered, enclosed, LED lit**, with a 14.8 × 10 m court
 - **Dedicated, secure storage** for all the kit
 - **Reception and viewing area** with an accessible WC, step-free onto the court
-- **No digging or building work:** it sits on your playground
-- **About a week to install**, in the summer holidays
+- **Sits on your existing playground**, on its own containers
+- **Installed in the school holidays**
 - **Fully removable**, playground made good
 
 **Image:** concept render of the Hero Dome from outside with its roller door down, showing the arched canopy on navy containers with "Hero Dome" on the side.
 
-**Presenter's notes:** A steel-framed fabric canopy on storage containers, over a tiled sports floor. The whole footprint, containers included, is about 22 × 12 m; a doubles tennis court is 23.8 × 11 m, so it is roughly one tennis court of playground. Under the canopy it is 17 × 12 m. It sits on hard standing the school already has, goes up in the summer holidays and can be taken away. Offer the 3D model link if they want to look around.
+**Presenter's notes:** A steel-framed fabric canopy on storage containers, over a tiled sports floor. The whole footprint, containers included, is about 22 × 12 m; a doubles tennis court is 23.8 × 11 m, so it is roughly one tennis court of playground. Under the canopy it is 17 × 12 m. It sits on hard standing the school already has, goes up in the school holidays and can be taken away. The 22 × 12 m footprint is a desk estimate: the canopy (17 × 12.19 m) is decided, the containers either side are not yet measured on a site. Offer the 3D model link if they want to look around.
 
 ### Slide 6: What your site needs
 
 **On the slide**
 - **Space:** a flat, hard area of about 22 × 12 m, such as a playground, MUGA or car park, with a little room around it.
-- **Surface:** tarmac or concrete, roughly level. No digging or foundations: the containers sit on top.
+- **Surface:** tarmac or concrete, roughly level. The canopy sits on its containers rather than new foundations.
 - **Height:** about 8 m clear overhead: no cables, and any trees trimmed back.
 - **Access:** room for a lorry and a small crane on install day, and a route families can use out of hours without going through the school.
-- **Power:** a supply nearby. We fit our own meter and pay for what we use.
+- **Power:** a supply nearby, from your school. We fit our own sub-meter.
 - **Water and drainage:** a connection nearby for the accessible WC. If there isn't one, we use a self-contained unit.
 - Closing line: We check all of this together on a 30-minute site visit.
 
-**Presenter's notes:** This screens out sites that won't work before anyone spends time on them. The 22 × 12 m footprint includes the containers; the canopy is about 7.6 m high at its crown. Still to confirm with the canopy supplier: crane and lorry access, clearances, how level the ground must be, and the WC water and drainage.
+**Presenter's notes:** This screens out sites that won't work before anyone spends time on them. The 22 × 12 m footprint includes the containers; the canopy is about 7.6 m high at its crown. Still to confirm with the canopy supplier: crane and lorry access, clearances, how level the ground must be, and the WC water and drainage. How we repay the electricity is not yet decided.
 
 ### Slide 7: One space, many sports
 
@@ -142,13 +144,13 @@ An example term-time week. Sessions and times are to be confirmed.
 
 ---
 
-## Section 2: The done-for-you offer, what it costs and the head's questions answered
+## Section 2: The done-for-you offer, what it costs, the head's concerns and the agreement
 
 ### Slide 10: Done for you, from day one
 
 **On the slide**
 - **The Dome, installed:** covered, lit and enclosed. Free.
-- **The school day is yours:** PE, break, lunch and clubs, on your timetable.
+- **The school day is yours:** [Placeholder: school-day use (PE, clubs, break, wet play) to be decided]
 - **Kit for every sport:** hoops, nets and balls, stored on site.
 - **Upkeep and insurance:** maintenance, inspections and safety checks.
 - **After-school clubs:** run, staffed and booked by us. No office admin.
@@ -164,14 +166,14 @@ An example term-time week. Sessions and times are to be confirmed.
 ### Slide 11: What it costs your school
 
 **On the slide**
-- A covered sports arena worth over £50,000
+- A covered, enclosed sports space on your playground
 - Installed, insured and maintained
 - Kit for every sport
 - Clubs and holiday camps run for you
 - Planning and paperwork handled
 - **£0** to build, run or maintain
 
-**Presenter's notes:** The anchor: a facility worth over £50,000, for nothing. Hoop Heroes funds it because we run our own sessions there in the evenings, at weekends and in the holidays. That is the honest answer to "what's the catch?"
+**Presenter's notes:** The anchor: a covered sports space for nothing. Don't put a value on it. Hoop Heroes funds it because we run our own sessions there in the evenings, at weekends and in the holidays. That is the honest answer to "what's the catch?"
 
 ### Slide 12: Good for your whole community
 
@@ -187,41 +189,54 @@ An example term-time week. Sessions and times are to be confirmed.
 
 **Presenter's notes:** These are the sessions we plan to run outside school hours. They matter to the school's community and to the funders who can help pay for them, such as the holiday food programme and Sport England.
 
-### Slide 13: Your questions, answered
+### Slide 13: Your concerns, answered
 
-| Question | Answer |
-|---|---|
-| Do we need planning permission? | Yes, and our team handles all of it: drawings, application and fees, at our cost. |
-| Will it disrupt the school? | We install in the summer holidays. No digging, no concrete, no building work. |
-| Who uses it, and when? | Your school, all day. We run sessions in the evenings, at weekends and in the holidays. |
-| Who is responsible out of hours? | We are: our staff and our insurance, kept separate from school buildings. |
-| What's the catch? | None. We fund it because we use it outside school hours. Everyone wins. |
-| What if it doesn't work out? | We take it away and make good your playground, at our cost. |
+Answers use only decided terms. Placeholders on the slide are still open.
 
-**Presenter's notes:** These are the six questions a head will be asking themselves. The removal promise is the risk reversal: the school can only win.
+| Concern | Answer | Still open |
+|---|---|---|
+| Will strangers be on site with our pupils? | The school day is yours. Our sessions run outside school hours, with DBS-checked coaches trained in Basketball England safeguarding. | [Placeholder: separate access route and safeguarding terms, agreed with your DSL] |
+| Will we lose playground space? | The canopy is 17 × 12.2 m, with a container either side. It's covered, so it's usable when the open playground isn't. | [Placeholder: exact footprint and siting, confirmed on the site visit] |
+| Break times, wet play and damage | | [Placeholder: school-day use, supervision and damage terms, to be decided] |
+| Will it cost us money or staff time? | £0 to your school. We handle and pay for planning. Power comes from your supply, on our own sub-meter. | [Placeholder: how electricity is repaid, and who opens and locks up] |
+| If someone is hurt, who is responsible? | | [Placeholder: our public liability cover and the structure insurance, to confirm with our insurer] |
+| What if it doesn't work out? | At the end of the agreement, we remove everything and make good your playground. | [Placeholder: how removal is guaranteed] |
 
-### Slide 14: The agreement, in plain English
+**Presenter's notes:** Answers use only what is decided (Decision Log, 29 Oct 2026). Placeholders are still open: fill them once Jamie, the solicitor or the insurer confirms, and don't answer them from memory in the room. Source: Head teacher concerns & our answers v0.1.
 
-| Term | What it means |
-|---|---|
-| How long | 5 years, with the option to renew for another 5 if it's working for you. |
-| Your way out | A break clause: 12 months' notice, any time after year 3. |
-| At the end | We remove everything and make good your playground, at our cost. |
-| Cost to your school | None. We pay for upkeep, insurance and our electricity, on its own meter. |
-| Annual review | The school day is yours. Each year we review how it's going and agree the next timetable together. |
-| Responsibility | We insure, maintain and inspect it, and cover our own sessions. |
-| Safeguarding | Separate access out of hours, agreed with your DSL. |
-| No surprises | Nothing is binding until planning and your governors' or trust's consent are in place. |
+### Slide 14: Your concerns, answered (2)
 
-Footnote: Headline terms. Final wording agreed by both sides' solicitors.
+| Concern | Answer | Still open |
+|---|---|---|
+| Planning, neighbours, noise and parking | We handle and pay for planning. | [Placeholder: noise, light and parking, assessed for your site] |
+| Who needs to say yes? | It depends on your school type. We'll work out the consent route with you and our solicitor. | |
+| Are we tied in for years? | 5 years, with the option to renew for 5 more. A break with 12 months' notice any time after year 3, and an annual review. | |
+| Will it be any use in January? | It's covered, with both ends closed, so it's usable in the rain. | [Placeholder: heating] |
+| What does our school get? | £0 cost, planning handled, and removal and make good at the end. | [Placeholder: school-day use and any extras, to be decided] |
+| Is a company making money from our site? | | [Placeholder: community use, other hirers and the fee we pay, to be decided] |
 
-**Presenter's notes:** The headline terms a head and their governors will want before anything else. The 5-year term matches the finance on the canopy and containers, and the kind of time-limited planning consent temporary structures often get. The earliest a school can leave is the end of year 4, so at most a year of finance is uncovered, on kit that can move to another school. Final wording to settle with our solicitor.
+**Presenter's notes:** As slide 13. The term wording is decided; whether both sides can use the break is not yet set.
+
+### Slide 15: The shape of the agreement
+
+| What your school gets | What Hoop Heroes gets | The terms |
+|---|---|---|
+| £0 cost to the school | Use outside school hours for our sessions and community sessions | Rent: none, or a nominal amount |
+| Planning handled and paid for by us | Power from your supply, on our own sub-meter | Term: 5 years, option to renew for 5 more |
+| An annual review of how it's going | [Placeholder: how electricity is repaid] | Break: 12 months' notice, any time after year 3 |
+| Removal and make good at the end | | At the end: we remove everything and make good your playground |
+| [Placeholder: school-day use, to be decided] | | |
+
+- Nothing is binding until planning and the right consents are in place. Licence or lease, and the final wording, agreed by both sides' solicitors.
+- Footnote: Headline terms, for discussion.
+
+**Presenter's notes:** Decided terms only (Decision Log 29-10 and 29-11, plus the locked "zero or near-zero rent" for schools). Still open, so not on the slide: insurance and responsibilities, safeguarding conditions, noise and hours limits, a removal bond, a named contact and complaints route, and any extras for the school. Whether it is a licence or a lease is the solicitor's call, and affects which consents are needed. Don't say who holds the agreement: whether Dome #1 runs through Hoop Heroes Region 1 Ltd or another body is still open.
 
 ---
 
-## Section 3: Who Hoop Heroes are, the founding-school invitation and the road to opening
+## Section 3: Who Hoop Heroes are, one Dome per area and the road to opening
 
-### Slide 15: Who are Hoop Heroes?
+### Slide 16: Who are Hoop Heroes?
 
 **On the slide**
 - **400+** children aged 5 to 15 playing with us every week
@@ -233,22 +248,22 @@ Footnote: Headline terms. Final wording agreed by both sides' solicitors.
 
 **Presenter's notes:** Add one short testimonial from a school or parent, with their permission; no children's names.
 
-### Slide 16: Be our founding school
+### Slide 17: One Dome per area
 
 **On the slide**
-- **One Dome per area**
-- Once an area's school is chosen, that area is taken. We're choosing our first founding school for 2027.
+- **One area, one Dome**
+- We place one Hero Dome in each area, so every Dome serves its whole local community.
 
-**Presenter's notes:** Scarcity is real: one Dome per area makes sense for us too, so this isn't a sales trick.
+**Presenter's notes:** One Dome per area is decided. Don't promise the school it will be the first or only site, and there are no founding-school extras.
 
-### Slide 17: The road to opening
+### Slide 18: The road to opening
 
 **On the slide**
 1. **Discovery call:** twenty minutes: your school, your site and what you'd love it to do.
 2. **Site visit:** thirty minutes on your playground: space, access and power.
 3. **Agree in principle:** a short, non-binding letter, with a pack for your governors.
 4. **Planning and consents:** our team prepares, submits and pays for everything.
-5. **Install:** about a week, in the school holidays.
+5. **Install:** in the school holidays.
 6. **Open:** your Hero Dome, ready for your pupils and community.
 
 - Every step depends on planning permission and the landowner's consent.
