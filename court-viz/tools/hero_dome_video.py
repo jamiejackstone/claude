@@ -20,7 +20,7 @@ WHITE = (255, 255, 255)
 FADE = 0.6  # seconds of cross-fade between scenes
 CAPTION_FADE = 0.35
 # scenes that run straight on from the one before, with no cross-fade
-JOIN = {"install"}
+JOIN = set()
 
 
 def font(name, size):

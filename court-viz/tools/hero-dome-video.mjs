@@ -23,7 +23,7 @@ const fps = +values.fps;
 
 // the Hero Dome as the 3D concept builds it (viewer/p2.js coveredOnly)
 const QUERY = 'full&span=17&arena&multi&no3key&layout=reception&main=microArena&roofs=%2314264e&name=HERO%20DOME';
-const BASE = { build: null, mini: true, roller: 1, cutaway: false, storeDoors: 1, night: false, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0, hoopsT: null, people: null };
+const BASE = { groundwork: 0, build: null, mini: true, roller: 1, cutaway: false, storeDoors: 1, night: false, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0, hoopsT: null, people: null };
 
 const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
 const lerp = (a, b, u) => a + (b - a) * u;
@@ -51,21 +51,38 @@ const BUILD_KEYS = [
   [50, [-13.5, 3.4, 27.5], [0.6, 2.6, 6.0], 42],
 ];
 const BUILD_END = 50;
-const INSTALL_SECS = 30; // video seconds for the 50 build seconds
+// video seconds -> build seconds, piecewise: the long floor-laying stretch is quickened most
+const REMAP = [
+  [0, 0],
+  [4, 7.2],
+  [8, 18.0],
+  [10.5, 24.0],
+  [14, 37.4],
+  [17, 45.0],
+  [20, 50],
+];
+const INSTALL_SECS = REMAP[REMAP.length - 1][0];
+function pw(pairs, x, from = 0, to = 1) {
+  const i = Math.max(0, Math.min(pairs.length - 2, pairs.findLastIndex((p) => x >= p[from])));
+  const [a, b] = [pairs[i], pairs[i + 1]];
+  return a[to] + ((x - a[from]) / (b[from] - a[from])) * (b[to] - a[to]);
+}
+const buildAt = (t) => pw(REMAP, t, 0, 1);
+const videoAt = (b) => pw(REMAP, b, 1, 0);
 
 const SEGMENTS = [
   {
     name: 'groundwork',
-    duration: 4,
-    state: () => ({ build: 0 }),
-    cam: (t) => camAt([[0, [-16, 17, 31], [0, 0.5, 4.5], 42], [4, [-12, 15, 27], [0, 1, 4.5], 42]], t),
-    captions: [[0, 4, 'Groundwork and services', 'Power, plus water and drainage for the accessible WC']],
+    duration: 5,
+    state: (t) => ({ build: 0, groundwork: Math.min(1, 0.08 + t / 3.6) }),
+    cam: (t) => camAt([[0, [-15, 15, 27], [-7, 0, -4], 44], [5, [-12, 13, 26], [-4, 0.4, 0], 42]], t),
+    captions: [[0.2, 5, 'Footprint set out, services in', 'Power, plus water and drainage for the accessible WC']],
   },
   {
     name: 'install',
     duration: INSTALL_SECS,
-    state: (t) => ({ build: (t / INSTALL_SECS) * BUILD_END }),
-    cam: (t) => camAt(BUILD_KEYS, (t / INSTALL_SECS) * BUILD_END),
+    state: (t) => ({ build: buildAt(t) }),
+    cam: (t) => camAt(BUILD_KEYS, buildAt(t)),
     // caption times in build seconds, converted below
     buildCaptions: [
       [0, 7.0, 'Containers craned into place', 'Installed in the school holidays'],
@@ -134,7 +151,7 @@ const SEGMENTS = [
   },
 ];
 for (const s of SEGMENTS) {
-  if (s.buildCaptions) s.captions = s.buildCaptions.map(([a, b, ...txt]) => [(a / BUILD_END) * s.duration, (b / BUILD_END) * s.duration, ...txt]);
+  if (s.buildCaptions) s.captions = s.buildCaptions.map(([a, b, ...txt]) => [videoAt(a), videoAt(b), ...txt]);
 }
 
 const w = +values.w;

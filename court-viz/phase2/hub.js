@@ -1756,7 +1756,77 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
   // scale figures for the stills: people names a set (basketball, 3x3, wheelchair, pickleball, dodgeball)
   const people = makePeople({ half: HALF, cw: HUB.cw, chair: sportsChair });
   scene.add(people.group);
-  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0, people: null };
+  // groundwork before the install (video only): the footprint set out on the playground, and a service trench
+  // from the reception's WC end back towards the school for water and drainage, fenced with orange barriers.
+  // Shown only while state.groundwork > 0 (0..1 is the trench's progress).
+  const groundwork = new THREE.Group();
+  {
+    const paint = std('#f2f2f2', { roughness: 0.9 });
+    const fx0 = HUB.x0 - HUB.cw, fx1 = HUB.x1 + HUB.cw;
+    for (const [x0, z0, x1, z1] of [[fx0, HUB.z0, fx1, HUB.z0], [fx0, HUB.z1, fx1, HUB.z1], [fx0, HUB.z0, fx0, HUB.z1], [fx1, HUB.z0, fx1, HUB.z1]]) {
+      const len = Math.hypot(x1 - x0, z1 - z0);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(x0 === x1 ? 0.08 : len, 0.004, x0 === x1 ? len : 0.08), paint);
+      m.position.set((x0 + x1) / 2, 0.006, (z0 + z1) / 2);
+      groundwork.add(m);
+    }
+    // corner pegs
+    for (const x of [fx0, fx1]) for (const z of [HUB.z0, HUB.z1]) {
+      const peg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.05), std('#c8a26a'));
+      peg.position.set(x, 0.25, z);
+      peg.castShadow = true;
+      groundwork.add(peg);
+    }
+  }
+  // trench: along x = TX, from the reception (z = TZ0) back to the fence line (z = TZ1)
+  const TX = HUB.x0 - HUB.cw / 2, TZ0 = 1.5, TZ1 = -11.4, TW = 0.7;
+  const soil = std('#4a3a2c', { roughness: 1 });
+  const trench = new THREE.Mesh(new THREE.BoxGeometry(TW, 0.01, 1), soil);
+  trench.receiveShadow = true;
+  groundwork.add(trench);
+  const spoil = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.65, 0.45, 10, 1), std('#5a4634', { roughness: 1 }));
+  spoil.castShadow = true;
+  groundwork.add(spoil);
+  // barriers: orange panels on feet, both sides of the trench, every 2 m
+  const orange = std('#f26a1b', { roughness: 0.6 });
+  const white = std('#f4f4f4', { roughness: 0.6 });
+  const barriers = [];
+  for (let z = TZ0; z > TZ1; z -= 2.05) {
+    for (const side of [-1, 1]) {
+      const b = new THREE.Group();
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 1.9), orange);
+      panel.position.y = 0.65;
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.12, 1.9), white);
+      band.position.y = 0.7;
+      for (const dz of [-0.9, 0.9]) {
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.08), orange);
+        foot.position.set(0, 0.03, dz);
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.4, 0.04), orange);
+        leg.position.set(0, 0.2, dz);
+        b.add(foot, leg);
+      }
+      b.add(panel, band);
+      b.traverse((o) => o.isMesh && (o.castShadow = true));
+      b.position.set(TX + side * (TW / 2 + 0.35), 0, z - 1.0);
+      b.userData.z = z;
+      groundwork.add(b);
+      barriers.push(b);
+    }
+  }
+  groundwork.visible = false;
+  scene.add(groundwork);
+  const applyGroundwork = (g) => {
+    groundwork.visible = g > 0;
+    if (!(g > 0)) return;
+    const u = THREE.MathUtils.clamp(g, 0, 1);
+    const len = Math.max(0.01, (TZ0 - TZ1) * u);
+    trench.scale.z = len;
+    trench.position.set(TX, 0.007, TZ0 - len / 2);
+    spoil.position.set(TX + TW / 2 + 1.1, 0.22, TZ0 - len + 0.6);
+    spoil.scale.setScalar(0.6 + 0.6 * u);
+    for (const b of barriers) b.visible = b.userData.z >= TZ0 - len - 0.2;
+  };
+
+  const state = { mini: true, hoopsT: null, rimFt: 10, padding: 'navy', roller: 1, cutaway: false, storeDoors: 1, night: false, build: null, netsT: 0, ballsT: 0, mainLowT: 0, court3: 0, people: null, groundwork: 0 };
   const portableRim = () => THREE.MathUtils.clamp(state.rimFt * FT, 2.4, 3.05);
   const apply = (next = {}) => {
     Object.assign(state, next);
@@ -1791,6 +1861,7 @@ export async function createPhase2(renderer, { logoUrl = 'assets/logo.png', mark
     if (arena && !BBALL) megaSlam.group.visible = false; // basketball only keeps the 3x3 hoop at the back wall
     labels.visible = state.cutaway && state.build === null;
     people.show(state.build === null && !state.cutaway ? state.people : null);
+    applyGroundwork(state.build !== null ? state.groundwork : 0);
     if (state.build === null) {
       // sports kit: nets rise out of the floor, balls drop onto the halfway line one after another
       const n = ease(state.netsT);
