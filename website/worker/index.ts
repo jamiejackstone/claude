@@ -33,6 +33,12 @@ interface Env {
   GHL_HR_WEBHOOK_URL?: string;
   GHL_HR_API_KEY?: string;
   GHL_CAREERS_WEBHOOK_URL?: string;
+  /** Hoop Heroes Schools GHL sub-account (Hero Dome enquiries). Both must be set. */
+  GHL_SCHOOLS_API_KEY?: string;
+  GHL_SCHOOLS_LOCATION_ID?: string;
+  /** Optional overrides for who receives Hero Dome enquiry emails. */
+  HERO_DOME_ENQUIRY_TO?: string;
+  HERO_DOME_ENQUIRY_CC?: string;
 }
 
 /** Main Hoop Heroes sub-account. Private Integration tokens call API v2 on this location. */
@@ -80,6 +86,7 @@ function escapeHtml(value: unknown): string {
 
 async function sendResendEmail(env: Env, payload: {
   to: string;
+  cc?: string[];
   subject: string;
   html: string;
   replyTo: string;
@@ -93,6 +100,7 @@ async function sendResendEmail(env: Env, payload: {
     body: JSON.stringify({
       from: 'Hoop Heroes Website <no-reply@notifications.hoopheroes.co.uk>',
       to: [payload.to],
+      ...(payload.cc && payload.cc.length ? { cc: payload.cc } : {}),
       subject: payload.subject,
       html: payload.html,
       reply_to: payload.replyTo,
@@ -508,6 +516,204 @@ async function handleWaitlist(request: Request, env: Env): Promise<Response> {
   return json({ success: true, data });
 }
 
+// ---------------------------------------------------------------------------
+// POST /api/hero-dome-enquiry — schools and partners asking about the Hero Dome.
+// 1. Upsert into the Hoop Heroes Schools GHL sub-account (when configured),
+//    then add tags and a note with the enquiry.
+// 2. Email the Schools and Hero Dome Lead, Jamie copied, reply-to the enquirer.
+// The enquiry succeeds if at least one of the two lands.
+
+const HERO_DOME_DEFAULT_TO = 'christie@hoopheroes.co.uk';
+const HERO_DOME_DEFAULT_CC = 'jamie@hoopheroes.co.uk';
+const HERO_DOME_TAGS = ['hero-dome', 'hero-dome-enquiry'];
+const HERO_DOME_ROLES = [
+  'Head teacher',
+  'School business manager',
+  'Governor or trustee',
+  'PE lead',
+  'Council or local authority',
+  'Sports club',
+  'Other',
+];
+const HERO_DOME_LIMITS: Record<string, number> = {
+  name: 120,
+  role: 60,
+  roleOther: 120,
+  organisation: 160,
+  town: 120,
+  email: 200,
+  phone: 40,
+  site: 3000,
+  heardFrom: 120,
+};
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface HeroDomeEnquiry {
+  name: string;
+  role: string;
+  roleOther: string;
+  organisation: string;
+  town: string;
+  email: string;
+  phone: string;
+  site: string;
+  heardFrom: string;
+}
+
+function parseHeroDomeEnquiry(body: Record<string, unknown>): { enquiry?: HeroDomeEnquiry; error?: string } {
+  const field = (key: keyof HeroDomeEnquiry) => asTrimmed(body[key]).slice(0, HERO_DOME_LIMITS[key]);
+  const enquiry: HeroDomeEnquiry = {
+    name: field('name'),
+    role: field('role'),
+    roleOther: field('roleOther'),
+    organisation: field('organisation'),
+    town: field('town'),
+    email: field('email').toLowerCase(),
+    phone: field('phone'),
+    site: field('site'),
+    heardFrom: field('heardFrom'),
+  };
+  if (!enquiry.name) return { error: 'Please tell us your name.' };
+  if (!HERO_DOME_ROLES.includes(enquiry.role)) return { error: 'Please choose your role.' };
+  if (!enquiry.organisation) return { error: 'Please tell us your school or organisation.' };
+  if (!enquiry.town) return { error: 'Please tell us your town or postcode.' };
+  if (!EMAIL_PATTERN.test(enquiry.email)) return { error: 'Please check your email address.' };
+  if (body.consent !== true) return { error: 'Please tick the box so we can contact you.' };
+  return { enquiry };
+}
+
+function heroDomeRoleText(enquiry: HeroDomeEnquiry): string {
+  return enquiry.role === 'Other' && enquiry.roleOther ? `Other: ${enquiry.roleOther}` : enquiry.role;
+}
+
+function heroDomeSummaryLines(enquiry: HeroDomeEnquiry): [string, string][] {
+  return [
+    ['Name', enquiry.name],
+    ['Role', heroDomeRoleText(enquiry)],
+    ['School or organisation', enquiry.organisation],
+    ['Town or postcode', enquiry.town],
+    ['Email', enquiry.email],
+    ['Phone', enquiry.phone || 'Not given'],
+    ['How they heard about us', enquiry.heardFrom || 'Not given'],
+    ['About their site', enquiry.site || 'Not given'],
+  ];
+}
+
+async function sendHeroDomeToGhl(env: Env, enquiry: HeroDomeEnquiry): Promise<boolean> {
+  const apiKey = env.GHL_SCHOOLS_API_KEY?.trim();
+  const locationId = env.GHL_SCHOOLS_LOCATION_ID?.trim();
+  if (!apiKey || !locationId) return false;
+  const { firstName, lastName } = splitName(enquiry.name);
+  const upsertBody: Record<string, unknown> = {
+    locationId,
+    firstName,
+    lastName,
+    name: enquiry.name,
+    email: enquiry.email,
+    companyName: enquiry.organisation,
+    source: 'Website Hero Dome enquiry',
+  };
+  const phone = normalizePhone(enquiry.phone);
+  if (phone) upsertBody.phone = phone;
+
+  const response = await ghlV2Request(apiKey, '/contacts/upsert', 'POST', upsertBody);
+  const text = await response.text();
+  if (!response.ok) {
+    console.error('[Hero Dome] GHL upsert failed:', response.status, text.slice(0, 400));
+    return false;
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = null;
+  }
+  const contactId = contactIdFromUpsert(data);
+  if (!contactId) {
+    console.warn('[Hero Dome] upsert succeeded but contact id was missing; tags and note not added');
+    return true;
+  }
+  await addMainLocationTags(apiKey, contactId, HERO_DOME_TAGS);
+  const note = ['Hero Dome enquiry from the website', '', ...heroDomeSummaryLines(enquiry).map(([k, v]) => `${k}: ${v}`)].join('\n');
+  try {
+    const noteResponse = await ghlV2Request(apiKey, `/contacts/${contactId}/notes`, 'POST', { body: note });
+    if (!noteResponse.ok) {
+      console.error('[Hero Dome] add note failed:', noteResponse.status, (await noteResponse.text()).slice(0, 400));
+    } else {
+      await noteResponse.text();
+    }
+  } catch (err) {
+    console.error('[Hero Dome] add note error:', err);
+  }
+  return true;
+}
+
+async function sendHeroDomeEmail(env: Env, enquiry: HeroDomeEnquiry): Promise<boolean> {
+  if (!env.RESEND_API_KEY) return false;
+  const to = env.HERO_DOME_ENQUIRY_TO?.trim() || HERO_DOME_DEFAULT_TO;
+  const ccRaw = env.HERO_DOME_ENQUIRY_CC === undefined ? HERO_DOME_DEFAULT_CC : env.HERO_DOME_ENQUIRY_CC;
+  const cc = ccRaw.split(',').map((item) => item.trim()).filter(Boolean);
+  const rows = heroDomeSummaryLines(enquiry)
+    .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;vertical-align:top"><strong>${escapeHtml(k)}</strong></td><td style="padding:4px 0;white-space:pre-wrap">${escapeHtml(v)}</td></tr>`)
+    .join('');
+  const html = `
+    <h1 style="font-family:sans-serif">New Hero Dome enquiry</h1>
+    <table style="font-family:sans-serif;font-size:14px">${rows}</table>
+    <p style="font-family:sans-serif;font-size:13px;color:#555">Reply to this email to answer ${escapeHtml(enquiry.name)} directly.</p>
+  `;
+  try {
+    const result = await sendResendEmail(env, {
+      to,
+      cc,
+      subject: `Hero Dome enquiry: ${enquiry.organisation} (${enquiry.name})`,
+      html,
+      replyTo: enquiry.email,
+    });
+    return result.ok;
+  } catch (err) {
+    console.error('[Hero Dome] email error:', err);
+    return false;
+  }
+}
+
+async function handleHeroDomeEnquiry(request: Request, env: Env): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    const parsed = await request.json();
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return json({ error: 'Invalid request' }, 400);
+  }
+
+  // Honeypot: real visitors never see or fill this field. Pretend it worked.
+  if (asTrimmed(body.website)) {
+    return json({ success: true });
+  }
+
+  const { enquiry, error } = parseHeroDomeEnquiry(body);
+  if (!enquiry) return json({ error }, 400);
+
+  const ghlConfigured = !!(env.GHL_SCHOOLS_API_KEY?.trim() && env.GHL_SCHOOLS_LOCATION_ID?.trim());
+  if (!ghlConfigured && !env.RESEND_API_KEY) {
+    console.error('[Hero Dome] neither GHL_SCHOOLS_* nor RESEND_API_KEY is configured');
+    return json({ error: 'Enquiries are not set up yet. Please email christie@hoopheroes.co.uk.' }, 500);
+  }
+
+  const [inGhl, emailed] = await Promise.all([
+    ghlConfigured ? sendHeroDomeToGhl(env, enquiry).catch((err) => {
+      console.error('[Hero Dome] GHL error:', err);
+      return false;
+    }) : Promise.resolve(false),
+    sendHeroDomeEmail(env, enquiry),
+  ]);
+
+  if (!inGhl && !emailed) {
+    return json({ error: 'Sorry, something went wrong. Please try again, or email christie@hoopheroes.co.uk.' }, 502);
+  }
+  return json({ success: true });
+}
+
 const LOCATION_NAMES: Record<string, string> = {
   aylesbury: 'Aylesbury',
   'great-missenden': 'Great Missenden',
@@ -636,7 +842,15 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: 'Accident Report | Hoop Heroes',
     description: 'Accident and incident reporting form for Hoop Heroes coaching staff.',
   },
+  '/hero-dome': {
+    title: 'Hero Dome | Your home court | Hoop Heroes',
+    description:
+      'The Hero Dome: a covered, year-round multi-sport court on your school playground. Installed, equipped and run by Hoop Heroes, at no cost to your school.',
+  },
 };
+
+/** Live but unlisted pages: served normally, kept out of search results. */
+const NOINDEX_PATHS = new Set(['/hero-dome']);
 
 function pageMetaFor(path: string): { title: string; description: string } | null {
   if (PAGE_META[path]) return PAGE_META[path];
@@ -745,6 +959,7 @@ export default {
           ghlKeySet: !!env.GHL_API_KEY,
           ghlApiVersion: 'v2',
           ghlLocationId: ghlLocationId(env),
+          heroDomeGhlConfigured: !!(env.GHL_SCHOOLS_API_KEY?.trim() && env.GHL_SCHOOLS_LOCATION_ID?.trim()),
         });
       }
 
@@ -754,6 +969,10 @@ export default {
 
       if (url.pathname === '/api/waitlist' && request.method === 'POST') {
         return await handleWaitlist(request, env);
+      }
+
+      if (url.pathname === '/api/hero-dome-enquiry' && request.method === 'POST') {
+        return await handleHeroDomeEnquiry(request, env);
       }
 
       if (url.pathname === '/go' || url.pathname.startsWith('/go/')) {
@@ -829,7 +1048,8 @@ export default {
 
       if (meta) {
         // Known page: inject its unique title, description, canonical and schema.
-        return injectMeta(htmlResponse(html, 200, sourceHeaders), meta, path === '/' ? '/' : path);
+        const extraHeaders = NOINDEX_PATHS.has(path) ? { 'X-Robots-Tag': 'noindex' } : undefined;
+        return injectMeta(htmlResponse(html, 200, sourceHeaders, extraHeaders), meta, path === '/' ? '/' : path);
       }
 
       // Unknown page: serve the SPA shell (which renders the 404 page) with a

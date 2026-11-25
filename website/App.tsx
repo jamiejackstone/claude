@@ -15,6 +15,7 @@ import { Mission } from './pages/Mission';
 import { AccidentReport } from './pages/AccidentReport';
 import { Gameday } from './pages/Gameday';
 import { GoRedirect } from './pages/GoRedirect';
+import { HeroDome } from './pages/HeroDome';
 
 // One Meta PageView per pathname, and only after consent. Search-only updates
 // (stored click ids written back onto the URL) stay on the same page.
@@ -250,6 +251,7 @@ export function AppShell() {
                 <Route path="/policies" element={<Policies />} />
                 <Route path="/accident" element={<AccidentReport />} />
                 <Route path="/3x3-gameday" element={<Gameday />} />
+                <Route path="/hero-dome" element={<HeroDome />} />
                 <Route path="/admin" element={<Navigate to="/" replace />} />
 
                 {/* QR Code Short Redirects */}
