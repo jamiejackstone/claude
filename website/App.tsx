@@ -205,7 +205,12 @@ const LocationsPluralRedirect: React.FC = () => {
   return <NotFound />;
 };
 
+// Standalone landing pages: no site menu or footer, so visitors stay on the page (Jamie, 25 Nov 2026)
+const STANDALONE_PATHS = new Set(['/hero-dome']);
+
 export function AppShell() {
+  const { pathname } = useLocation();
+  const standalone = STANDALONE_PATHS.has(pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname);
   return (
       <div className="flex flex-col min-h-screen">
         <ScrollToTop />
@@ -213,7 +218,7 @@ export function AppShell() {
         <ClickIdPreserver />
         <MetaPixelTracker />
         <CanonicalLinkTracker />
-        <Navbar />
+        {!standalone && <Navbar />}
         <main className="flex-grow">
             <Routes>
                 <Route path="/" element={<Home />} />
@@ -262,7 +267,7 @@ export function AppShell() {
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </main>
-        <Footer />
+        {!standalone && <Footer />}
         <CookieConsent />
       </div>
   );

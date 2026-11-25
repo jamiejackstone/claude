@@ -26,6 +26,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react';
+import { Logo } from '../components/Logo';
 
 // Hero Dome: unlisted landing page for schools (hoopheroes.co.uk/hero-dome).
 // Copy follows the schools deck and the KB "Head teacher concerns" sheet:
@@ -367,7 +368,7 @@ const EnquiryForm: React.FC = () => {
         <span className="text-slate-600 font-medium text-sm leading-relaxed">
           I'm happy for Hoop Heroes to contact me about the Hero Dome. We'll only use these details for this enquiry; see
           our{' '}
-          <a href="/policies?section=privacy" className="underline font-bold text-brand-dark">privacy policy</a>.
+          <a href="/policies?section=privacy" target="_blank" rel="noopener" className="underline font-bold text-brand-dark">privacy policy</a>.
         </span>
       </label>
 
@@ -390,6 +391,18 @@ const EnquiryForm: React.FC = () => {
 export const HeroDome: React.FC = () => (
   <div className="min-h-screen bg-white font-sans text-brand-dark selection:bg-brand-orange selection:text-brand-dark">
     {/* Hero */}
+    {/* Standalone header: logo and one button, no links away from the page */}
+    <header className="absolute top-0 inset-x-0 z-30">
+      <div className="container mx-auto px-4 py-4 md:py-5 flex items-center justify-between gap-4">
+        <Logo variant="light" />
+        <a
+          href="#enquire"
+          className="bg-brand-orange text-brand-dark font-display text-base md:text-xl uppercase px-4 md:px-6 py-2 md:py-3 rounded-full border-2 border-brand-dark shadow-sticker hover:shadow-sticker-hover transition-all whitespace-nowrap"
+        >
+          Register interest
+        </a>
+      </div>
+    </header>
     <section className="relative pt-32 pb-28 md:pb-36 bg-brand-dark text-white overflow-hidden">
       <div className="absolute inset-0 z-0">
         <img src={`${IMG}/outside.jpg`} alt="" className="w-full h-full object-cover opacity-45" />
@@ -716,5 +729,14 @@ export const HeroDome: React.FC = () => (
         </p>
       </div>
     </section>
+
+    <footer className="bg-[#0d1a38] text-slate-400 text-sm font-medium">
+      <div className="container mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center">
+        <p>© Hoop Heroes Region 1 Limited</p>
+        <a href="/policies?section=privacy" target="_blank" rel="noopener" className="underline hover:text-white">
+          Privacy policy
+        </a>
+      </div>
+    </footer>
   </div>
 );
