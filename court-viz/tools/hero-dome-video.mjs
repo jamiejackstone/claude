@@ -78,7 +78,7 @@ const SEGMENTS = [
     cam: (t) => camAt(BUILD_KEYS, buildAt(t)),
     // caption times in build seconds, converted below
     buildCaptions: [
-      [0, 7.0, 'Containers craned into place', 'Installed in the school holidays'],
+      [0, 7.0, 'Containers craned into place', 'Installed during a school holiday'],
       [7.2, 17.8, 'Canopy frames up, fabric over', 'A 17 m steel-framed fabric canopy'],
       [18.0, 23.8, 'End walls, roller door and fire exit', 'Covered and enclosed'],
       [24.0, 37.2, 'Court floor laid under cover', 'A tiled 14.8 × 10 m sports floor'],
@@ -112,14 +112,14 @@ const SEGMENTS = [
     duration: 4,
     state: () => ({ court3: 1, people: 'wheelchair' }),
     cam: (t) => camAt([[0, [-4.4, 1.9, 11.0], [0.2, 1.0, 0.0], 50], [4, [-3.2, 1.8, 10.2], [0.4, 1.0, 0.0], 48]], t),
-    captions: [[0.3, 4, 'Wheelchair basketball', 'Step-free, with sports wheelchairs stored on site']],
+    captions: [[0.3, 4, 'Wheelchair basketball', 'Step-free access onto the court']],
   },
   {
     name: 'pickleball',
     duration: 4,
     state: () => ({ mini: false, netsT: 1, people: 'pickleball' }),
     cam: (t) => camAt([[0, [-6.4, 4.8, 10.7], [1.8, 0.4, 2.6], 60], [4, [-5.2, 4.2, 10.2], [2.2, 0.4, 2.6], 58]], t),
-    captions: [[0.3, 4, 'Pickleball', 'Three junior courts']],
+    captions: [[0.3, 4, 'Pickleball', 'Junior pickleball with portable nets']],
   },
   {
     name: 'dodgeball',
