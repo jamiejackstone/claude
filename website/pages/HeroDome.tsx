@@ -559,7 +559,7 @@ export const HeroDome: React.FC = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card icon={Ruler} title="Space">A flat, hard area of about 22 × 12 m, such as a playground, MUGA or car park, with a little room around it.</Card>
           <Card icon={Layers} title="Surface">Tarmac or concrete, roughly level. The canopy sits on its containers rather than new foundations.</Card>
-          <Card icon={Mountain} title="Height">[clear height to be confirmed]: no cables, and any trees trimmed back.</Card>
+          <Card icon={Mountain} title="Height">About 8 m clear overhead: no cables, and any trees trimmed back.</Card>
           <Card icon={Truck} title="Access">Room for a lorry and a small crane on install day, and a route families can use out of hours without going through the school.</Card>
           <Card icon={Plug} title="Power">A supply nearby, from your school. We fit our own sub-meter and pay for the electricity we use.</Card>
           <Card icon={Droplets} title="Water and drainage">A connection nearby for the accessible WC. If there isn't one, we use a self-contained unit.</Card>
@@ -654,10 +654,10 @@ export const HeroDome: React.FC = () => (
         <SectionTitle kicker="Who we are" title="Who are Hoop Heroes?" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
-            // placeholders until Jamie supplies the checked figures (Integrator, 25 Nov 2026)
-            ['[figure to confirm]', 'children aged 5 to 15 playing with us every week'],
-            ['[figure to confirm]', 'towns across [areas to confirm]'],
-            ['[figure to confirm]', 'the year Hoop Heroes began'],
+            // figures checked by Jamie, 25 Nov 2026
+            ['400', 'children aged 5 to 15 playing with us every week'],
+            ['9', 'towns across Buckinghamshire, Oxfordshire and Berkshire'],
+            ['2018', 'the year Hoop Heroes began'],
           ].map(([big, text]) => (
             <div key={text} className="bg-brand-dark text-white rounded-[2rem] border-4 border-brand-dark shadow-sticker p-8 text-center">
               <p className={`font-display text-brand-orange leading-none ${big.startsWith('[') ? 'text-3xl md:text-4xl' : 'text-6xl md:text-7xl'}`}>{big}</p>
