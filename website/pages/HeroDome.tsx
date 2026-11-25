@@ -195,188 +195,6 @@ const Faq: React.FC<{ q: string; a: string }> = ({ q, a }) => (
   </div>
 );
 
-const inputClass =
-  'w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-brand-orange outline-none font-bold text-brand-dark transition-colors bg-white';
-const labelClass = 'block text-xs font-black uppercase text-brand-dark mb-1 ml-1 tracking-widest';
-
-const EnquiryForm: React.FC = () => {
-  const [form, setForm] = useState({
-    name: '',
-    role: '',
-    roleOther: '',
-    organisation: '',
-    town: '',
-    email: '',
-    phone: '',
-    site: '',
-    heardFrom: '',
-    consent: false,
-    website: '',
-  });
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const [error, setError] = useState('');
-
-  const set = (key: keyof typeof form) => (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-  ) => {
-    const value = event.target instanceof HTMLInputElement && event.target.type === 'checkbox'
-      ? event.target.checked
-      : event.target.value;
-    setForm({ ...form, [key]: value });
-  };
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError('');
-    setStatus('sending');
-    try {
-      const response = await fetch('/api/hero-dome-enquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) {
-        setError(data.error || 'Sorry, something went wrong. Please try again, or email christie@hoopheroes.co.uk.');
-        setStatus('idle');
-        return;
-      }
-      setStatus('sent');
-    } catch {
-      setError('Sorry, something went wrong. Please try again, or email christie@hoopheroes.co.uk.');
-      setStatus('idle');
-    }
-  };
-
-  if (status === 'sent') {
-    return (
-      <div className="text-center py-10" role="status">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-green-200">
-          <CheckCircle size={40} />
-        </div>
-        <h3 className="font-display text-4xl text-brand-dark uppercase mb-3">Thank you</h3>
-        <p className="text-slate-600 font-medium text-lg max-w-md mx-auto">
-          We've got your enquiry. Christie, our Schools and Hero Dome Lead, will be in touch to book a 20-minute discovery
-          call.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={submit} className="space-y-5" noValidate={false}>
-      {error && (
-        <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm font-bold" role="alert">
-          {error}
-        </div>
-      )}
-
-      {/* Honeypot: hidden from people, tempting to bots. */}
-      <div aria-hidden="true" className="absolute -left-[9999px] w-px h-px overflow-hidden">
-        <label>
-          Website
-          <input type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} />
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div>
-          <label htmlFor="hd-name" className={labelClass}>Your name</label>
-          <input id="hd-name" required autoComplete="name" className={inputClass} value={form.name} onChange={set('name')} />
-        </div>
-        <div>
-          <label htmlFor="hd-role" className={labelClass}>Your role</label>
-          <select id="hd-role" required className={inputClass} value={form.role} onChange={set('role')}>
-            <option value="" disabled>Choose one</option>
-            {ROLES.map((role) => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {form.role === 'Other' && (
-        <div>
-          <label htmlFor="hd-role-other" className={labelClass}>What's your role?</label>
-          <input id="hd-role-other" className={inputClass} value={form.roleOther} onChange={set('roleOther')} />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div>
-          <label htmlFor="hd-org" className={labelClass}>School or organisation</label>
-          <input id="hd-org" required autoComplete="organization" className={inputClass} value={form.organisation} onChange={set('organisation')} />
-        </div>
-        <div>
-          <label htmlFor="hd-town" className={labelClass}>Town or postcode</label>
-          <input id="hd-town" required autoComplete="postal-code" className={inputClass} value={form.town} onChange={set('town')} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div>
-          <label htmlFor="hd-email" className={labelClass}>Email</label>
-          <input id="hd-email" required type="email" autoComplete="email" className={inputClass} value={form.email} onChange={set('email')} />
-        </div>
-        <div>
-          <label htmlFor="hd-phone" className={labelClass}>Phone (optional)</label>
-          <input id="hd-phone" type="tel" autoComplete="tel" className={inputClass} value={form.phone} onChange={set('phone')} />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="hd-site" className={labelClass}>Tell us about your site (optional)</label>
-        <textarea
-          id="hd-site"
-          rows={4}
-          placeholder="For example: a flat playground, roughly how big, and anything you'd love the Dome to do for your school."
-          className={`${inputClass} resize-y`}
-          value={form.site}
-          onChange={set('site')}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="hd-heard" className={labelClass}>How did you hear about us? (optional)</label>
-        <select id="hd-heard" className={inputClass} value={form.heardFrom} onChange={set('heardFrom')}>
-          <option value="">Choose one</option>
-          {HEARD_FROM.map((item) => (
-            <option key={item} value={item}>{item}</option>
-          ))}
-        </select>
-      </div>
-
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          required
-          checked={form.consent}
-          onChange={set('consent')}
-          className="mt-1 w-5 h-5 accent-brand-orange shrink-0"
-        />
-        <span className="text-slate-600 font-medium text-sm leading-relaxed">
-          I'm happy for Hoop Heroes to contact me about the Hero Dome. We'll only use these details for this enquiry; see
-          our{' '}
-          <a href="/policies?section=privacy" target="_blank" rel="noopener" className="underline font-bold text-brand-dark">privacy policy</a>.
-        </span>
-      </label>
-
-      <button
-        type="submit"
-        disabled={status === 'sending'}
-        className="w-full bg-brand-dark text-white font-display text-2xl uppercase py-5 rounded-xl shadow-sticker hover:bg-brand-orange hover:text-brand-dark transition-all flex items-center justify-center gap-3 disabled:opacity-70"
-      >
-        {status === 'sending' ? (
-          <><Loader2 className="animate-spin" size={24} /> Sending...</>
-        ) : (
-          <>Send my enquiry <ArrowRight size={24} /></>
-        )}
-      </button>
-      <p className="text-center text-sm text-slate-500 font-medium">Nothing is binding. It's just the start of a conversation.</p>
-    </form>
-  );
-};
-
 export const HeroDome: React.FC = () => (
   <div className="min-h-screen bg-white font-sans text-brand-dark selection:bg-brand-orange selection:text-brand-dark">
     {/* Hero */}
@@ -693,7 +511,13 @@ export const HeroDome: React.FC = () => (
         </SectionTitle>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 bg-white rounded-[2.5rem] border-4 border-brand-dark shadow-sticker p-6 md:p-10 relative">
-            <EnquiryForm />
+            {/* GHL form in the Hoop Heroes Schools sub-account (Integrator, 25 Nov 2026) */}
+            <iframe
+              src="https://link.halomarketinghub.com/widget/form/tXe1Cz05oI5fjYWUo0oi"
+              style={{ width: '100%', minHeight: '900px', border: 'none' }}
+              title="Hero Dome – Register your interest"
+              loading="lazy"
+            />
           </div>
           <aside className="text-white space-y-6">
             <div className="bg-white/5 border-2 border-white/20 rounded-2xl p-6">
