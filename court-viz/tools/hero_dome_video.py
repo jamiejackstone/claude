@@ -170,7 +170,7 @@ def main(frames: Path, out: Path):
         dst = parts / f"clip{i:02d}.mp4"
         if srcs[0].is_dir():
             listing = parts / f"clip{i:02d}.txt"
-            listing.write_text("".join(f"file '{f}'\nduration {1 / fps:.6f}\n" for s in srcs for f in sorted(s.glob("*.jpg"))))
+            listing.write_text("".join(f"file '{f.resolve()}'\nduration {1 / fps:.6f}\n" for s in srcs for f in sorted(s.glob("*.jpg"))))
             inp = ["-f", "concat", "-safe", "0", "-i", str(listing)]
         else:
             inp = ["-loop", "1", "-framerate", str(fps), "-t", f"{dur:.3f}", "-i", str(srcs[0])]
