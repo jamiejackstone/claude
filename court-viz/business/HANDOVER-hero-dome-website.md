@@ -102,7 +102,7 @@ Suggested form fields, for Jamie to confirm: name, role (head, business manager,
 - **Areas, in order:** Aylesbury and Wendover, then Bicester, then the High Wycombe area (Marlow, Great Missenden, Holmer Green). One Dome per area.
 - **Process:** discovery call, site visit, agree in principle (non-binding letter and governors' pack), planning and consents, install in the school holidays, open.
 - **Contacts on materials:** Jamie Stone, Founder; Christie Lothamer, Schools and Hero Dome Lead. Their work emails are on the deck's last slide.
-- **Hoop Heroes facts:** 400+ children aged 5 to 15 a week, 10 towns across Bucks, Oxfordshire, Herts and Berkshire, since 2018. Coaches DBS checked and Basketball England safeguarding accredited.
+- **Hoop Heroes facts:** 400+ children aged 5 to 15 a week, 9 locations across Bucks, Oxfordshire, Herts and Berkshire, since 2018. Coaches DBS checked and Basketball England safeguarding accredited.
 
 ## 6. Never put these on a public page
 
@@ -162,4 +162,4 @@ From the KB sheet "Head teacher concerns & our answers v0.1":
 - Open: whether to remove the "Day 1 … about 5 days" timings from the shared 3D concept (it breaks the no-timings rule). Jamie's feedback on the live page is to follow.
 - `npm test`: "Holmer Green ticker missing after JS" fails on the website branch without these changes too. Not caused by this work.
 - 25 Nov, later: Integrator's 13 wording edits are pushed to the website branch (9557dd5). FAQ answers now always show and `/hero-dome` is prerendered (still noindex, not in the sitemap). Video captions were updated to match. Placeholders are live for the clear height and the three "Who are Hoop Heroes?" figures, waiting for Jamie's checked numbers. The enquiry form is unchanged and will be repointed once Integrator has the GHL Schools embed code.
-- Figures live on the page: 400 children a week, 10 towns across Buckinghamshire, Oxfordshire, Hertfordshire and Berkshire, since 2018, and a clear height of about 8 m. Jamie (25 Nov): keep "10 towns" and Herts in every place, so the deck and the homepage stay as they are.
+- Figures live on the page: 400 children a week, 9 locations across Buckinghamshire, Oxfordshire, Hertfordshire and Berkshire, since 2018, and a clear height of about 8 m. Jamie (25 Nov): use "9 locations" (not "10 towns") and keep Herts everywhere. Changed in the deck source, its text version and the microsite draft; the published deck artifact still needs republishing.

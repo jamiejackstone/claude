@@ -240,7 +240,7 @@ Answers use only decided terms. Placeholders on the slide are still open.
 
 **On the slide**
 - **400+** children aged 5 to 15 playing with us every week
-- **10** towns across Bucks, Oxfordshire, Herts and Berkshire
+- **9** locations across Bucks, Oxfordshire, Herts and Berkshire
 - **2018:** the year Hoop Heroes began
 - Age groups: Rookies 5–7, Rising Stars 8–11, Ballers 12–15
 - Every coach DBS checked and Basketball England safeguarding accredited. Fully insured.
