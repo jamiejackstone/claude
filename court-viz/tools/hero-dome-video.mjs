@@ -89,7 +89,7 @@ const SEGMENTS = [
       [7.2, 17.8, 'Canopy frames up, fabric over', 'A 17 m steel-framed fabric canopy'],
       [18.0, 23.8, 'End walls, roller door and fire exit', 'Covered and enclosed'],
       [24.0, 37.2, 'Court floor laid under cover', 'A tiled 14.8 × 10 m sports floor'],
-      [37.4, 45.5, 'Fit-out', 'Lights, boards, reception and kit storage'],
+      [37.4, 44.6, 'Fit-out', 'Lights, boards, reception and kit storage'],
       [45.8, 50, 'Ready to open', 'Your Hero Dome'],
     ],
   },
