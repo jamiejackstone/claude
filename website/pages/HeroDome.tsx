@@ -464,7 +464,7 @@ export const HeroDome: React.FC = () => (
             {[
               [Ruler, 'Footprint', 'About 22 × 12 m (270 m²), roughly the size of a tennis court.'],
               [Sun, 'Covered, enclosed and LED lit', "With a 14.8 × 10 m court, so rain doesn't cancel sessions."],
-              [Package, 'Secure storage', 'Dedicated storage for all the kit.'],
+              [Package, 'Equipment supplied and stored', 'All the kit for basketball, pickleball, dodgeball and more, supplied by us and stored inside the Dome.'],
               [Smile, 'Planned reception and viewing area', 'With an accessible WC and step-free access onto the court.'],
               [Layers, 'No groundwork required*', 'The canopy sits on its own containers on your existing playground.'],
               [Truck, 'Installed during a school holiday', 'Once planning and consents are in place. Fully removable, leaving your playground as we found it.'],
@@ -529,7 +529,7 @@ export const HeroDome: React.FC = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card icon={Sun} title="The Dome, installed">Covered, lit and enclosed. Free.</Card>
           <Card icon={School} title="The school day is yours">We run our sessions outside school hours.</Card>
-          <Card icon={Package} title="Kit for every sport">Hoops, nets and balls, stored on site.</Card>
+          <Card icon={Package} title="Equipment supplied">Everything for basketball, pickleball, dodgeball and more, supplied by us and stored inside the Dome.</Card>
           <Card icon={Wrench} title="Upkeep and insurance">Maintenance, inspections and safety checks.</Card>
           <Card icon={Users} title="After-school clubs">Run, staffed and booked by us. No office admin.</Card>
           <Card icon={Heart} title="Holiday camps">For your families, run by our coaches.</Card>
