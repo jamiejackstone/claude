@@ -72,13 +72,6 @@ const videoAt = (b) => pw(REMAP, b, 1, 0);
 
 const SEGMENTS = [
   {
-    name: 'groundwork',
-    duration: 5,
-    state: (t) => ({ build: 0, groundwork: Math.min(1, 0.08 + t / 3.6) }),
-    cam: (t) => camAt([[0, [-15, 15, 27], [-7, 0, -4], 44], [5, [-12, 13, 26], [-4, 0.4, 0], 42]], t),
-    captions: [[0.2, 5, 'Footprint set out, services in', 'Power, plus water and drainage for the accessible WC']],
-  },
-  {
     name: 'install',
     duration: INSTALL_SECS,
     state: (t) => ({ build: buildAt(t) }),
