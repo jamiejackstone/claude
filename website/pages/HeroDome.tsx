@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Building2,
   CheckCircle,
-  ChevronDown,
   ClipboardList,
   CloudRain,
   Droplets,
@@ -160,11 +159,11 @@ const HeroDomeVideo: React.FC = () => {
 const FAQS: { q: string; a: string }[] = [
   {
     q: 'Do we need planning permission?',
-    a: 'Yes. Our team prepares, submits and pays for the planning application and the other consents, and we give you a pack for your governors.',
+    a: 'Yes. The Dome stays up for longer than the 28 days a temporary structure is allowed without permission, so it needs a time-limited planning application. We prepare and pay for the planning application and consents, with your agreement at each stage, and give you a pack for your governors.',
   },
   {
     q: 'Will it disrupt the school?',
-    a: 'We install in the school holidays. The canopy sits on its own containers on your existing playground. The accessible WC needs a water and drain connection, so we look at that with you on the site visit and plan any groundwork around your school.',
+    a: 'We install during a school holiday, once planning and consents are in place. The canopy sits on its own containers on your existing playground. The accessible WC needs a water and drain connection, so we look at that with you on the site visit and plan any groundwork around your school.',
   },
   {
     q: 'Who uses it, and when?',
@@ -172,7 +171,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Will strangers be on site with our pupils?',
-    a: 'Our sessions run outside school hours, with DBS-checked coaches trained in Basketball England safeguarding. Access and safeguarding arrangements are agreed with your designated safeguarding lead.',
+    a: 'Our sessions run outside school hours. Every coach is DBS checked, and our head coaches are first-aid and safeguarding trained. Access and safeguarding arrangements are agreed with your designated safeguarding lead.',
   },
   {
     q: "What's the catch?",
@@ -188,23 +187,13 @@ const FAQS: { q: string; a: string }[] = [
   },
 ];
 
-const Faq: React.FC<{ q: string; a: string }> = ({ q, a }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="bg-white rounded-2xl border-4 border-brand-dark shadow-sticker overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="w-full flex items-center justify-between gap-4 text-left px-6 py-5 font-display text-xl md:text-2xl uppercase text-brand-dark"
-      >
-        {q}
-        <ChevronDown size={24} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && <p className="px-6 pb-6 -mt-1 text-slate-600 font-medium leading-relaxed">{a}</p>}
-    </div>
-  );
-};
+// Answers are always shown and in the page HTML, so they read without JavaScript (Integrator, 25 Nov 2026)
+const Faq: React.FC<{ q: string; a: string }> = ({ q, a }) => (
+  <div className="bg-white rounded-2xl border-4 border-brand-dark shadow-sticker overflow-hidden">
+    <h3 className="px-6 pt-5 pb-2 font-display text-xl md:text-2xl uppercase text-brand-dark">{q}</h3>
+    <p className="px-6 pb-6 text-slate-600 font-medium leading-relaxed">{a}</p>
+  </div>
+);
 
 const inputClass =
   'w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-brand-orange outline-none font-bold text-brand-dark transition-colors bg-white';
@@ -474,11 +463,11 @@ export const HeroDome: React.FC = () => (
           <ul className="lg:col-span-2 space-y-4">
             {[
               [Ruler, 'Footprint', 'About 22 × 12 m (270 m²), roughly the size of a tennis court.'],
-              [Sun, 'Covered, enclosed, LED lit', 'With a 14.8 × 10 m court, usable whatever the weather.'],
+              [Sun, 'Covered, enclosed and LED lit', "With a 14.8 × 10 m court, so rain doesn't cancel sessions."],
               [Package, 'Secure storage', 'Dedicated storage for all the kit.'],
-              [Smile, 'Reception and viewing', 'With an accessible WC, step-free onto the court.'],
+              [Smile, 'Planned reception and viewing area', 'With an accessible WC and step-free access onto the court.'],
               [Layers, 'On your existing playground', 'The canopy sits on its own containers.'],
-              [Truck, 'Installed in the school holidays', 'Fully removable, with your playground made good.'],
+              [Truck, 'Installed during a school holiday', 'Once planning and consents are in place. Fully removable, with your playground made good.'],
             ].map(([Icon, title, text]) => {
               const I = Icon as React.ElementType;
               return (
@@ -506,7 +495,7 @@ export const HeroDome: React.FC = () => (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { name: 'Basketball', colour: SPORT.basketball, img: 'threes.jpg', text: 'Mini court across the width, 3x3 on one hoop, and wheelchair basketball.' },
-            { name: 'Pickleball', colour: SPORT.pickleball, img: 'pickle.jpg', text: 'Three junior courts with portable nets.' },
+            { name: 'Pickleball', colour: SPORT.pickleball, img: 'pickle.jpg', text: 'Junior pickleball with portable nets.' },
             { name: 'Dodgeball', colour: SPORT.dodgeball, img: 'dodge.jpg', text: 'Soft foam balls, for all ages.' },
           ].map((sport) => (
             <div key={sport.name} className="rounded-[2rem] overflow-hidden border-4 border-brand-dark shadow-sticker bg-white flex flex-col">
@@ -523,8 +512,8 @@ export const HeroDome: React.FC = () => (
           <div>
             <h3 className="font-display text-3xl md:text-4xl uppercase text-brand-orange mb-3">Built for everyone</h3>
             <p className="text-slate-300 font-medium text-lg leading-relaxed">
-              Level, step-free access onto the court, an accessible WC in the reception, and sports wheelchairs kept in
-              the storage, so wheelchair basketball is part of the week, not an add-on.
+              Level, step-free access onto the court and an accessible WC in the reception, so wheelchair basketball can
+              be part of the week, not an add-on.
             </p>
           </div>
           <Figure src={`${IMG}/wheelchair.jpg`} alt="Concept render: wheelchair 3x3 basketball in the Hero Dome" />
@@ -544,11 +533,11 @@ export const HeroDome: React.FC = () => (
           <Card icon={Users} title="After-school clubs">Run, staffed and booked by us. No office admin.</Card>
           <Card icon={Heart} title="Holiday camps">For your families, run by our coaches.</Card>
           <Card icon={FileText} title="Planning and paperwork">Planning, consents and a pack for your governors.</Card>
-          <Card icon={ShieldCheck} title="Safeguarding first">DBS-checked, Basketball England accredited coaches.</Card>
+          <Card icon={ShieldCheck} title="Safeguarding first">Every coach is DBS checked, and our head coaches are first-aid and safeguarding trained. Fully insured.</Card>
         </div>
         <p className="text-center text-slate-600 font-medium mt-8">
-          Optional extras: PE lesson support and teacher CPD from our coaches, which can be paid from your PE and sport
-          funding.
+          Optional extras: PE lesson support and teacher CPD from our coaches, which may be eligible for PE and sport
+          premium funding.
         </p>
         <div className="mt-12 bg-brand-orange rounded-[2rem] border-4 border-brand-dark shadow-sticker p-8 md:p-12 text-center">
           <p className="font-display text-8xl md:text-9xl leading-none text-brand-dark">£0</p>
@@ -570,9 +559,9 @@ export const HeroDome: React.FC = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card icon={Ruler} title="Space">A flat, hard area of about 22 × 12 m, such as a playground, MUGA or car park, with a little room around it.</Card>
           <Card icon={Layers} title="Surface">Tarmac or concrete, roughly level. The canopy sits on its containers rather than new foundations.</Card>
-          <Card icon={Mountain} title="Height">About 8 m clear overhead: no cables, and any trees trimmed back.</Card>
+          <Card icon={Mountain} title="Height">[clear height to be confirmed]: no cables, and any trees trimmed back.</Card>
           <Card icon={Truck} title="Access">Room for a lorry and a small crane on install day, and a route families can use out of hours without going through the school.</Card>
-          <Card icon={Plug} title="Power">A supply nearby, from your school. We fit our own sub-meter.</Card>
+          <Card icon={Plug} title="Power">A supply nearby, from your school. We fit our own sub-meter and pay for the electricity we use.</Card>
           <Card icon={Droplets} title="Water and drainage">A connection nearby for the accessible WC. If there isn't one, we use a self-contained unit.</Card>
         </div>
       </div>
@@ -640,8 +629,8 @@ export const HeroDome: React.FC = () => (
             ['Discovery call', 'Twenty minutes: your school, your site and what you would love it to do.'],
             ['Site visit', 'Thirty minutes on your playground: space, access and power.'],
             ['Agree in principle', 'A short, non-binding letter, with a pack for your governors.'],
-            ['Planning and consents', 'Our team prepares, submits and pays for everything.'],
-            ['Install', 'In the school holidays.'],
+            ['Planning and consents', 'We prepare and pay for the planning application and consents, with your agreement at each stage.'],
+            ['Install', 'During a school holiday, once planning and consents are in place.'],
             ['Open', 'Your Hero Dome, ready for your pupils and community.'],
           ].map(([title, text], index) => (
             <li key={title} className="bg-white rounded-[2rem] border-4 border-brand-dark shadow-sticker p-6 flex gap-4">
@@ -665,18 +654,19 @@ export const HeroDome: React.FC = () => (
         <SectionTitle kicker="Who we are" title="Who are Hoop Heroes?" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
-            ['400+', 'children aged 5 to 15 playing with us every week'],
-            ['10', 'towns across Bucks, Oxfordshire, Herts and Berkshire'],
-            ['2018', 'the year Hoop Heroes began'],
+            // placeholders until Jamie supplies the checked figures (Integrator, 25 Nov 2026)
+            ['[figure to confirm]', 'children aged 5 to 15 playing with us every week'],
+            ['[figure to confirm]', 'towns across [areas to confirm]'],
+            ['[figure to confirm]', 'the year Hoop Heroes began'],
           ].map(([big, text]) => (
-            <div key={big} className="bg-brand-dark text-white rounded-[2rem] border-4 border-brand-dark shadow-sticker p-8 text-center">
-              <p className="font-display text-6xl md:text-7xl text-brand-orange leading-none">{big}</p>
+            <div key={text} className="bg-brand-dark text-white rounded-[2rem] border-4 border-brand-dark shadow-sticker p-8 text-center">
+              <p className={`font-display text-brand-orange leading-none ${big.startsWith('[') ? 'text-3xl md:text-4xl' : 'text-6xl md:text-7xl'}`}>{big}</p>
               <p className="font-medium text-slate-300 mt-2">{text}</p>
             </div>
           ))}
         </div>
         <p className="text-center text-slate-600 font-medium text-lg max-w-2xl mx-auto">
-          Every coach is DBS checked and Basketball England safeguarding accredited. Fully insured.
+          Every coach is DBS checked, and our head coaches are first-aid and safeguarding trained. Fully insured.
         </p>
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <Figure src={`${IMG}/topdown.jpg`} alt="Concept render: the Hero Dome from above" />
@@ -686,7 +676,7 @@ export const HeroDome: React.FC = () => (
             </h3>
             <p className="text-slate-600 font-medium text-lg leading-relaxed">
               We place one Hero Dome in each area, so every Dome serves its whole local community. We're starting in
-              Aylesbury and Wendover, then Bicester, then the High Wycombe area.
+              Buckinghamshire and Oxfordshire.
             </p>
           </div>
         </div>

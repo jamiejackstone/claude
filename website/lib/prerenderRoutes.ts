@@ -20,8 +20,13 @@ export const SITEMAP_PATHS = [
   ...LOCATION_SLUGS.map((slug) => `/location/${slug}`),
 ] as const;
 
+/** Unlisted pages that are still prerendered (served as HTML) but stay out of the sitemap. */
+export const UNLISTED_PRERENDER_PATHS = ['/hero-dome'] as const;
+
+export const PRERENDER_PATHS = [...SITEMAP_PATHS, ...UNLISTED_PRERENDER_PATHS] as const;
+
 export function isPrerenderPath(path: string): boolean {
-  return (SITEMAP_PATHS as readonly string[]).includes(path);
+  return (PRERENDER_PATHS as readonly string[]).includes(path);
 }
 
 export function prerenderAssetPath(path: string): string {

@@ -5,7 +5,7 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { StaticRouter } from 'react-router-dom/server';
 import { AppShell } from '../App';
-import { SITEMAP_PATHS, SPA_SHELL_MARKER, prerenderMarker } from '../lib/prerenderRoutes';
+import { PRERENDER_PATHS, SITEMAP_PATHS, SPA_SHELL_MARKER, prerenderMarker } from '../lib/prerenderRoutes';
 
 const websiteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(websiteRoot, 'dist');
@@ -51,7 +51,7 @@ function main(): void {
   const spaShell = shell.replace(ROOT_DIV, `${SPA_SHELL_MARKER}${ROOT_DIV}`);
   fs.writeFileSync(path.join(distDir, '_shell.html'), spaShell);
 
-  for (const route of SITEMAP_PATHS) {
+  for (const route of PRERENDER_PATHS) {
     const markup = renderToString(
       <React.StrictMode>
         <StaticRouter location={route}>
