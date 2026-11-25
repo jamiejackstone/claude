@@ -163,7 +163,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Will it disrupt the school?',
-    a: 'We install during a school holiday, once planning and consents are in place. The canopy sits on its own containers on your existing playground. The accessible WC needs a water and drain connection, so we look at that with you on the site visit and plan any groundwork around your school.',
+    a: 'We install during a school holiday, once planning and consents are in place. No groundwork is required*: the canopy sits on its own containers on your existing playground. We look at the accessible WC with you on the site visit.',
   },
   {
     q: 'Who uses it, and when?',
@@ -183,7 +183,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if it doesn't work out?",
-    a: 'At the end of the agreement we remove everything and make good your playground.',
+    a: 'At the end of the agreement we remove everything and leave your playground as we found it.',
   },
 ];
 
@@ -466,8 +466,8 @@ export const HeroDome: React.FC = () => (
               [Sun, 'Covered, enclosed and LED lit', "With a 14.8 × 10 m court, so rain doesn't cancel sessions."],
               [Package, 'Secure storage', 'Dedicated storage for all the kit.'],
               [Smile, 'Planned reception and viewing area', 'With an accessible WC and step-free access onto the court.'],
-              [Layers, 'On your existing playground', 'The canopy sits on its own containers.'],
-              [Truck, 'Installed during a school holiday', 'Once planning and consents are in place. Fully removable, with your playground made good.'],
+              [Layers, 'No groundwork required*', 'The canopy sits on its own containers on your existing playground.'],
+              [Truck, 'Installed during a school holiday', 'Once planning and consents are in place. Fully removable, leaving your playground as we found it.'],
             ].map(([Icon, title, text]) => {
               const I = Icon as React.ElementType;
               return (
@@ -482,6 +482,7 @@ export const HeroDome: React.FC = () => (
             })}
           </ul>
         </div>
+        <p className="text-center text-slate-500 text-sm font-medium mt-6">*For the Dome itself. The accessible WC connects to water and drainage nearby, or we use a self-contained WC.</p>
       </div>
     </section>
 
@@ -558,12 +559,13 @@ export const HeroDome: React.FC = () => (
         </SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card icon={Ruler} title="Space">A flat, hard area of about 22 × 12 m, such as a playground, with a little room around it.</Card>
-          <Card icon={Layers} title="Surface">Tarmac or concrete, roughly level. The canopy sits on its containers rather than new foundations.</Card>
+          <Card icon={Layers} title="Surface">Tarmac or concrete, roughly level. No groundwork required*: the canopy sits on its own containers.</Card>
           <Card icon={Mountain} title="Height">About 8 m clear overhead: no cables, and any trees trimmed back.</Card>
           <Card icon={Truck} title="Access">Room for a lorry and a small crane on install day, and a route families can use out of hours without going through the school.</Card>
           <Card icon={Plug} title="Power">A supply nearby, from your school. We fit our own sub-meter and pay for the electricity we use.</Card>
-          <Card icon={Droplets} title="Water and drainage">A connection nearby for the accessible WC. If there isn't one, we use a self-contained unit.</Card>
+          <Card icon={Droplets} title="Water and drainage">The accessible WC connects to water and drainage nearby, or we use a self-contained WC.</Card>
         </div>
+        <p className="text-center text-slate-500 text-sm font-medium mt-6">*For the Dome itself. The accessible WC connects to water and drainage nearby, or we use a self-contained WC.</p>
       </div>
     </section>
 
@@ -576,7 +578,7 @@ export const HeroDome: React.FC = () => (
             ['How long', '5 years, with the option to renew for 5 more.'],
             ['Your way out', "A break with 12 months' notice, any time after year 3."],
             ['Annual review', "Every year we review how it's going, together."],
-            ['At the end', 'We remove everything and make good your playground.'],
+            ['At the end', 'We remove everything and leave your playground as we found it.'],
           ].map(([title, text]) => (
             <div key={title} className="bg-white/5 border-2 border-white/20 rounded-2xl p-6">
               <p className="font-display text-2xl uppercase text-brand-orange mb-2">{title}</p>
