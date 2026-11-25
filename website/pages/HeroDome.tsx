@@ -329,7 +329,7 @@ const EnquiryForm: React.FC = () => {
         <textarea
           id="hd-site"
           rows={4}
-          placeholder="For example: a flat playground or MUGA, roughly how big, and anything you'd love the Dome to do for your school."
+          placeholder="For example: a flat playground, roughly how big, and anything you'd love the Dome to do for your school."
           className={`${inputClass} resize-y`}
           value={form.site}
           onChange={set('site')}
@@ -557,7 +557,7 @@ export const HeroDome: React.FC = () => (
           We check all of this together on a 30-minute site visit.
         </SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card icon={Ruler} title="Space">A flat, hard area of about 22 × 12 m, such as a playground, MUGA or car park, with a little room around it.</Card>
+          <Card icon={Ruler} title="Space">A flat, hard area of about 22 × 12 m, such as a playground, with a little room around it.</Card>
           <Card icon={Layers} title="Surface">Tarmac or concrete, roughly level. The canopy sits on its containers rather than new foundations.</Card>
           <Card icon={Mountain} title="Height">About 8 m clear overhead: no cables, and any trees trimmed back.</Card>
           <Card icon={Truck} title="Access">Room for a lorry and a small crane on install day, and a route families can use out of hours without going through the school.</Card>
