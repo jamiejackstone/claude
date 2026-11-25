@@ -153,3 +153,11 @@ From the KB sheet "Head teacher concerns & our answers v0.1":
 5. **Form fields:** the handover set (section 4) as it stands. Privacy tick box: "I'm happy for Hoop Heroes to contact me about the Hero Dome. We'll only use these details for this enquiry; see our privacy policy." (link to /policies).
 6. **Visuals:** concept stills plus one video of about 60–75 seconds, made from the multi-sport 3D concept and playing muted on a loop on the page (changed 25 Nov from an embedded 3D viewer). The installation comes first: empty playground, services and groundwork, containers arrive, canopy goes up, court laid, doors open. The tour follows: outside, door up, reception, basketball, 3x3, wheelchair 3x3, pickleball, dodgeball, end card. No timings or dates on screen, and nothing suggesting there is no groundwork (the WC needs drainage). Reuse the installation tooling behind `renders/video/hoop-hub-installation.mp4`. Adapt `tools/assemble_video.py`. An optional "Explore the 3D concept" link may stay.
 7. **Deck PDF:** not on the page. Christie sends it after first contact.
+
+## 10. Status (25 November 2026)
+
+- Merged to `claude/website-recreation-hosting-ubxxtr` with Jamie's OK (commits e1c5c76, 2e44747, 62118c7): `/hero-dome` page, `POST /api/hero-dome-enquiry`, the 57-second video (`public/video/hero-dome.mp4`), and the page as a standalone landing page with no site menu or footer.
+- Video source: `court-viz/renders/video/hero-dome.mp4` (1080p). Built with `tools/hero-dome-video.mjs` and `tools/hero_dome_video.py`. Jamie cut the groundwork opening, so it starts with the containers craning in.
+- Before the form works live: `RESEND_API_KEY` in Cloudflare (email to Christie, Jamie cc'd). Add `GHL_SCHOOLS_API_KEY` and `GHL_SCHOOLS_LOCATION_ID` once Jamie has created the Schools sub-account.
+- Open: whether to remove the "Day 1 … about 5 days" timings from the shared 3D concept (it breaks the no-timings rule). Jamie's feedback on the live page is to follow.
+- `npm test`: "Holmer Green ticker missing after JS" fails on the website branch without these changes too. Not caused by this work.
