@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   Building2,
@@ -111,6 +111,50 @@ const Figure: React.FC<{ src: string; alt: string; caption?: string; className?:
     )}
   </figure>
 );
+
+// The fly-through: muted, looping, and only fetched once it is near the screen so the page stays light.
+const HeroDomeVideo: React.FC = () => {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [load, setLoad] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || load) return;
+    if (!('IntersectionObserver' in window)) {
+      setLoad(true);
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setLoad(true);
+        io.disconnect();
+      }
+    }, { rootMargin: '300px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [load]);
+  useEffect(() => {
+    if (load) ref.current?.play().catch(() => undefined);
+  }, [load]);
+  return (
+    <figure className="rounded-[2rem] overflow-hidden border-4 border-brand-dark shadow-sticker bg-brand-dark mb-10">
+      <video
+        ref={ref}
+        className="w-full aspect-video object-cover block"
+        poster="/video/hero-dome-poster.jpg"
+        muted
+        loop
+        playsInline
+        controls
+        preload="none"
+        aria-label="Concept video: the Hero Dome being installed on a school playground, then a tour inside"
+        src={load ? '/video/hero-dome.mp4' : undefined}
+      />
+      <figcaption className="bg-brand-dark text-white text-sm font-bold uppercase tracking-wider px-5 py-3">
+        From empty playground to open: installation and a look inside. Concept visuals.
+      </figcaption>
+    </figure>
+  );
+};
 
 const FAQS: { q: string; a: string }[] = [
   {
@@ -400,13 +444,14 @@ export const HeroDome: React.FC = () => (
       </div>
     </section>
 
-    {/* Look inside: stills now, fly-through video to follow */}
+    {/* Look inside: the fly-through video, then stills and the key facts */}
     <section id="look-inside" className="py-16 md:py-20 bg-brand-light scroll-mt-24">
       <div className="container mx-auto px-4 max-w-6xl">
         <SectionTitle kicker="Look inside" title="What goes on your playground">
           A steel-framed fabric canopy on its own containers, over a tiled sports floor. Covered, enclosed and lit, with
           reception at one end and kit storage at the other.
         </SectionTitle>
+        <HeroDomeVideo />
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
           <div className="lg:col-span-3 grid grid-cols-2 gap-4">
             <Figure className="col-span-2" src={`${IMG}/mini.jpg`} alt="Concept render: children playing basketball inside the Hero Dome" caption="Inside: mini basketball" />
