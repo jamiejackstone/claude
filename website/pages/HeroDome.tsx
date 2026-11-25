@@ -656,7 +656,7 @@ export const HeroDome: React.FC = () => (
           {[
             // figures checked by Jamie, 25 Nov 2026
             ['400', 'children aged 5 to 15 playing with us every week'],
-            ['9', 'towns across Buckinghamshire, Oxfordshire and Berkshire'],
+            ['10', 'towns across Buckinghamshire, Oxfordshire, Hertfordshire and Berkshire'],
             ['2018', 'the year Hoop Heroes began'],
           ].map(([big, text]) => (
             <div key={text} className="bg-brand-dark text-white rounded-[2rem] border-4 border-brand-dark shadow-sticker p-8 text-center">
