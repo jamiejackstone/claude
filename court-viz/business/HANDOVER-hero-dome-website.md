@@ -143,3 +143,13 @@ From the KB sheet "Head teacher concerns & our answers v0.1":
 - Never push to `claude/website-recreation-hosting-ubxxtr` or deploy without Jamie's explicit OK. Pull first; other agents merge there.
 - Don't open a pull request unless Jamie asks.
 - Don't send emails or save to Drive without showing Jamie a draft first.
+
+## 9. Decisions from Jamie (25 November 2026)
+
+1. **Visibility:** unlisted for now. Live page, not in the menu or sitemap, `noindex`. Add to the menu once Christie confirms an end-to-end test.
+2. **Address:** hoopheroes.co.uk/hero-dome.
+3. **Enquiry email:** to Christie, Jamie cc'd. Reply-to is the person who enquired.
+4. **GHL:** a new "Hoop Heroes – Schools" sub-account (Jamie to create). Use Companies for schools inside it. Tags `hero-dome` and `hero-dome-enquiry`; no pipeline or workflow yet. The Worker reads the location ID and API key from their own settings, so the target account can change without a code change. The main GHL account is not used for school contacts.
+5. **Form fields:** the handover set (section 4) as it stands. Privacy tick box: "I'm happy for Hoop Heroes to contact me about the Hero Dome. We'll only use these details for this enquiry; see our privacy policy." (link to /policies).
+6. **Visuals:** concept stills plus the embedded multi-sport 3D concept, loaded on tap so it doesn't slow the page.
+7. **Deck PDF:** not on the page. Christie sends it after first contact.
