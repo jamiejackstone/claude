@@ -92,7 +92,7 @@ Each slide below gives the on-slide text, a description of any image, and the pr
 ### Slide 6: What your site needs
 
 **On the slide**
-- **Space:** a flat, hard area of about 22 × 12 m, such as a playground, MUGA or car park, with a little room around it.
+- **Space:** a flat, hard area of about 22 × 12 m, such as a playground, with a little room around it.
 - **Surface:** tarmac or concrete, roughly level. The canopy sits on its containers rather than new foundations.
 - **Height:** about 8 m clear overhead: no cables, and any trees trimmed back.
 - **Access:** room for a lorry and a small crane on install day, and a route families can use out of hours without going through the school.
