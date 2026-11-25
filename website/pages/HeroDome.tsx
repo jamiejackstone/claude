@@ -463,7 +463,7 @@ export const HeroDome: React.FC = () => (
           <ul className="lg:col-span-2 space-y-4">
             {[
               [Ruler, 'Footprint', 'About 22 × 12 m (270 m²), roughly the size of a tennis court.'],
-              [Sun, 'Covered, enclosed and LED lit', "With a 14.8 × 10 m court, so rain doesn't cancel sessions."],
+              [Sun, 'Heated, ventilated and LED lit', "Covered and enclosed, with a 14.8 × 10 m court, so it can be used all year round and rain doesn't cancel sessions."],
               [Package, 'Equipment supplied and stored', 'All the kit for basketball, pickleball, dodgeball and more, supplied by us and stored inside the Dome.'],
               [Smile, 'Planned reception and viewing area', 'With an accessible WC and step-free access onto the court.'],
               [Layers, 'No groundwork required*', 'The canopy sits on its own containers on your existing playground.'],
@@ -527,7 +527,7 @@ export const HeroDome: React.FC = () => (
       <div className="container mx-auto px-4 max-w-6xl">
         <SectionTitle kicker="For head teachers and governors" title="Done for you, from day one" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card icon={Sun} title="The Dome, installed">Covered, lit and enclosed. Free.</Card>
+          <Card icon={Sun} title="The Dome, installed">Covered and enclosed, heated, ventilated and lit, for use all year round. Free.</Card>
           <Card icon={School} title="The school day is yours">We run our sessions outside school hours.</Card>
           <Card icon={Package} title="Equipment supplied">Everything for basketball, pickleball, dodgeball and more, supplied by us and stored inside the Dome.</Card>
           <Card icon={Wrench} title="Upkeep and insurance">Maintenance, inspections and safety checks.</Card>
