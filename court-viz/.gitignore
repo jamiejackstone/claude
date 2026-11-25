@@ -8,3 +8,6 @@ dist-final/
 dist-covered/
 dist-bball/
 __pycache__/
+renders/video/hero-dome-frames/
+renders/video/hero-dome-parts/
+renders/video/hero-dome-preview/

@@ -354,6 +354,16 @@ addEventListener('resize', () => {
 // ---------- render-mode hooks for the still exporter
 window.hub = hub;
 window.renderShot = (id, extra) => { setShot(id); if (extra) hub.apply(extra); render(); };
+// video frames: an explicit camera and hub state, e.g. renderCam([x,y,z], [x,y,z], 42, { build: 12.5 })
+window.renderCam = (pos, target, fov, state) => {
+  if (state) hub.apply(state);
+  camera = persp;
+  setFov(fov);
+  persp.position.set(...pos);
+  persp.lookAt(...target);
+  if (bokeh) bokeh.enabled = false;
+  render();
+};
 
 if (renderMode) {
   persp.aspect = W / H;
