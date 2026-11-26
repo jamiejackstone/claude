@@ -314,7 +314,7 @@ export const HeroDome: React.FC = () => (
         </SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { name: 'Basketball', colour: SPORT.basketball, img: 'threes.jpg', text: 'Mini basketball for ages 5 to 12, full-size 3x3 for 13 and over, and wheelchair basketball.' },
+            { name: 'Basketball', colour: SPORT.basketball, img: 'threes.jpg', text: 'Mini basketball, 3x3 basketball and wheelchair basketball.' },
             { name: 'Pickleball and mini tennis', colour: SPORT.pickleball, img: 'pickle.jpg', text: 'Junior pickleball and mini tennis with portable nets.' },
             { name: 'Dodgeball', colour: SPORT.dodgeball, img: 'dodge.jpg', text: 'Soft foam balls, for all ages.' },
           ].map((sport) => (
