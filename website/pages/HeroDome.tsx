@@ -225,8 +225,8 @@ export const HeroDome: React.FC = () => (
         </h1>
         <p className="font-display text-3xl md:text-4xl uppercase mt-2 mb-6">Your home court</p>
         <p className="text-xl md:text-2xl text-slate-200 max-w-2xl mx-auto font-medium leading-snug">
-          A year-round, covered multi-sport court on your school playground. Installed, equipped and run by Hoop Heroes,
-          at no cost to your school.
+          A year-round, covered multi-sport facility on your school playground, with all the equipment included.
+          Installed, equipped and run by Hoop Heroes, at no cost to your school.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
           <a
@@ -282,7 +282,7 @@ export const HeroDome: React.FC = () => (
             {[
               [Ruler, 'Footprint', 'About 22 × 12 m (270 m²), roughly the size of a tennis court.'],
               [Sun, 'Heated, ventilated and LED lit', "Covered and enclosed, with a 14.8 × 10 m court, so it can be used all year round and rain doesn't cancel sessions."],
-              [Package, 'Equipment supplied and stored', 'All the kit for basketball, pickleball, dodgeball and more, supplied by us and stored inside the Dome.'],
+              [Package, 'The Kit Pod', 'A secure storage unit with the equipment for every sport, supplied by us and kept on site.'],
               [Smile, 'Planned reception and viewing area', 'With an accessible WC and step-free access onto the court.'],
               [Layers, 'No groundwork required*', 'The canopy sits on its own containers on your existing playground.'],
               [Truck, 'Installed during a school holiday', 'Once planning and consents are in place. Fully removable, leaving your playground as we found it.'],
@@ -307,13 +307,14 @@ export const HeroDome: React.FC = () => (
     {/* Sports */}
     <section className="py-16 md:py-20 bg-white">
       <div className="container mx-auto px-4 max-w-6xl">
-        <SectionTitle kicker="One space, many sports" title="Basketball first, and more">
-          Basketball is our flagship. Roll the hoops away and the same court hosts pickleball, dodgeball and a whole range
-          of other sports, all year round.
+        <SectionTitle kicker="Basketball first, truly multi-sport" title="One court, so many sports">
+          Basketball is our heart. Roll the hoops away and the same court opens up a whole range of sports, all year
+          round, with the focus on fun, inclusion, variety and creativity: something for the pupils who don't find their
+          sport in football, rugby or cricket.
         </SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { name: 'Basketball', colour: SPORT.basketball, img: 'threes.jpg', text: 'Mini court across the width, 3x3 on one hoop, and wheelchair basketball.' },
+            { name: 'Basketball', colour: SPORT.basketball, img: 'threes.jpg', text: 'Mini basketball for ages 5 to 12, full-size 3x3 for 13 and over, and wheelchair basketball.' },
             { name: 'Pickleball and mini tennis', colour: SPORT.pickleball, img: 'pickle.jpg', text: 'Junior pickleball and mini tennis with portable nets.' },
             { name: 'Dodgeball', colour: SPORT.dodgeball, img: 'dodge.jpg', text: 'Soft foam balls, for all ages.' },
           ].map((sport) => (
@@ -330,7 +331,26 @@ export const HeroDome: React.FC = () => (
             <h3 className="font-display text-3xl uppercase mb-3">And a whole range more</h3>
             <p className="text-slate-600 font-medium mb-4">One covered court, used all year round for many other sports, such as:</p>
             <ul className="flex flex-wrap gap-2">
-              {['Badminton', '3v3 football', 'Dance', 'Gymnastics', 'Martial arts', 'Fitness'].map((name) => (
+              {['Benchball', 'Badminton', 'Martial arts', 'Dance', 'Gymnastics', 'Fitness'].map((name) => (
+                <li key={name} className="bg-white border-2 border-brand-dark rounded-full px-3 py-1 text-sm font-bold text-brand-dark">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        {/* The Kit Pod: the equipment that makes it a complete multi-sport facility (Jamie, 26 Nov 2026) */}
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-brand-orange rounded-[2rem] border-4 border-brand-dark p-6 md:p-10 shadow-sticker">
+          <Figure src={`${IMG}/kit.jpg`} alt="Concept render: the kit storage open at the end of the court" />
+          <div>
+            <p className="font-bold uppercase tracking-widest text-sm text-brand-dark mb-2">Everything in the box</p>
+            <h3 className="font-display text-4xl md:text-5xl uppercase text-brand-dark leading-none mb-4">The Kit Pod</h3>
+            <p className="text-brand-dark font-semibold text-lg leading-relaxed mb-5">
+              Every Hero Dome comes with The Kit Pod: a secure storage unit full of equipment, supplied and looked after
+              by us. Not just a basketball court, but a complete multi-sport facility with the kit included.
+            </p>
+            <ul className="flex flex-wrap gap-2">
+              {['Basketball', 'Pickleball', 'Mini tennis', 'Dodgeball', 'Benchball', 'Badminton', 'Martial arts', 'Dance', 'Gymnastics', 'Fitness'].map((name) => (
                 <li key={name} className="bg-white border-2 border-brand-dark rounded-full px-3 py-1 text-sm font-bold text-brand-dark">
                   {name}
                 </li>
@@ -358,7 +378,7 @@ export const HeroDome: React.FC = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card icon={Sun} title="The Dome, installed">Covered and enclosed, heated, ventilated and lit, for use all year round. Free.</Card>
           <Card icon={School} title="The school day is yours">We run our sessions outside school hours.</Card>
-          <Card icon={Package} title="Equipment supplied">Everything for basketball, pickleball, dodgeball and more, supplied by us and stored inside the Dome.</Card>
+          <Card icon={Package} title="The Kit Pod">Equipment for every sport, supplied by us and kept on site.</Card>
           <Card icon={Wrench} title="Upkeep and insurance">Maintenance, inspections and safety checks.</Card>
           <Card icon={Users} title="After-school clubs">Run, staffed and booked by us. No office admin.</Card>
           <Card icon={Heart} title="Holiday camps">For your families, run by our coaches.</Card>
