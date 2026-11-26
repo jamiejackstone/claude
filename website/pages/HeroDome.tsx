@@ -314,7 +314,7 @@ export const HeroDome: React.FC = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             { name: 'Basketball', colour: SPORT.basketball, img: 'threes.jpg', text: 'Mini court across the width, 3x3 on one hoop, and wheelchair basketball.' },
-            { name: 'Pickleball', colour: SPORT.pickleball, img: 'pickle.jpg', text: 'Junior pickleball with portable nets.' },
+            { name: 'Pickleball and mini tennis', colour: SPORT.pickleball, img: 'pickle.jpg', text: 'Junior pickleball and mini tennis with portable nets.' },
             { name: 'Dodgeball', colour: SPORT.dodgeball, img: 'dodge.jpg', text: 'Soft foam balls, for all ages.' },
           ].map((sport) => (
             <div key={sport.name} className="rounded-[2rem] overflow-hidden border-4 border-brand-dark shadow-sticker bg-white flex flex-col">
