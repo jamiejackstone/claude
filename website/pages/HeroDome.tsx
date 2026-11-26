@@ -308,10 +308,10 @@ export const HeroDome: React.FC = () => (
     <section className="py-16 md:py-20 bg-white">
       <div className="container mx-auto px-4 max-w-6xl">
         <SectionTitle kicker="One space, many sports" title="Basketball first, and more">
-          Basketball is our flagship. Roll the hoops away and the same court hosts pickleball and dodgeball, each with its
-          own line colour.
+          Basketball is our flagship. Roll the hoops away and the same court hosts pickleball, dodgeball and a whole range
+          of other sports, all year round.
         </SectionTitle>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             { name: 'Basketball', colour: SPORT.basketball, img: 'threes.jpg', text: 'Mini court across the width, 3x3 on one hoop, and wheelchair basketball.' },
             { name: 'Pickleball', colour: SPORT.pickleball, img: 'pickle.jpg', text: 'Junior pickleball with portable nets.' },
@@ -326,6 +326,17 @@ export const HeroDome: React.FC = () => (
               </div>
             </div>
           ))}
+          <div className="rounded-[2rem] border-4 border-dashed border-brand-dark bg-brand-light p-6 flex flex-col">
+            <h3 className="font-display text-3xl uppercase mb-3">And a whole range more</h3>
+            <p className="text-slate-600 font-medium mb-4">One covered court, used all year round for many other sports, such as:</p>
+            <ul className="flex flex-wrap gap-2">
+              {['Badminton', '3v3 football', 'Dance', 'Gymnastics', 'Martial arts', 'Fitness'].map((name) => (
+                <li key={name} className="bg-white border-2 border-brand-dark rounded-full px-3 py-1 text-sm font-bold text-brand-dark">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-brand-dark text-white rounded-[2rem] border-4 border-brand-dark p-6 md:p-10 shadow-sticker">
           <div>
