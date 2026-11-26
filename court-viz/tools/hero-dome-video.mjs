@@ -98,14 +98,14 @@ const SEGMENTS = [
     duration: 5,
     state: () => ({ people: 'basketball' }),
     cam: (t) => camAt([[0, [0.4, 2.3, 17.5], [0, 2.1, 6], 50], [1.8, [0, 2.1, 10.5], [-0.8, 2.0, 3], 52], [5, [4.6, 1.8, 10.7], [-2.2, 2.0, 0.8], 54]], t),
-    captions: [[0.8, 5, 'Basketball first', 'A mini court across the width']],
+    captions: [[0.8, 5, 'Basketball first', 'Mini basketball for ages 5 to 12']],
   },
   {
     name: '3x3',
     duration: 4,
     state: () => ({ court3: 1, people: '3x3' }),
     cam: (t) => camAt([[0, [3.6, 2.2, 10.2], [-0.4, 1.6, -1.0], 50], [4, [2.2, 2.0, 9.4], [-0.6, 1.6, -1.0], 48]], t),
-    captions: [[0.3, 4, '3x3 on one hoop', '']],
+    captions: [[0.3, 4, 'Full-size 3x3', 'For ages 13 and over']],
   },
   {
     name: 'wheelchair',
@@ -119,7 +119,7 @@ const SEGMENTS = [
     duration: 4,
     state: () => ({ mini: false, netsT: 1, people: 'pickleball' }),
     cam: (t) => camAt([[0, [-6.4, 4.8, 10.7], [1.8, 0.4, 2.6], 60], [4, [-5.2, 4.2, 10.2], [2.2, 0.4, 2.6], 58]], t),
-    captions: [[0.3, 4, 'Pickleball', 'Junior pickleball with portable nets']],
+    captions: [[0.3, 4, 'Pickleball and mini tennis', 'With portable nets']],
   },
   {
     name: 'dodgeball',
