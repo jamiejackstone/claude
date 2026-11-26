@@ -98,14 +98,14 @@ const SEGMENTS = [
     duration: 5,
     state: () => ({ people: 'basketball' }),
     cam: (t) => camAt([[0, [0.4, 2.3, 17.5], [0, 2.1, 6], 50], [1.8, [0, 2.1, 10.5], [-0.8, 2.0, 3], 52], [5, [4.6, 1.8, 10.7], [-2.2, 2.0, 0.8], 54]], t),
-    captions: [[0.8, 5, 'Basketball first', 'Mini basketball for ages 5 to 12']],
+    captions: [[0.8, 5, 'Basketball first', 'Mini basketball']],
   },
   {
     name: '3x3',
     duration: 4,
     state: () => ({ court3: 1, people: '3x3' }),
     cam: (t) => camAt([[0, [3.6, 2.2, 10.2], [-0.4, 1.6, -1.0], 50], [4, [2.2, 2.0, 9.4], [-0.6, 1.6, -1.0], 48]], t),
-    captions: [[0.3, 4, 'Full-size 3x3', 'For ages 13 and over']],
+    captions: [[0.3, 4, '3x3 basketball', '']],
   },
   {
     name: 'wheelchair',
