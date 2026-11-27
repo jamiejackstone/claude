@@ -1,12 +1,15 @@
 import React from 'react';
 import { ExternalLink, AlertTriangle } from 'lucide-react';
 import { DeferredEmbed } from './DeferredEmbed';
+import { CHRISTMAS_BREAK } from '../constants';
 import {
+  christmasBreakVenue,
   dateOnLondonDay,
   directionsUrl,
   getActiveBannerNotices,
   getActiveScheduleNotices,
   getActiveTemporaryVenues,
+  isWithinLondonWindow,
   mapEmbedSrc,
   temporaryVenueAnchorId,
   temporaryVenueHeading,
@@ -14,7 +17,7 @@ import {
 } from '../lib/venueNotice';
 import type { LocationData, TemporaryVenue } from '../types';
 
-export const DATE_SLOTS = ['banner-notices', 'temporary-venues', 'schedule-notices'] as const;
+export const DATE_SLOTS = ['banner-notices', 'temporary-venues', 'schedule-notices', 'christmas-closure'] as const;
 export type DateSlot = (typeof DATE_SLOTS)[number];
 
 export function LocationTicker({ text, href }: { text: string; href?: string }) {
@@ -125,17 +128,45 @@ export function DateSlotMarker({ slot }: { slot: DateSlot }) {
   return <div data-hh-date-slot={slot} hidden />;
 }
 
+export function ChristmasClosureNotice({ slug }: { slug?: string }) {
+  const venue = christmasBreakVenue(slug);
+  return (
+    <section className="bg-brand-orange border-4 border-brand-dark rounded-2xl shadow-sticker p-4 md:p-6 text-left">
+      <p className="font-bold text-brand-dark leading-snug text-base md:text-lg">{CHRISTMAS_BREAK.text}</p>
+      {venue && (
+        <div className="mt-4 flex flex-wrap gap-x-10 gap-y-3">
+          <div>
+            <p className="font-display uppercase tracking-wide text-brand-dark text-lg leading-none">Last class</p>
+            <p className="mt-1 font-bold text-brand-dark">{venue.lastClass}</p>
+          </div>
+          <div>
+            <p className="font-display uppercase tracking-wide text-brand-dark text-lg leading-none">Back</p>
+            <p className="mt-1 font-bold text-brand-dark">{venue.back}</p>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function DateWindowOutlet({
   slot,
   location,
   londonDay,
 }: {
   slot: DateSlot;
-  location: LocationData;
+  location: LocationData | null;
   londonDay: string | null;
 }) {
   if (!londonDay) return <DateSlotMarker slot={slot} />;
   const now = dateOnLondonDay(londonDay);
+
+  if (slot === 'christmas-closure') {
+    if (!isWithinLondonWindow(CHRISTMAS_BREAK.showFrom, CHRISTMAS_BREAK.showUntil, now)) return null;
+    return <ChristmasClosureNotice slug={location?.slug} />;
+  }
+
+  if (!location) return null;
 
   if (slot === 'banner-notices') {
     const notices = getActiveBannerNotices(location, now);

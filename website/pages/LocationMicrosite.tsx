@@ -326,6 +326,7 @@ export const LocationMicrosite: React.FC<LocationMicrositeProps> = ({ forcedId }
         {/* Main Content Column */}
         <div className="lg:col-span-8 space-y-6">
           
+          <DateWindowOutlet slot="christmas-closure" location={location} londonDay={londonDay} />
           {location.newsTicker && <LocationTicker text={location.newsTicker} />}
           <DateWindowOutlet slot="banner-notices" location={location} londonDay={londonDay} />
           <DateWindowOutlet slot="temporary-venues" location={location} londonDay={londonDay} />

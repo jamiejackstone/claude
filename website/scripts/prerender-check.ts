@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, type Browser } from 'playwright';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
-import { LOCATIONS } from '../constants';
+import { CHRISTMAS_BREAK, CHRISTMAS_BREAK_BY_SLUG, LOCATIONS } from '../constants';
 import { HOME_DOCUMENT_TITLE, locationDocumentTitle, locationH1Text } from '../lib/locationSchema';
 import { isPrerenderPath, LOCATION_SLUGS, SITEMAP_PATHS, prerenderMarker } from '../lib/prerenderRoutes';
 import { injectServedHtml } from '../lib/dateWindowInject';
@@ -108,6 +108,10 @@ function assertBuilt(): void {
       assert(html.includes('data-hh-embed="Location Map"'), `built ${route} is missing the map placeholder`);
       assert(!/<iframe\b[^>]*(goteamup|maps\.google|reputationhub)/i.test(html), `built ${route} baked a booking, map, or review iframe`);
     }
+    if (route === '/' || route.startsWith('/location/')) {
+      assert(html.includes('data-hh-date-slot="christmas-closure"'), `built ${route} is missing the Christmas marker`);
+      assert(!html.includes(CHRISTMAS_BREAK.text), `built ${route} baked the Christmas notice`);
+    }
   }
   const shell = fs.readFileSync(path.join(distDir, '_shell.html'), 'utf8');
   assert(shell.includes('<!--hh-spa-shell-->'), 'spa shell marker');
@@ -117,6 +121,7 @@ function assertBuilt(): void {
 
 async function assertServed(worker: Unstable_DevWorker): Promise<void> {
   const origin = `http://127.0.0.1:${worker.port}`;
+  const today = new Date();
   for (const route of SITEMAP_PATHS) {
     for (const suffix of route === '/' ? [''] : ['', '/']) {
       const response = await worker.fetch(`${origin}${route}${suffix}`);
@@ -135,10 +140,27 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
       } else {
         assert(blocks.length === 0, `${route} should not gain JSON-LD`);
       }
+      if (route === '/' || route.startsWith('/location/')) {
+        const showing = isWithinLondonWindow(CHRISTMAS_BREAK.showFrom, CHRISTMAS_BREAK.showUntil, today);
+        assert(
+          html.includes(CHRISTMAS_BREAK.text) === showing,
+          `served ${route} Christmas notice ${showing ? 'missing' : 'still present'} for London ${londonDate(today)}`,
+        );
+        assert(!html.includes('data-hh-date-slot="christmas-closure"'), `served ${route} left the Christmas marker`);
+        if (showing && route.startsWith('/location/')) {
+          const slug = route.split('/')[2];
+          const dates = CHRISTMAS_BREAK_BY_SLUG[slug];
+          assert(dates, `missing Christmas dates for ${slug}`);
+          assert(html.includes('>Last class<') && html.includes(dates.lastClass), `${route} is missing its last class`);
+          assert(html.includes('>Back<') && html.includes(dates.back), `${route} is missing its return date`);
+        }
+        if (showing && route === '/') {
+          assert(!html.includes('>Last class<'), 'homepage should not show a venue last class');
+        }
+      }
     }
   }
 
-  const today = new Date();
   for (const slug of ['aylesbury', 'holmer-green'] as const) {
     const location = LOCATIONS.find((item) => item.slug === slug);
     if (!location) throw new Error(`missing ${slug}`);
@@ -248,12 +270,27 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
         if (slug === 'holmer-green') {
           const notice = 'Temporary venue on Tue 10, 17 and 24 Nov: Sir William Ramsay School - see details';
           const parking = 'Please use the main vehicle entrance off Rose Avenue. Park in the school car parks or the front layby, not the Community Centre car park.';
+          const venue = location.temporaryVenues?.[0];
+          const active = !!venue && isWithinLondonWindow(venue.showFrom, venue.showUntil, new Date());
           const rendered = visibleText.toLowerCase();
-          assert(rendered.includes(notice.toLowerCase()), 'Holmer Green ticker missing after JS');
-          assert(rendered.includes('temporary venue: tuesday 10 november, tuesday 17 november, tuesday 24 november'), 'Holmer Green box heading missing after JS');
-          assert(rendered.includes(parking.toLowerCase()), 'Holmer Green parking missing after JS');
-          assert(servedHtml.includes(notice), 'served Holmer Green HTML is missing the ticker');
-          assert(servedHtml.includes(parking), 'served Holmer Green HTML is missing parking');
+          if (active) {
+            assert(rendered.includes(notice.toLowerCase()), 'Holmer Green ticker missing after JS');
+            assert(rendered.includes('temporary venue: tuesday 10 november, tuesday 17 november, tuesday 24 november'), 'Holmer Green box heading missing after JS');
+            assert(rendered.includes(parking.toLowerCase()), 'Holmer Green parking missing after JS');
+            assert(servedHtml.includes(notice), 'served Holmer Green HTML is missing the ticker');
+            assert(servedHtml.includes(parking), 'served Holmer Green HTML is missing parking');
+          } else {
+            assert(!rendered.includes(notice.toLowerCase()), 'Holmer Green ticker still showing after its window');
+            assert(!servedHtml.includes(notice), 'served Holmer Green HTML still has the ticker after its window');
+          }
+        }
+        if (isWithinLondonWindow(CHRISTMAS_BREAK.showFrom, CHRISTMAS_BREAK.showUntil, new Date())) {
+          assert(visibleText.includes(CHRISTMAS_BREAK.text), `${route} is missing the Christmas notice after JS`);
+          const dates = CHRISTMAS_BREAK_BY_SLUG[slug];
+          assert(dates, `missing Christmas dates for ${slug}`);
+          assert(visibleText.toLowerCase().includes('last class'), `${route} is missing the Last class heading after JS`);
+          assert(visibleText.includes(dates.lastClass), `${route} is missing ${dates.lastClass} after JS`);
+          assert(visibleText.includes(dates.back), `${route} is missing ${dates.back} after JS`);
         }
       } else if (route === '/') {
         assert((await page.title()) === HOME_DOCUMENT_TITLE, `home title was "${await page.title()}"`);
@@ -262,6 +299,10 @@ async function assertServed(worker: Unstable_DevWorker): Promise<void> {
         assert(!homeText.includes('80+ REVIEWS'), 'home still shows 80+ REVIEWS');
         assert(!homeText.includes('5.0'), 'home still shows 5.0');
         assert(!homeText.includes('80+'), 'home still shows 80+');
+        if (isWithinLondonWindow(CHRISTMAS_BREAK.showFrom, CHRISTMAS_BREAK.showUntil, new Date())) {
+          assert(homeText.includes(CHRISTMAS_BREAK.text), 'homepage is missing the Christmas notice after JS');
+          assert(!homeText.toLowerCase().includes('last class'), 'homepage shows a venue last class after JS');
+        }
       }
 
       await page.close();

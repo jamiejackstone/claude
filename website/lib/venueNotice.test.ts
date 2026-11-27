@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
-import { LOCATIONS } from '../constants.ts';
+import { CHRISTMAS_BREAK, CHRISTMAS_BREAK_BY_SLUG, LOCATIONS } from '../constants.ts';
 import { ClassSessionList } from '../components/ClassSessionList.tsx';
 import { DateWindowOutlet } from '../components/DateWindows.tsx';
 import { TemporaryVenueCard } from '../pages/LocationMicrosite.tsx';
@@ -10,7 +10,9 @@ import {
   activeTemporaryVenues,
   directionsUrl,
   bakedDateWindowPhrases,
+  christmasBreakVenue,
   dateOnLondonDay,
+  isChristmasBreakActive,
   getActiveBannerNotices,
   getActiveLocationNotices,
   getActiveScheduleNotices,
@@ -652,5 +654,62 @@ assert(
   !bakedDateWindowPhrases(holmer).includes('Sir William Ramsay School'),
   'the permanent backup-venue name is not flagged as baked date-window copy',
 );
+
+assertEqual(CHRISTMAS_BREAK.text, 'Christmas break: no classes at any location from Mon 21 Dec to Sun 3 Jan. Weekday classes return Mon 4 Jan, Sunday classes return Sun 10 Jan.', 'Christmas sentence is verbatim');
+assertEqual(CHRISTMAS_BREAK.showFrom, '2026-11-27', 'Christmas notice starts on 27 Nov 2026');
+assertEqual(CHRISTMAS_BREAK.showUntil, '2027-01-03', 'Christmas notice ends on 3 Jan 2027 inclusive');
+assert(isChristmasBreakActive(new Date('2026-11-27T00:00:00Z')), 'Christmas notice shows from the start of 27 Nov London');
+assert(isChristmasBreakActive(new Date('2027-01-03T23:30:00Z')), 'Christmas notice shows through the end of 3 Jan London');
+assert(!isChristmasBreakActive(new Date('2026-11-26T23:30:00Z')), 'Christmas notice is hidden on 26 Nov London');
+assert(!isChristmasBreakActive(new Date('2027-01-04T00:00:00Z')), 'Christmas notice is hidden from the start of 4 Jan London');
+
+const christmasDates: Record<string, { lastClass: string; back: string }> = {
+  aylesbury: { lastClass: 'Mon 14 Dec', back: 'Mon 4 Jan' },
+  'great-missenden': { lastClass: 'Mon 14 Dec', back: 'Mon 4 Jan' },
+  'holmer-green': { lastClass: 'Tue 15 Dec', back: 'Tue 5 Jan' },
+  bicester: { lastClass: 'Sat 19 Dec', back: 'Sat 9 Jan' },
+  wendover: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  oxford: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  marlow: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  tring: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  sandhurst: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+};
+assertEqual(CHRISTMAS_BREAK_BY_SLUG, christmasDates, 'each location has its last class and return date');
+assertEqual(
+  LOCATIONS.map((location) => location.slug).sort(),
+  Object.keys(christmasDates).sort(),
+  'the Christmas dates cover every location and nothing else',
+);
+assertEqual(christmasBreakVenue(undefined), null, 'the homepage has no venue dates');
+assertEqual(christmasBreakVenue('aylesbury'), christmasDates.aylesbury, 'Aylesbury returns Mon 4 Jan');
+assert(bakedDateWindowPhrases(aylesbury).includes(CHRISTMAS_BREAK.text), 'the Christmas sentence is date-window copy');
+assert(bakedDateWindowPhrases(aylesbury).includes('Mon 14 Dec'), 'Aylesbury last class is date-window copy');
+assert(bakedDateWindowPhrases(sandhurst).includes(sandhurstMakeup), 'the make-up line stays date-window copy');
+
+const christmasHome = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'christmas-closure', location: null, londonDay: '2026-11-27' }),
+);
+assert(christmasHome.includes(CHRISTMAS_BREAK.text), 'homepage render includes the sentence');
+assert(!christmasHome.includes('Last class') && !christmasHome.includes('>Back<'), 'homepage render has no venue lines');
+const christmasHomeBefore = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'christmas-closure', location: null, londonDay: '2026-11-26' }),
+);
+assert(christmasHomeBefore === '', 'homepage render is empty on 26 Nov 2026');
+const christmasHomeAfter = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'christmas-closure', location: null, londonDay: '2027-01-04' }),
+);
+assert(christmasHomeAfter === '', 'homepage render is empty on 4 Jan 2027');
+const christmasPrerender = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'christmas-closure', location: aylesbury, londonDay: null }),
+);
+assert(christmasPrerender.includes('data-hh-date-slot="christmas-closure"'), 'prerender leaves a Christmas marker');
+assert(!christmasPrerender.includes(CHRISTMAS_BREAK.text), 'prerender does not bake the Christmas sentence');
+const christmasAylesbury = renderToStaticMarkup(
+  React.createElement(DateWindowOutlet, { slot: 'christmas-closure', location: aylesbury, londonDay: '2027-01-03' }),
+);
+assert(christmasAylesbury.includes(CHRISTMAS_BREAK.text), 'Aylesbury still shows the sentence on 3 Jan 2027');
+assert(christmasAylesbury.includes('>Last class<') && christmasAylesbury.includes('Mon 14 Dec'), 'Aylesbury shows its last class');
+assert(christmasAylesbury.includes('>Back<') && christmasAylesbury.includes('Mon 4 Jan'), 'Aylesbury shows when classes are back');
+assert(christmasAylesbury.includes('font-display'), 'Last class and Back use the display font');
 
 console.log('venueNotice tests passed');

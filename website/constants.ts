@@ -2,6 +2,25 @@ import { LocationData, DayOfWeek } from './types';
 
 // NOTE: The bookingWidgetUrl uses the specific TeamUp URL with the venue ID filter.
 
+/** Inclusive Europe/London window. Hidden from Mon 4 Jan 2027. */
+export const CHRISTMAS_BREAK = {
+  showFrom: '2026-11-27',
+  showUntil: '2027-01-03',
+  text: 'Christmas break: no classes at any location from Mon 21 Dec to Sun 3 Jan. Weekday classes return Mon 4 Jan, Sunday classes return Sun 10 Jan.',
+} as const;
+
+export const CHRISTMAS_BREAK_BY_SLUG: Record<string, { lastClass: string; back: string }> = {
+  aylesbury: { lastClass: 'Mon 14 Dec', back: 'Mon 4 Jan' },
+  'great-missenden': { lastClass: 'Mon 14 Dec', back: 'Mon 4 Jan' },
+  'holmer-green': { lastClass: 'Tue 15 Dec', back: 'Tue 5 Jan' },
+  bicester: { lastClass: 'Sat 19 Dec', back: 'Sat 9 Jan' },
+  wendover: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  oxford: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  marlow: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  tring: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+  sandhurst: { lastClass: 'Sun 20 Dec', back: 'Sun 10 Jan' },
+};
+
 export const LOCATIONS: LocationData[] = [
   {
     id: 'loc_bicester',
