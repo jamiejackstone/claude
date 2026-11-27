@@ -1,3 +1,4 @@
+import { CHRISTMAS_BREAK, CHRISTMAS_BREAK_BY_SLUG } from '../constants.ts';
 import type { LocationData, LocationNotice, TemporaryVenue, TemporaryVenueTime } from '../types.ts';
 
 /** Calendar date in Europe/London as YYYY-MM-DD. */
@@ -63,8 +64,17 @@ export function getActiveScheduleNotices(
   return getActiveLocationNotices(location, now).filter((notice) => notice.placement === 'schedule');
 }
 
+export function isChristmasBreakActive(now: Date = new Date()): boolean {
+  return isWithinLondonWindow(CHRISTMAS_BREAK.showFrom, CHRISTMAS_BREAK.showUntil, now);
+}
+
+export function christmasBreakVenue(slug: string | undefined): { lastClass: string; back: string } | null {
+  if (!slug) return null;
+  return CHRISTMAS_BREAK_BY_SLUG[slug] ?? null;
+}
+
 /** Phrases that belong only to date windows, so a build can assert they were not baked in. */
-export function bakedDateWindowPhrases(location: Pick<LocationData, 'address' | 'scheduleNotice' | 'locationNotes' | 'newsTicker' | 'name' | 'temporaryVenues' | 'notices'>): string[] {
+export function bakedDateWindowPhrases(location: Pick<LocationData, 'address' | 'scheduleNotice' | 'locationNotes' | 'newsTicker' | 'name' | 'slug' | 'temporaryVenues' | 'notices'>): string[] {
   const permanent = [location.address, location.scheduleNotice, location.locationNotes, location.newsTicker, location.name]
     .filter(Boolean)
     .join('\n');
@@ -86,6 +96,12 @@ export function bakedDateWindowPhrases(location: Pick<LocationData, 'address' | 
     for (const sessionDate of venue.sessionDates) add(sessionDate);
   }
   for (const notice of location.notices ?? []) add(notice.text);
+  add(CHRISTMAS_BREAK.text);
+  const closure = christmasBreakVenue(location.slug);
+  if (closure) {
+    add(closure.lastClass);
+    add(closure.back);
+  }
   return phrases;
 }
 

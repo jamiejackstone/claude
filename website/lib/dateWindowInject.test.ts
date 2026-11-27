@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { LOCATIONS } from '../constants';
+import { CHRISTMAS_BREAK, LOCATIONS } from '../constants';
 import { DateWindowOutlet } from '../components/DateWindows';
 import { dateSlotMarker, injectServedHtml } from './dateWindowInject';
 import { dateOnLondonDay, getActiveBannerNotices, getActiveScheduleNotices } from './venueNotice';
@@ -77,5 +77,48 @@ assert(!noticedLater.includes(makeup), 'the make-up line is not injected after s
 
 const twice = injectServedHtml(inside, { location: aylesbury, now: new Date('2026-11-05T18:00:00Z') });
 assert(twice.split('__HH_LONDON_DATE__').length === 2, 'the London date script is not duplicated');
+
+const homeShell = `<!DOCTYPE html><html><head><title>t</title></head><body>${dateSlotMarker('christmas-closure')}</body></html>`;
+const homeInside = injectServedHtml(homeShell, { now: dateOnLondonDay('2026-11-27') });
+assert(homeInside.includes(CHRISTMAS_BREAK.text), 'homepage injects the Christmas sentence on 27 Nov');
+assert(homeInside.includes('window.__HH_LONDON_DATE__="2026-11-27"'), 'homepage stamps 27 Nov');
+assert(!homeInside.includes('data-hh-date-slot="christmas-closure"'), 'homepage replaces the Christmas marker');
+assert(!homeInside.includes('Last class'), 'homepage inject does not add a venue line');
+const homeLastDay = injectServedHtml(homeShell, { now: dateOnLondonDay('2027-01-03') });
+assert(homeLastDay.includes(CHRISTMAS_BREAK.text), 'homepage still injects the sentence on 3 Jan 2027');
+const homeHidden = injectServedHtml(homeShell, { now: dateOnLondonDay('2027-01-04') });
+assert(!homeHidden.includes(CHRISTMAS_BREAK.text), 'homepage omits the sentence from 4 Jan 2027');
+assert(!homeHidden.includes('data-hh-date-slot='), 'an ended Christmas slot is removed');
+const homeBefore = injectServedHtml(homeShell, { now: dateOnLondonDay('2026-11-26') });
+assert(!homeBefore.includes(CHRISTMAS_BREAK.text), 'homepage omits the sentence on 26 Nov 2026');
+
+const closureShell = `${shell}${dateSlotMarker('christmas-closure')}`;
+const aylesburyClosure = injectServedHtml(closureShell, { location: aylesbury, now: dateOnLondonDay('2026-11-27') });
+assert(aylesburyClosure.includes(CHRISTMAS_BREAK.text), 'Aylesbury injects the Christmas sentence');
+assert(aylesburyClosure.includes('>Last class<') && aylesburyClosure.includes('Mon 14 Dec'), 'Aylesbury injects its last class');
+assert(aylesburyClosure.includes('>Back<') && aylesburyClosure.includes('Mon 4 Jan'), 'Aylesbury injects its return date');
+const aylesburyClient = renderToString(
+  React.createElement(DateWindowOutlet, { slot: 'christmas-closure', location: aylesbury, londonDay: '2026-11-27' }),
+);
+assert(
+  injectServedHtml(dateSlotMarker('christmas-closure'), { location: aylesbury, now: dateOnLondonDay('2026-11-27') }).endsWith(aylesburyClient),
+  'served Christmas notice matches the hydrated render',
+);
+const aylesburyClosed = injectServedHtml(closureShell, { location: aylesbury, now: dateOnLondonDay('2027-01-04') });
+assert(!aylesburyClosed.includes(CHRISTMAS_BREAK.text) && !aylesburyClosed.includes('Mon 14 Dec'), 'Aylesbury drops the notice on 4 Jan 2027');
+
+const sandhurstReal = LOCATIONS.find((location) => location.slug === 'sandhurst');
+if (!sandhurstReal) throw new Error('missing sandhurst');
+const sandhurstMakeup = 'Make-up session: Sunday 20 December, Rookies 15:00-15:30 and Rising Stars 15:30-16:15, same venue.';
+const sandhurstDuring = injectServedHtml(closureShell, { location: sandhurstReal, now: dateOnLondonDay('2026-12-10') });
+assert(sandhurstDuring.includes(CHRISTMAS_BREAK.text), 'Sandhurst shows the Christmas sentence on 10 Dec');
+assert(sandhurstDuring.includes(sandhurstMakeup), 'Sandhurst keeps the make-up notice on 10 Dec');
+assert(sandhurstDuring.includes('Sun 20 Dec') && sandhurstDuring.includes('Sun 10 Jan'), 'Sandhurst shows its own last class and return');
+const sandhurstAfterMakeup = injectServedHtml(closureShell, { location: sandhurstReal, now: dateOnLondonDay('2026-12-21') });
+assert(sandhurstAfterMakeup.includes(CHRISTMAS_BREAK.text), 'Sandhurst still shows the Christmas sentence on 21 Dec');
+assert(!sandhurstAfterMakeup.includes(sandhurstMakeup), 'the make-up notice stays hidden from 21 Dec');
+const sandhurstAfterBreak = injectServedHtml(closureShell, { location: sandhurstReal, now: dateOnLondonDay('2027-01-04') });
+assert(!sandhurstAfterBreak.includes(CHRISTMAS_BREAK.text), 'Sandhurst hides the Christmas sentence on 4 Jan 2027');
+assert(!sandhurstAfterBreak.includes(sandhurstMakeup), 'Sandhurst does not bring the make-up notice back');
 
 console.log('date window inject tests passed');

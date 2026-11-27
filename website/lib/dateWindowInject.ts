@@ -9,7 +9,7 @@ export function dateSlotMarker(slot: DateSlot): string {
   return renderToString(React.createElement(DateSlotMarker, { slot }));
 }
 
-export function renderDateWindow(slot: DateSlot, location: LocationData, londonDay: string): string {
+export function renderDateWindow(slot: DateSlot, location: LocationData | null, londonDay: string): string {
   return renderToString(React.createElement(DateWindowOutlet, { slot, location, londonDay }));
 }
 
@@ -21,7 +21,7 @@ export function injectLondonDateScript(html: string, londonDay: string): string 
 }
 
 /** Replace prerender markers with the windows that are active on londonDay. */
-export function injectDateWindows(html: string, location: LocationData, londonDay: string): string {
+export function injectDateWindows(html: string, location: LocationData | null, londonDay: string): string {
   let next = html;
   for (const slot of DATE_SLOTS) {
     const marker = dateSlotMarker(slot);
@@ -37,6 +37,6 @@ export function injectServedHtml(
 ): string {
   const day = londonDate(options.now ?? new Date());
   let next = injectLondonDateScript(html, day);
-  if (options.location) next = injectDateWindows(next, options.location, day);
+  next = injectDateWindows(next, options.location ?? null, day);
   return next;
 }

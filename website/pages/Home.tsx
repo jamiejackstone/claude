@@ -14,10 +14,13 @@ import {
   ORG_SCHEMA_ID,
 } from '../lib/locationSchema';
 import { ClassSessionList } from '../components/ClassSessionList';
+import { DateWindowOutlet } from '../components/DateWindows';
+import { useRequestLondonDate } from '../lib/requestDate';
 
 export const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(LOCATIONS);
+  const londonDay = useRequestLondonDate();
 
   const freeTrialHref = useTrackedHref('https://goteamup.com/p/6822945-hoop-heroes/memberships/166242/');
 
@@ -127,6 +130,9 @@ export const Home: React.FC = () => {
                 >
                    Book a free trial
                 </a>
+            </div>
+            <div className="relative z-30 mt-10 w-full max-w-3xl mx-auto">
+              <DateWindowOutlet slot="christmas-closure" location={null} londonDay={londonDay} />
             </div>
         </div>
       </section>
